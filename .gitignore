@@ -1,0 +1,63 @@
+# Node.js & general
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite/React
+*.local
+.env
+.env.*
+!.env.example
+
+# Firebase
+serviceAccountKey.json
+firebase-debug.log
+firestore.indexes.json.backup
+functions/node_modules/
+functions/.env
+functions/.env.*
+
+# Editor & OS files
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Misc
+coverage/
+*.tgz
+*.bak
+*.tmp
+*.old
+*.orig
+
+# Test output
+coverage/
+test-output/
+__pycache__/
+*.pyc
+
+# Misc project folders
+misc/
+MISCFILES/
+drafts/
+old/

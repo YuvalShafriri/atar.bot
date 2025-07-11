@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Meta-Graph Token Verifier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      direction: rtl;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow: auto;
+      direction: ltr;
+      text-align: left;
+    }
+    .token-count {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin: 20px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .token-count.good {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .token-count.warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    .token-count.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .context-preview {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>מאמת טוקנים של מטא-גרף</h1>
+  
+  <div id="result">טוען...</div>
+  
+  <h2>תצוגת הקשר מטא-גרף:</h2>
+  <div id="context-preview" class="context-preview">טוען...</div>
+  
+  <script type="module">
+    // Meta-graph token verification script
+    async function checkTokens() {
+      try {
+        // Fetch the meta-graph configuration
+        const metaConfigResponse = await fetch('./src/meta-graph-config.json');
+        const metaConfig = await metaConfigResponse.json();
+        
+        // Generate context similar to how meta-graph-generator.ts does it
+        let context = `מטא-גרף של כל נכסי המורשת:\n\n`;
+        context += `${metaConfig.meta_graph.title}\n`;
+        context += `${metaConfig.meta_graph.description}\n\n`;
+        
+        // Group nodes by type
+        const nodesByType = {};
+        metaConfig.meta_graph.nodes.forEach(node => {
+          if (!nodesByType[node.type]) {
+            nodesByType[node.type] = [];
+          }
+          nodesByType[node.type].push(node);
+        });
+        
+        // Add nodes by category
+        Object.entries(nodesByType).forEach(([type, nodes]) => {
+          context += `${type}:\n`;
+          nodes.forEach(node => {
+            context += `- ${node.label}${node.title ? ` (${node.title})` : ''}\n`;
+          });
+          context += '\n';
+        });
+        
+        // Add key relationships
+        context += `קשרים עיקריים:\n`;
+        metaConfig.meta_graph.edges.forEach(edge => {
+          const fromNode = metaConfig.meta_graph.nodes.find(n => n.id === edge.from);
+          const toNode = metaConfig.meta_graph.nodes.find(n => n.id === edge.to);
+          if (fromNode && toNode) {
+            context += `- ${fromNode.label} ${edge.label || '→'} ${toNode.label}\n`;
+          }
+        });
+        
+        // Estimate token count (similar to the TypeScript function)
+        const charsPerToken = 3.5; // Conservative estimate for Hebrew/English mix
+        const tokenCount = Math.ceil(context.length / charsPerToken);
+        
+        // Check if within target range
+        const minTarget = 500;
+        const maxTarget = 700;
+        const withinRange = tokenCount >= minTarget && tokenCount <= maxTarget;
+        
+        // Set status message
+        let status, statusClass;
+        if (tokenCount < minTarget) {
+          status = `Token count (${tokenCount}) is below target range (${minTarget}-${maxTarget}). Consider adding more detailed information.`;
+          statusClass = 'warning';
+        } else if (tokenCount > maxTarget) {
+          status = `Token count (${tokenCount}) exceeds target range (${minTarget}-${maxTarget}). Consider simplifying or reducing the meta-graph.`;
+          statusClass = 'error';
+        } else {
+          status = `Good! Token count (${tokenCount}) is within target range (${minTarget}-${maxTarget}).`;
+          statusClass = 'good';
+        }
+        
+        // Update UI
+        document.getElementById('result').innerHTML = `
+          <div class="token-count ${statusClass}">${status}</div>
+          <h3>פרטים:</h3>
+          <ul>
+            <li>מספר צמתים: ${metaConfig.meta_graph.nodes.length}</li>
+            <li>מספר קשרים: ${metaConfig.meta_graph.edges.length}</li>
+            <li>מספר תווים: ${context.length}</li>
+            <li>יחס תווים לטוקן: ${charsPerToken}</li>
+            <li>מספר טוקנים משוער: ${tokenCount}</li>
+          </ul>
+          <p>נכסים לפי סוג:</p>
+          <ul>
+            ${Object.entries(nodesByType).map(([type, nodes]) => 
+              `<li>${type}: ${nodes.length} פריטים</li>`
+            ).join('')}
+          </ul>
+        `;
+        
+        document.getElementById('context-preview').textContent = context;
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('result').innerHTML = `
+          <div class="token-count error">שגיאה: ${error.message}</div>
+        `;
+      }
+    }
+    
+    // Run the check when page loads
+    checkTokens();
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+{
+  "questions": [
+    {
+      "id": "asset_types",
+      "text": "אילו סוגי נכסים מוצגים בגרף?",
+      "answer": "אתרים ארכיאולוגיים, מבנים תעשייתיים, שכונות מגורים, מבני הגנה ויצירות אמנות."
+    },
+    {
+      "id": "mandate_assets",
+      "text": "איזה נכסים קשורים לתקופת המנדט?",
+      "answer": "מצודות טיגארט, תחנת רכבת העמק, מגדל המים ברגבה ומבנים בריטיים נוספים."
+    },
+    {
+      "id": "northern_region",
+      "text": "מה המשותף בין נכסי הצפון?",
+      "answer": "רובם קשורים לחקלאות, לקיבוצים ולהתיישבות, עם דגש על ערכים קהילתיים."
+    },
+    {
+      "id": "industrial_heritage",
+      "text": "איזה נכסים קשורים לתעשייה?",
+      "answer": "ממגורות דגון, האנגר 15, אולפני הרצליה ומסעדת דוניינא."
+    },
+    {
+      "id": "heritage_values",
+      "text": "אילו ערכי מורשת עיקריים מופיעים?",
+      "answer": "ערך היסטורי, ערך חברתי-קהילתי, ערך אדריכלי וערך נופי."
+    },
+    {
+      "id": "preservation_challenges",
+      "text": "מהם האתגרים בשימור הנכסים?",
+      "answer": "פיתוח עירוני, שינויי שימוש, התנגשות עם אינטרסים כלכליים ואובדן זיכרון קולקטיבי."
+    }
+  ],
+  "example_buttons": ["asset_types", "mandate_assets", "northern_region"],
+  "meta_graph": {
+    "title": "גרף מטא-נתונים - כלל הנכסים",
+    "description": "גרף מסכם המציג את הקטגוריות, הנכסים והקשרים העיקריים בין נכסי המורשת",
+    "nodes": [
+      {"id": "archaeological_theme", "label": "נכסים ארכיאולוגיים", "type": "נושא", "title": "כולל את שבטה (אתר ביזנטי בנגב), סקר מורשת גזר, ומתחם עציון גבר ביפו"},
+      {"id": "industrial_theme", "label": "נכסי תעשייה", "type": "נושא", "title": "כולל את ממגורות דגון בחיפה (סמל תעשייתי), האנגר 15 בנמל חיפה, אולפני הרצליה (תעשיית הקולנוע) ומסעדת דוניינא בעכו"},
+      {"id": "residential_theme", "label": "נכסי מגורים", "type": "נושא", "title": "כולל את שכונת קריית שמואל בטבריה (שכונת גנים), בתי בארי בתל אביב (ברוטליזם), בית חצר עות'מאני בעכו העתיקה וחצר המייסדים בזכרון יעקב"},
+      {"id": "agricultural_theme", "label": "נכסי חקלאות", "type": "נושא", "title": "כולל את פרדס גוט-גורביץ' (עדות למפגש בין תרבויות), החווה בעכו (מנוף), מגדל המים ברגבה, בית באר בראכאת ביפו ופרדסי יפו ההיסטוריים"},
+      {"id": "mandate_theme", "label": "נכסי המנדט", "type": "נושא", "title": "כולל את מצודות טיגארט (מערך מצודות משטרה בריטיות), תחנת רכבת העמק בכפר יהושע, מצודת האייל בגבעת התנ\"ך, מעבר מנדלבאום בירושלים ומשטרת בית שמש"},
+      {"id": "defense_theme", "label": "מבני הגנה", "type": "נושא", "title": "כולל את מצודות טיגארט, מגדל שמירה במעין צבי (מ-1944), אתר המחנה בניר עוז (היאחזות נח\"ל שנפגעה ב-7.10) ומערך הגנה קיבוצי"},
+      {"id": "art_culture_theme", "label": "אמנות ותרבות", "type": "נושא", "title": "כולל את התרנגול בקיבוץ געתון (ציור קיר סגרפיטו של יוסל ברגנר), מסעדת דוניינא ואולפני הרצליה כמרכז תרבותי"},
+      
+      {"id": "shivta", "label": "שבטה", "type": "נכס", "title": "יישוב ביזנטי בנגב, אתר מורשת עולמית המשקף ערכים דתיים וארכיטקטוניים"},
+      {"id": "dagon_silos", "label": "ממגורות דגון", "type": "נכס", "title": "מבנה תעשייתי בחיפה, סמל לחזון הציוני-תעשייתי בארץ ישראל"},
+      {"id": "tiger_forts", "label": "מצודות טיגארט", "type": "נכס", "title": "מערך מבנים מבוצרים שהוקמו ע״י הבריטים, המשקפים את האדריכלות הקולוניאלית"},
+      {"id": "kfar_yehoshua", "label": "תחנת רכבת העמק", "type": "נכס", "title": "בכפר יהושע - עדות לתשתיות תחבורה בתקופת המנדט ומרכז קהילתי כיום"},
+      {"id": "kiryat_shmuel", "label": "שכונת קריית שמואל", "type": "נכס", "title": "שכונת גנים בטבריה, מתוכננת בהשפעת פטריק גדס"},
+      {"id": "hangar15", "label": "האנגר 15", "type": "נכס", "title": "מבנה תעשייתי-נמלי בנמל חיפה, המשמש כיום כמרכז תרבות"},
+      
+      {"id": "northern_region", "label": "אזור הצפון", "type": "אזור", "title": "כולל 8 נכסים: בעיקר בחיפה, עכו, טבריה והגליל, מאופיין בנכסי חקלאות והתיישבות"},
+      {"id": "central_region", "label": "אזור המרכז", "type": "אזור", "title": "כולל 10 נכסים: בעיקר בתל אביב, יפו והשרון, מאופיין בנכסי תעשייה ומגורים"},
+      {"id": "southern_region", "label": "אזור הדרום", "type": "אזור", "title": "כולל 6 נכסים: בנגב ובשפלה, מאופיין בנכסים ארכיאולוגיים ומבני הגנה"},
+      {"id": "jerusalem_region", "label": "אזור ירושלים", "type": "אזור", "title": "כולל 3 נכסים: מעבר מנדלבאום, מצודת האייל וסביבותיה"},
+      
+      {"id": "historical_value", "label": "ערך היסטורי", "type": "ערך", "title": "הערך הנפוץ ביותר - 18 נכסים, מייצג אירועים מכוננים, תהליכים ותקופות משמעותיות"},
+      {"id": "social_value", "label": "ערך חברתי-קהילתי", "type": "ערך", "title": "מאפיין 12 נכסים, בעיקר בקיבוצים, שכונות ומבני ציבור שיצרו זהות קולקטיבית"},
+      {"id": "architectural_value", "label": "ערך אדריכלי", "type": "ערך", "title": "מאפיין 10 נכסים, בעיקר מבנים מנדטוריים, תעשייתיים ובתי מגורים בעלי סגנון ייחודי"},
+      {"id": "landscape_value", "label": "ערך נופי", "type": "ערך", "title": "מאפיין 8 נכסים חקלאיים ואתרים פתוחים המשקפים את הנוף הטבעי והתרבותי"},
+      {"id": "symbolic_value", "label": "ערך סמלי", "type": "ערך", "title": "מאפיין 6 נכסים המהווים סמל לאומי, אידיאולוגי או תרבותי"},
+      
+      {"id": "ottoman_period", "label": "תקופה עות'מאנית", "type": "תקופה", "title": "4 נכסים מהמאה ה-19 עד 1917, כולל בית חצר בעכו ובית באר בראכאת"},
+      {"id": "british_mandate", "label": "תקופת המנדט", "type": "תקופה", "title": "8 נכסים מ-1917 עד 1948, כולל מצודות טיגארט, תחנות רכבת ותשתיות"},
+      {"id": "israeli_period", "label": "תקופה ישראלית", "type": "תקופה", "title": "12 נכסים מ-1948 ואילך, כולל קיבוצים, שכונות מגורים ומבני תעשייה"},
+      {"id": "byzantine_period", "label": "תקופה ביזנטית", "type": "תקופה", "title": "נכס אחד - שבטה, המשקף אדריכלות, אורח חיים ודת מהתקופה הביזנטית"},
+      
+      {"id": "preservation_challenge", "label": "אתגרי שימור", "type": "נושא", "title": "כולל התנגשות עם פיתוח עירוני, אינטרסים כלכליים ואובדן זיכרון קולקטיבי"},
+      {"id": "kibbutz_movement", "label": "התנועה הקיבוצית", "type": "תנועה", "title": "קשורה ל-4 נכסים, כולל מגדל השמירה במעין צבי, התרנגול בגעתון והיאחזות ניר עוז"},
+      
+      {"id": "gezerRegionalSurvey_v4", "label": "מועצה אזורית גזר", "type": "נכס", "title": "המסגרת המוניציפלית והמרחבית של הסקר"},
+      {"id": "kiryatShmuel", "label": "שכונת קריית שמואל", "type": "נכס", "title": "שכונת גנים מודרניסטית בטבריה"},
+      {"id": "dagonSilos_unified", "label": "ממגורות דגון", "type": "נכס", "title": "ממגורת מעבר לתבואה, אייקון אדריכלי של חיפה"},
+      {"id": "duniyeRestaurant_unified", "label": "מסעדת דוניינא", "type": "נכס", "title": "מסעדה על קו החוף, הבנויה על תשתית היסטורית"},
+      {"id": "etzionGever", "label": "מתחם עציון גבר", "type": "נכס", "title": "מתחם עציון גבר, יפו"}
+    ],
+    "edges": [
+      {"from": "archaeological_theme", "to": "historical_value", "label": "מאופיינים ב"},
+      {"from": "industrial_theme", "to": "central_region", "label": "מרוכזים ב"},
+      {"from": "residential_theme", "to": "social_value", "label": "מייצגים"},
+      {"from": "agricultural_theme", "to": "northern_region", "label": "נפוצים ב"},
+      {"from": "mandate_theme", "to": "british_mandate", "label": "שייכים ל"},
+      {"from": "defense_theme", "to": "architectural_value", "label": "בעלי"},
+      {"from": "british_mandate", "to": "architectural_value", "label": "הותיר"},
+      {"from": "israeli_period", "to": "social_value", "label": "פיתח"},
+      {"from": "northern_region", "to": "agricultural_theme", "label": "עשיר ב"},
+      {"from": "central_region", "to": "industrial_theme", "label": "מתאפיין ב"},
+      {"from": "southern_region", "to": "archaeological_theme", "label": "מכיל"},
+      {"from": "mandate_theme", "to": "defense_theme", "label": "כולל"},
+      {"from": "ottoman_period", "to": "architectural_value", "label": "השאיר"},
+      {"from": "art_culture_theme", "to": "social_value", "label": "מקדם"},
+      
+      {"from": "dagon_silos", "to": "industrial_theme", "label": "שייך ל"},
+      {"from": "shivta", "to": "archaeological_theme", "label": "מייצג"},
+      {"from": "tiger_forts", "to": "mandate_theme", "label": "חלק מ"},
+      {"from": "tiger_forts", "to": "defense_theme", "label": "משמש כ"},
+      {"from": "kfar_yehoshua", "to": "british_mandate", "label": "נבנה ב"},
+      {"from": "hangar15", "to": "symbolic_value", "label": "מייצג"},
+      {"from": "kiryat_shmuel", "to": "residential_theme", "label": "דוגמה ל"},
+      
+      {"from": "preservation_challenge", "to": "urban_development", "label": "מתנגש עם"},
+      {"from": "kibbutz_movement", "to": "social_value", "label": "מדגישה"},
+      {"from": "israeli_period", "to": "kibbutz_movement", "label": "כוללת את"}
+    ]
+  }
+}
