@@ -326,11 +326,11 @@ interface GraphDashboardProps {
     allGraphData: Record<string, any>;
     thematicGraphData: any;
     nodeColors: Record<string, any>;
+    selectedGraph?: string;
 }
 
-const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicGraphData, nodeColors }) => {
-    const [assetId, setAssetId] = useState<string>('');
-    const [assetKeys, setAssetKeys] = useState<string[]>([]);
+const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicGraphData, nodeColors, selectedGraph }) => {
+    const [assetId, setAssetId] = useState<string>(selectedGraph || '');
     const [infoBoxContent, setInfoBoxContent] = useState<string>('');
     const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});
     const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
@@ -347,8 +347,14 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
             })
             .catch(() => {
                 setRandomQueries({});
-            });
-    }, []);
+            });    }, []);
+
+    // Update assetId when selectedGraph prop changes
+    useEffect(() => {
+        if (selectedGraph && selectedGraph !== assetId) {
+            setAssetId(selectedGraph);
+        }
+    }, [selectedGraph]);
 
     const askGraphLLM = async (question: string, contextData: any): Promise<string> => {
         // בדוק אם יש תשובה מוכנה בבנק (התאמה מדויקת בלבד)
@@ -386,16 +392,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
     };
 
     const graphContainerRef = useRef<HTMLDivElement | null>(null);
-    const networkRef = useRef<any>(null);
-
-    useEffect(() => {
-        const keys = Object.keys(allGraphData);
-        keys.sort((a, b) => {
-            const cycleA = parseInt(allGraphData[a].workshopCycle) || Infinity;
-            const cycleB = parseInt(allGraphData[b].workshopCycle) || Infinity;
-            return cycleA !== cycleB ? cycleA - cycleB : allGraphData[a].title.localeCompare(allGraphData[b].title, 'he');
-        });
-        setAssetKeys(keys);
+    const networkRef = useRef<any>(null);    useEffect(() => {
+        // Default to all_assets when component loads
         setAssetId('all_assets');
     }, [allGraphData]);
 
@@ -583,20 +581,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
 
     // Define description variable
     const description = assetId === 'all_assets' ? 
-   'כאן ניתן שאול שאלות כלליות על אוסף הערכות הנכסים ( 24 נכסים)' : assetId === 'thematic_graph' ? 'גרף נושאים' : allGraphData[assetId]?.description || '';
-
-    return (
+   'כאן ניתן שאול שאלות כלליות על אוסף הערכות הנכסים ( 24 נכסים)' : assetId === 'thematic_graph' ? 'גרף המתאר את התימות העיקריות  העולות מאוסף הנכסים' : allGraphData[assetId]?.description || '';    return (
         <div className="bg-white p-4 rounded-lg shadow">
-            {/* דרופדאון בחירת נכס */}
-            <div className="flex mb-2">
-                <select dir="rtl" id="asset-select" className="p-2 border rounded" value={assetId} onChange={(e) => setAssetId(e.target.value)}>
-                    <option value="all_assets">כלל הנכסים</option>
-                    <option value="thematic_graph">גרף נושאים</option>
-                    {assetKeys.map(key => (
-                        <option key={key} value={key}>{allGraphData[key].title}</option>
-                    ))}
-                </select>
-            </div>
             <span id="graph-description" className="mb-2">{description}</span>
 
             <AiSpot

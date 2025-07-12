@@ -173,41 +173,77 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
 
 // Dashboard Page with the existing GraphDashboard component
 const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphData: any; nodeColors: Record<string, any>}> = ({ allGraphData, thematicGraphData, nodeColors }) => {
-    const [showInfo, setShowInfo] = useState(true);
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [selectedGraph, setSelectedGraph] = useState('all_assets');
+
+    const handleGraphChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedGraph(event.target.value);
+    };
 
     return (
         <div id="dashboard" className="page active">
-            <div className="relative">
-                {showInfo && (
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4 relative">
-                        <button
-                            className="absolute top-2 left-2 text-xs text-blue-700 underline"
-                            onClick={() => setShowInfo(false)}
-                            aria-label="הסתר הסבר"
-                        >
-                            הסתר הסבר
-                        </button>
-                        <p className="text-blue-700">
-                            הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות .<br/>
-                            כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
-                        </p>
-                    </div>
-                )}
-                {!showInfo && (
-                    <button
-                        className="mb-2 text-xs text-blue-700 underline"
-                        onClick={() => setShowInfo(true)}
-                        aria-label="הצג הסבר"
+            <div className="flex items-center mb-0 relative" style={{ minHeight: 0 }}>
+                {/* Container for the icon and dropdown */}
+                <div className="flex items-center">
+                    
+                    {/* The original select element */}
+                    <select dir="rtl" id="asset-select" className="p-2 border rounded" value={selectedGraph} onChange={handleGraphChange}>
+                        <option value="all_assets">כלל הנכסים</option>
+                        <option value="thematic_graph">גרף נושאים</option>
+                        <option value="herzliyaStudios">אולפני הרצליה</option>
+                        <option value="bateiBairy">בתי בארי, תל אביב</option>
+                        <option value="haifaHangar15">האנגר 15, נמל חיפה</option>
+                        <option value="zichronFoundersCourt">חצר המייסדים 37, זכרון יעקב</option>
+                        <option value="sheferAlley">מבנה בסמטת שפר, תל אביב</option>
+                        <option value="regbaWaterTower">מגדל המים, מושב רגבה</option>
+                        <option value="mandelbaumGate">מעבר מנדלבאום, ירושלים</option>
+                        <option value="beitShemeshPolice">משטרת בית שמש (מצודת טיגארט)</option>
+                        <option value="gezerRegionalSurvey_v4">סקר מורשת, מ.א. גזר (כולל ערכים)</option>
+                        <option value="akkoCourtyardHouse">בית חצר עות'מאני בעכו העתיקה</option>
+                        <option value="manofFarm">החווה החקלאית בעכו(מנוף)</option>
+                        <option value="roosterGaaton">התרנגול, געתון</option>
+                        <option value="einTzviTower">מגדל שמירה 2, מעין צבי</option>
+                        <option value="duniyeRestaurant_unified">מסעדת דוניינא, עכו (ניתוח מאוחד)</option>
+                        <option value="tegertForts">מצודות טיגארט</option>
+                        <option value="givatHatanach">מצודת האייל, גבעת התנ"ך</option>
+                        <option value="etzionGever">מתחם עציון גבר, יפו</option>
+                        <option value="pardesGutGurevich">פרדס גוט-גורביץ'</option>
+                        <option value="kiryatShmuel">שכונת קריית שמואל, טבריה</option>
+                        <option value="kfarYehoshua_unified">תחנת רכבת העמק, כפר יהושע (שני דוחות)</option>
+                        <option value="nirOzCamp_v2">אתר המחנה בניר עוז</option>
+                        <option value="bayaratBarakat_v2">בית באר בראכאת, יפו</option>
+                        <option value="dagonSilos_unified">ממגורות דגון, חיפה (ניתוח מורחב)</option>
+                        <option value="shivta">שבטה</option>
+                    </select>
+                    {/* Info icon with tooltip, to the left of the select */}
+                    <div
+                        className="relative flex items-center mr-2"
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                        onClick={() => setShowTooltip((v) => !v)}
+                        tabIndex={0}
+                        onFocus={() => setShowTooltip(true)}
+                        onBlur={() => setShowTooltip(false)}
+                        style={{ cursor: 'pointer' }}
                     >
-                        הצג הסבר
-                    </button>
-                )}
+                        <span className="text-blue-700" style={{ fontSize: 22, fontFamily: 'inherit', display: 'inline-block' }} aria-label="הסבר על הגרפים">
+                            ℹ️
+                        </span>
+                        {showTooltip && (
+                            <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs" style={{ direction: 'rtl', whiteSpace: 'normal' }}>
+                                הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.<br/>
+                                כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
             <div className="graph-dashboard-max">
                 <GraphDashboard 
                     allGraphData={allGraphData}
                     thematicGraphData={thematicGraphData}
                     nodeColors={nodeColors}
+                    selectedGraph={selectedGraph}
                 />
             </div>
         </div>
