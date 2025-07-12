@@ -173,21 +173,43 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
 
 // Dashboard Page with the existing GraphDashboard component
 const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphData: any; nodeColors: Record<string, any>}> = ({ allGraphData, thematicGraphData, nodeColors }) => {
+    const [showInfo, setShowInfo] = useState(true);
+
     return (
         <div id="dashboard" className="page active">
-            <h2 className="text-2xl font-bold mb-4 mt-1 text-gray-900">לוח תוצרים: גרפי ידע של הנכסים</h2>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
-                <p className="text-blue-700">
-                 הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות .<br/>
-                    כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
-                </p>
+            <div className="relative">
+                {showInfo && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4 relative">
+                        <button
+                            className="absolute top-2 left-2 text-xs text-blue-700 underline"
+                            onClick={() => setShowInfo(false)}
+                            aria-label="הסתר הסבר"
+                        >
+                            הסתר הסבר
+                        </button>
+                        <p className="text-blue-700">
+                            הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות .<br/>
+                            כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
+                        </p>
+                    </div>
+                )}
+                {!showInfo && (
+                    <button
+                        className="mb-2 text-xs text-blue-700 underline"
+                        onClick={() => setShowInfo(true)}
+                        aria-label="הצג הסבר"
+                    >
+                        הצג הסבר
+                    </button>
+                )}
             </div>
-            
-            <GraphDashboard 
-                allGraphData={allGraphData}
-                thematicGraphData={thematicGraphData}
-                nodeColors={nodeColors}
-            />
+            <div className="graph-dashboard-max">
+                <GraphDashboard 
+                    allGraphData={allGraphData}
+                    thematicGraphData={thematicGraphData}
+                    nodeColors={nodeColors}
+                />
+            </div>
         </div>
     );
 };
