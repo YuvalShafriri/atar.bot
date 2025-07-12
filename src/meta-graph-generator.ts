@@ -45,7 +45,12 @@ export function getPresetQuestions(): PresetQuestion[] {
  * Gets example button questions for the UI
  */
 export function getExampleQuestions(): string[] {
-    return metaGraphConfig.example_buttons;
+    // Ensure we're returning exactly the values specified in the config
+    if (Array.isArray(metaGraphConfig.example_buttons)) {
+        return metaGraphConfig.example_buttons;
+    }
+    // Fallback to default questions if config is invalid
+    return ["asset_types", "heritage_values", "total_assets"];
 }
 
 /**

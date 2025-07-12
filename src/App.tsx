@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import GraphDashboard from '../GraphDashboard';
+import GraphDashboard from './components/Graph/GraphDashboard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { geminiService } from './services/gemini';
 import { UI_MESSAGES } from './utils/constants';
