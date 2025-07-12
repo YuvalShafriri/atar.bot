@@ -1,22 +1,23 @@
-# Node.js & general
+# Node.js & Vite/React
 node_modules/
 dist/
 build/
-*.log
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Vite/React
 *.local
 .env
 .env.*
 !.env.example
 
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+pglite-debug.log
+firebase-debug.log
+
 # Firebase
 serviceAccountKey.json
-firebase-debug.log
 firestore.indexes.json.backup
 functions/node_modules/
 functions/.env
@@ -27,37 +28,29 @@ functions/.env.*
 !.vscode/extensions.json
 .idea/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Mac system files
-.AppleDouble
-.LSOverride
-
-# Windows system files
 Thumbs.db
-ehthumbs.db
 Desktop.ini
 
-# Misc
-coverage/
-*.tgz
+# Backups, Copies, and Archives
+* - Copy.*
 *.bak
 *.tmp
 *.old
 *.orig
+*.zip
+*.txt
+
+# Unnecessary Folders
+MISCFILES/
+bk/
+"firease version/"
+icomos/
+misc/
+drafts/
+old/
 
 # Test output
 coverage/
 test-output/
 __pycache__/
 *.pyc
-
-# Misc project folders
-misc/
-MISCFILES/
-drafts/
-old/
