@@ -1,12 +1,14 @@
 {
-  "name": "atar-atar.bot",
-  "private": true,
-  "version": "0.0.0",
+  "name": "atar-bot",
+  "version": "1.0.0",
+  "description": "ATAR Cultural Heritage AI Assistant",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "vite --config config/vite.config.ts",
+    "build": "vite build --config config/vite.config.ts",
+    "preview": "vite preview --config config/vite.config.ts",
+    "lint": "eslint src --ext ts,tsx",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "latest",
@@ -18,7 +20,16 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.3",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
-  }
+  },
+  "keywords": ["react", "typescript", "ai", "chatbot", "cultural-heritage"],
+  "author": "Your Name",
+  "license": "MIT"
 }
