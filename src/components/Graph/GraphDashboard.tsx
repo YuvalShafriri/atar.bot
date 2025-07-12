@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getPresetAnswer, getPresetQuestions, getExampleQuestions } from '../../meta-graph-generator';
-import { AiSpot } from '../common/AiSpot';
-import { DraggableInfoBox } from '../common/DraggableInfoBox';
 
 declare const vis: any;
 
@@ -148,6 +146,181 @@ ${contextData}
     return text;
 }
 
+// AiSpot Component - עם streaming effect לחוויית משתמש טובה יותר
+interface AiSpotProps {
+    spotId: string;
+    onQuery: (input: string) => Promise<string>;
+    placeholder?: string;
+    exampleQueries?: string[];
+}
+
+const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries }) => {
+    const [input, setInput] = useState<string>('');
+    const [output, setOutput] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    const config = {
+        dashboard: {
+            title: 'שאל את הבוט על הנכס',
+            description: 'קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף.',
+            placeholder: placeholder || 'שאל על המידע שבגרף הידע...'
+        }
+    }[spotId] ?? {
+        title: '',
+        description: '',
+        placeholder: ''
+    };
+
+    const handleAsk = async (customInput?: string) => {
+        const q = typeof customInput === 'string' ? customInput : input;
+        if (!q.trim() || isLoading) return;
+        setIsLoading(true);
+        setOutput('');
+        
+        try {
+            const answer = await onQuery(q);
+            // הצג תשובה עם אפקט typing
+            const words = answer.split(' ');
+            let currentText = '';
+            for (let i = 0; i < words.length; i++) {
+                currentText += words[i] + ' ';
+                setOutput(currentText);
+                await new Promise(resolve => setTimeout(resolve, 30));
+            }
+        } catch (error) {
+            console.error("AI Query Error:", error);
+            setOutput('שגיאה בקבלת תשובה מהבוט.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleAsk();
+        }
+    };
+
+    return (
+        <div className="ai-spot mt-2">
+            <div className="flex items-baseline gap-2 mb-2">
+                <h4 className="font-bold text-lg text-blue-800">{config.title}</h4>
+                <p className="text-sm text-gray-600">{config.description}</p>
+            </div>
+            <div className="flex flex-col gap-1 mt-1">
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={config.placeholder}
+                        className="flex-grow p-2 border rounded bg-white text-gray-900 placeholder:text-gray-500"
+                        disabled={isLoading}
+                    />
+                    <button
+                        onClick={() => handleAsk()}
+                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        disabled={isLoading || !input.trim()}
+                    >
+                        {isLoading ? 'חושב...' : 'שאל'}
+                    </button>
+                </div>
+                {/* כפתורי שאלות לדוגמה */}
+                {exampleQueries && exampleQueries.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                        {exampleQueries.map((q, i) => (
+                            <button
+                                key={i}
+                                className="px-2 py-1 rounded border text-xs bg-gray-100 border-gray-300 hover:bg-blue-100"
+                                style={{ fontSize: '0.85em' }}
+                                onClick={() => handleAsk(q)}
+                                disabled={isLoading}
+                            >
+                                {q}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {/* תיבת התשובה */}
+            <div className="p-3 mt-2 bg-white rounded border border-gray-200 min-h-[60px] whitespace-pre-wrap">{output}</div>
+        </div>
+    );
+};
+
+
+// DraggableInfoBox Component - מעוצב כמו בקובץ themes.html
+type DraggableInfoBoxProps = { content: string };
+const DraggableInfoBox: React.FC<DraggableInfoBoxProps> = ({ content }) => {
+    const boxRef = useRef<HTMLDivElement | null>(null);
+    const [isVisible, setIsVisible] = useState<boolean>(false);
+
+    useEffect(() => {
+        setIsVisible(!!content);
+    }, [content]);
+
+    useEffect(() => {
+        const el = boxRef.current;
+        if (!el || !isVisible) return;
+
+        // הגדרת סגנון התיבה
+        el.style.position = 'absolute';
+        el.style.zIndex = '1000';
+        el.style.cursor = 'grab';
+        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+        
+        // הצבה במיקום ראשוני סביר
+        if (!el.style.left && !el.style.top) {
+            el.style.left = '20px';
+            el.style.top = '20px';
+        }
+
+        let isDragging = false;
+        let offsetX = 0, offsetY = 0;
+
+        const onMouseDown = (e: MouseEvent) => {
+            // רק אם לחיצה לא על כפתור הסגירה
+            if ((e.target as HTMLElement).id !== 'closeinfo') {
+                isDragging = true;
+                const htmlEl = el as HTMLElement;
+                offsetX = e.clientX - htmlEl.offsetLeft;
+                offsetY = e.clientY - htmlEl.offsetTop;
+                htmlEl.style.cursor = 'grabbing';
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        };
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (isDragging) {
+                (el as HTMLElement).style.left = `${e.clientX - offsetX}px`;
+                (el as HTMLElement).style.top = `${e.clientY - offsetY}px`;
+            }
+        };
+
+        const onMouseUp = () => {
+            isDragging = false;
+            (el as HTMLElement).style.cursor = 'grab';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        el.addEventListener('mousedown', onMouseDown);
+        return () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            el.removeEventListener('mousedown', onMouseDown);
+        };
+    }, [isVisible]);
+
+    if (!isVisible) return null;
+
+    return (
+        <div id="infoBox" ref={boxRef} dangerouslySetInnerHTML={{ __html: content }} />
+    );
+};
+
 // Graph Dashboard Component
 interface GraphDashboardProps {
     allGraphData: Record<string, any>;
@@ -157,24 +330,22 @@ interface GraphDashboardProps {
 
 const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicGraphData, nodeColors }) => {
     const [assetId, setAssetId] = useState<string>('');
+    const [assetKeys, setAssetKeys] = useState<string[]>([]);
     const [infoBoxContent, setInfoBoxContent] = useState<string>('');
     const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});
     const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
-    const [assetKeys, setAssetKeys] = useState<string[]>([]);
-    
-    // Debug log when selectedQueries changes
+
+    // Fetch graph-queries.json on mount
     useEffect(() => {
-        console.log('selectedQueries updated:', selectedQueries);
-    }, [selectedQueries]);    // Fetch graph-queries.json on mount
-    useEffect(() => {
-        // Import directly from the data folder to ensure we get the right file
-        import('../../../data/graph-queries.json')
-            .then(module => {
-                console.log('Successfully loaded queries from graph-queries.json:', Object.keys(module.default));
-                setRandomQueries(module.default);
+        fetch('data/graph-queries.json')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch graph-queries.json');
+                return res.json();
             })
-            .catch(error => {
-                console.error("Error importing graph-queries.json:", error);
+            .then(json => {
+                setRandomQueries(json);
+            })
+            .catch(() => {
                 setRandomQueries({});
             });
     }, []);
@@ -191,7 +362,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
             const metaGraphConfig = await import('../../meta-graph-config.json');
             const meta = metaGraphConfig.default.meta_graph;
             // בנה הקשר טקסטואלי קומפקטי
-            let metaContext = `${meta.title}\n${meta.description}\n\nNodes:\n`;
+            let metaContext = `${meta.title}\n${meta.description}\n\nצמתים:\n`;
             meta.nodes.forEach((n: any) => {
                 metaContext += `- ${n.label} (${n.type}): ${n.title}\n`;
             });
@@ -215,8 +386,9 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
     };
 
     const graphContainerRef = useRef<HTMLDivElement | null>(null);
-    const networkRef = useRef<any>(null);    useEffect(() => {
-        // Sort keys by workshopCycle and then alphabetically
+    const networkRef = useRef<any>(null);
+
+    useEffect(() => {
         const keys = Object.keys(allGraphData);
         keys.sort((a, b) => {
             const cycleA = parseInt(allGraphData[a].workshopCycle) || Infinity;
@@ -225,43 +397,37 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
         });
         setAssetKeys(keys);
         setAssetId('all_assets');
-    }, [allGraphData]);    useEffect(() => {
+    }, [allGraphData]);
+
+    useEffect(() => {
         // When assetId changes, pick 3 random queries for the selected graph
         let queries: string[] = [];
-        console.log('Current assetId:', assetId);
         
         // --- Use meta-graph questions for all_assets ---
         if (assetId === 'all_assets') {
             const metaQuestions = getPresetQuestions();
             const exampleIds = getExampleQuestions();
-            queries = exampleIds.map((id: string) => {
-                const question = metaQuestions.find((q: { id: string; }) => q.id === id);
+            queries = exampleIds.map(id => {
+                const question = metaQuestions.find(q => q.id === id);
                 return question ? question.text : '';
-            }).filter((text: string) => text !== '');
-            console.log('Meta questions for all_assets:', queries);
+            }).filter(text => text !== '');
         }
         else if (assetId && randomQueries[assetId]) {
             queries = randomQueries[assetId] as string[];
-            console.log(`Using queries for ${assetId}:`, queries);
         } else if (randomQueries["default"]) {
             queries = randomQueries["default"] as string[];
-            console.log(`No specific queries found for ${assetId}, using defaults:`, queries);
         }
         
         if (queries && queries.length > 0) {
             // For all_assets use meta-graph questions as-is, for others shuffle and pick 3
             if (assetId === 'all_assets') {
                 setSelectedQueries(queries);
-                console.log('Using all questions for all_assets:', queries);
             } else {
-                // Match the exact behavior of the old version - shuffling and picking 3
                 const shuffled = [...queries].sort(() => 0.5 - Math.random());
                 setSelectedQueries(shuffled.slice(0, 3));
-                console.log('Shuffled and selected 3 queries:', shuffled.slice(0, 3));
             }
         } else {
             setSelectedQueries([]);
-            console.log('No queries selected');
         }
     }, [assetId, randomQueries]);
 
@@ -380,7 +546,6 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
                     const meaning = clickedNode.meaning || '';
                     // Always show description: prefer description, then meaning, then title
                     let content = `
-
                         <div style="font-family: Calibri, Assistant, sans-serif; background: #ffffff; border: 1px solid #ccc; padding: 8px; 
                             line-height: 1.1rem; direction: rtl; text-align: right; max-width: 280px; font-size: 1.0rem;">
                             <span id="closeinfo" style="float: left; cursor: pointer; font-weight: bold;">✖</span>
@@ -422,7 +587,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
 
     return (
         <div className="bg-white p-4 rounded-lg shadow">
-            {/* Asset selection dropdown */}            <div className="flex mb-2">
+            {/* דרופדאון בחירת נכס */}
+            <div className="flex mb-2">
                 <select dir="rtl" id="asset-select" className="p-2 border rounded" value={assetId} onChange={(e) => setAssetId(e.target.value)}>
                     <option value="all_assets">כלל הנכסים</option>
                     <option value="thematic_graph">גרף נושאים</option>
@@ -431,10 +597,12 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
                     ))}
                 </select>
             </div>
-            <span id="graph-description" className="mb-2">{description}</span>            <AiSpot
+            <span id="graph-description" className="mb-2">{description}</span>
+
+            <AiSpot
                 spotId="dashboard"
                 onQuery={handleQuery}
-                key={`${assetId}-${selectedQueries.length > 0 ? selectedQueries[0] : 'none'}`} // Create a unique key to force re-render
+                key={assetId} // Changed key to assetId to reset AiSpot on asset change
                 exampleQueries={selectedQueries}
             />
             <div id="graph-container" ref={graphContainerRef} className="min-h-[500px] border rounded mt-4" style={{ display: (assetId === 'all_assets' ? 'none' : 'block') }}></div>
