@@ -124,10 +124,10 @@ ${contextData}
         console.error("Error from backend proxy:", errorBody);
         const errorMessage = errorBody.details || "שגיאה לא ידועה מהשרת.";
         return `שגיאה בקבלת תשובה מהבוט: ${errorMessage}`;
-    }
-
-    const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+    }    const result = await response.json();
+    const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+    // Clean up LLM response: trim whitespace, normalize line breaks, and remove any trailing whitespace
+    const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
     
     // שמירה בקיצ'ינג
     responseCache.set(cacheKey, text);
@@ -157,13 +157,11 @@ interface AiSpotProps {
 const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries }) => {
     const [input, setInput] = useState<string>('');
     const [output, setOutput] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-
-    const config = {
+    const [isLoading, setIsLoading] = useState<boolean>(false);    const config = {
         dashboard: {
-            title: 'שאל את הבוט על הנכס',
-            description: 'קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף.',
-            placeholder: placeholder || 'שאל על המידע שבגרף הידע...'
+            title: '',
+            description: '',
+            placeholder: placeholder || 'שאל את הבוט על הנכס - קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף...'
         }
     }[spotId] ?? {
         title: '',
@@ -175,15 +173,15 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
         const q = typeof customInput === 'string' ? customInput : input;
         if (!q.trim() || isLoading) return;
         setIsLoading(true);
-        setOutput('');
-        
-        try {
+        setOutput('');        try {
             const answer = await onQuery(q);
-            // הצג תשובה עם אפקט typing
-            const words = answer.split(' ');
+            // הצג תשובה עם אפקט typing - trim and clean the response thoroughly
+            const cleanAnswer = answer.trim().replace(/\s+$/, ''); // Remove any trailing whitespace
+            const words = cleanAnswer.split(' ').filter(word => word.length > 0); // Filter out empty strings
             let currentText = '';
             for (let i = 0; i < words.length; i++) {
-                currentText += words[i] + ' ';
+                currentText += words[i];
+                if (i < words.length - 1) currentText += ' '; // Add space only between words, not after last word
                 setOutput(currentText);
                 await new Promise(resolve => setTimeout(resolve, 30));
             }
@@ -199,15 +197,9 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
         if (e.key === 'Enter') {
             handleAsk();
         }
-    };
-
-    return (
-        <div className="ai-spot mt-2">
-            <div className="flex items-baseline gap-2 mb-2">
-                <h4 className="font-bold text-lg text-blue-800">{config.title}</h4>
-                <p className="text-sm text-gray-600">{config.description}</p>
-            </div>
-            <div className="flex flex-col gap-1 mt-1">
+    };    return (
+        <div className="ai-spot mt-1">
+            <div className="flex flex-col gap-1">
                 <div className="flex gap-2">
                     <input
                         type="text"
@@ -215,12 +207,12 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={config.placeholder}
-                        className="flex-grow p-2 border rounded bg-white text-gray-900 placeholder:text-gray-500"
+                        className="flex-grow p-2 border rounded bg-white text-gray-900 placeholder:text-gray-500 text-sm"
                         disabled={isLoading}
                     />
                     <button
                         onClick={() => handleAsk()}
-                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="px-3 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
                         disabled={isLoading || !input.trim()}
                     >
                         {isLoading ? 'חושב...' : 'שאל'}
@@ -228,12 +220,12 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                 </div>
                 {/* כפתורי שאלות לדוגמה */}
                 {exampleQueries && exampleQueries.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                         {exampleQueries.map((q, i) => (
                             <button
                                 key={i}
                                 className="px-2 py-1 rounded border text-xs bg-gray-100 border-gray-300 hover:bg-blue-100"
-                                style={{ fontSize: '0.85em' }}
+                                style={{ fontSize: '0.75em' }}
                                 onClick={() => handleAsk(q)}
                                 disabled={isLoading}
                             >
@@ -241,10 +233,11 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                             </button>
                         ))}
                     </div>
-                )}
-            </div>
-            {/* תיבת התשובה */}
-            <div className="p-3 mt-2 bg-white rounded border border-gray-200 min-h-[60px] whitespace-pre-wrap">{output}</div>
+                )}            </div>            {/* תיבת התשובה */}
+            {output && (
+                <div className="px-2 pt-2 pb-1 mt-1 bg-white rounded border border-gray-200 text-sm leading-tight"
+                     style={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{output}</div>
+            )}
         </div>
     );
 };
@@ -582,8 +575,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
     // Define description variable
     const description = assetId === 'all_assets' ? 
    'כאן ניתן שאול שאלות כלליות על אוסף הערכות הנכסים ( 24 נכסים)' : assetId === 'thematic_graph' ? 'גרף המתאר את התימות העיקריות  העולות מאוסף הנכסים' : allGraphData[assetId]?.description || '';    return (
-        <div className="bg-white p-4 rounded-lg shadow">
-            <span id="graph-description" className="mb-2">{description}</span>
+        <div className="bg-white p-3 rounded-lg shadow">
+            <div id="graph-description" className="text-xs text-gray-600">{description}</div>
 
             <AiSpot
                 spotId="dashboard"
@@ -591,7 +584,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, thematicG
                 key={assetId} // Changed key to assetId to reset AiSpot on asset change
                 exampleQueries={selectedQueries}
             />
-            <div id="graph-container" ref={graphContainerRef} className="min-h-[500px] border rounded mt-4" style={{ display: (assetId === 'all_assets' ? 'none' : 'block') }}></div>
+            <div id="graph-container" ref={graphContainerRef} className="min-h-[500px] border rounded mt-2" style={{ display: (assetId === 'all_assets' ? 'none' : 'block') }}></div>
             <DraggableInfoBox content={infoBoxContent} />
         </div>
     );

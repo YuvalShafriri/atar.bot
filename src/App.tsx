@@ -4,6 +4,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { geminiService } from './services/gemini';
 import { UI_MESSAGES } from './utils/constants';
 import './styles/globals.css';
+import infoIcon from './images/i.png';
 
 declare const vis: any;
 
@@ -226,12 +227,15 @@ const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphD
                         onBlur={() => setShowTooltip(false)}
                         style={{ cursor: 'pointer' }}
                     >
-                        <span className="text-blue-700" style={{ fontSize: 22, fontFamily: 'inherit', display: 'inline-block' }} aria-label="הסבר על הגרפים">
-                            ℹ️
-                        </span>
+                        <img
+                            src={infoIcon}
+                            alt="הסבר על הגרפים"
+                            style={{ width: 22, height: 22, display: 'inline-block' }}
+                            aria-label="הסבר על הגרפים"
+                        />
                         {showTooltip && (
                             <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs" style={{ direction: 'rtl', whiteSpace: 'normal' }}>
-                                הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.<br/>
+                                הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.<br />
                                 כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
                             </div>
                         )}

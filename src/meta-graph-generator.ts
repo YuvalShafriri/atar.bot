@@ -80,7 +80,7 @@ export function getPresetAnswer(question: string): string | null {
     const found = metaGraphConfig.questions.find(q =>
         q.text.trim().replace(/[?؟]/g, '') === normalized
     );
-    return found ? found.answer : null;
+    return found ? found.answer.trim() : null;
 }
 
 /**
