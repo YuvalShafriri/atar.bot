@@ -173,7 +173,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
 };
 
 // Dashboard Page with the existing GraphDashboard component
-const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphData: any; nodeColors: Record<string, any>}> = ({ allGraphData, thematicGraphData, nodeColors }) => {
+const DashboardPage: React.FC<{ allGraphData: Record<string, any>; thematicGraphData: any; nodeColors: Record<string, any> }> = ({ allGraphData, thematicGraphData, nodeColors }) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [selectedGraph, setSelectedGraph] = useState('all_assets');
 
@@ -186,7 +186,7 @@ const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphD
             <div className="flex items-center mb-0 relative" style={{ minHeight: 0 }}>
                 {/* Container for the icon and dropdown */}
                 <div className="flex items-center">
-                    
+
                     {/* The original select element */}
                     <select dir="rtl" id="asset-select" className="p-2 border rounded" value={selectedGraph} onChange={handleGraphChange}>
                         <option value="all_assets">כלל הנכסים</option>
@@ -243,7 +243,7 @@ const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphD
                 </div>
             </div>
             <div className="graph-dashboard-max">
-                <GraphDashboard 
+                <GraphDashboard
                     allGraphData={allGraphData}
                     thematicGraphData={thematicGraphData}
                     nodeColors={nodeColors}
@@ -256,42 +256,127 @@ const DashboardPage: React.FC<{allGraphData: Record<string, any>; thematicGraphD
 
 type SpotId = 'home' | 'experience' | 'dashboard' | 'tips' | 'ideas';
 
-const HomePage: React.FC<{ onNavClick?: (id: SpotId) => void }> = () => (
-    <div id="home" className="page active">
-        <div className="text-center">
-            <h1 className="text-2xl md:text-2xl font-bold text-gray-900">אתר.בוט – סיכום סדנאות ההתנסות</h1>
-            <p className="mt-2 max-w-4xl mx-auto text-lg text-gray-600">
-                אתר זה מרכז את התוצרים והתובנות שעלו בשלושת מחזורי הסדנאות שלנו. <br/>
-                הוא נבנה עבור משתתפי הסדנה, ופתוח לעיון לכל המתעניין בצומת שבין הערכת מורשת תרבותית ובינה מלאכותית.
-            </p>
-        </div>
+const HomePage: React.FC<{ onNavClick?: (id: SpotId) => void }> = () => {
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [showBrainTooltip, setShowBrainTooltip] = useState(false);
 
-        <div className="mt-7">
-            <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="font-bold text-xl mb-2">
-                        <a href="https://notebooklm.google.com/notebook/1e35445c-cebc-4b5c-a09d-13b13e432254" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            ניתוח אתגרים ופתרונות (קישור ל-NotebookLM)
-                        </a>
-                    </h3>
-                    <p>ניתוח הדיונים בפתיחת המחזורים ובסיכומם, במטרה להפיק תובנות על קידום נושא ההערכה התרבותית ושילוב AI.</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow">
-                    <p className="mt-2 text-gray-700 leading-relaxed">
-                        בסדנת אתר.בוט בחנו מחדש את הדרכים שבהן אנו מעריכים את משמעותם של נכסי מורשת, תוך שימוש בשיטת CBSA (הערכת משמעות מבוססת הקשר) שמבוססת על הקשר, מידע וקריאה פרשנית. לצד זאת, ניסינו לשלב בינה מלאכותית יוצרת כשותפה קוגניטיבית – שיכולה להרחיב את המבט, לחדד ניסוחים ולחשוף הקשרים, כל עוד נשמרת ביקורת אנושית.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <img src="https://alephplace.com/atar.bot/llms.jpg" alt="איור סאטירי על האכלת מודלי שפה באינטרנט" className="w-full h-auto rounded-md object-cover" />
-                        <img src="https://alephplace.com/atar.bot/alice.jpg" alt="איור של עליסה בארץ הפלאות מסתכלת במראה" className="w-full h-auto rounded-md object-cover" />
+    return (
+        <div id="home" className="page active">
+            <div className="text-center">
+                <h1 className="text-2xl md:text-2xl font-bold text-gray-900">אתר.בוט – סיכום סדנאות ההתנסות</h1>
+                <p className="mt-2 max-w-4xl mx-auto text-lg text-gray-600">
+                    אתר זה מרכז את התוצרים והתובנות שעלו בשלושת מחזורי הסדנאות שלנו. <br />
+                    הוא נבנה עבור משתתפי הסדנה, ופתוח לעיון לכל המתעניין בצומת שבין הערכת מורשת תרבותית ובינה מלאכותית.
+                </p>
+            </div>
+
+            <div className="mt-7">
+                <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+                    <div className="bg-white p-6 rounded-lg shadow">
+
+                        <ul className="custom-list space-y-2 text-lg mb-2">
+                            <li><a href="https://chatgpt.com/g/g-687366896c1c81918ebf923352f45b31-tr-bvt-yqvmvs" target="_blank" rel="noopener" className="text-blue-600 hover:underline">קישור לאתר.בוט</a></li>
+                            {/* <li><a href="https://drive.google.com/drive/folders/1E-6f7xjL7ui0jSbQ02zYaB_Bq8dPstxm?usp=sharing" target="_blank" rel="noopener" className="text-blue-600 hover:underline">שיתוף תוצרים</a></li> */}
+                            <li className="relative flex items-center">
+                              <a
+                                href="https://drive.google.com/file/d/1drgIzYAl28Y-W0ySfFUI_RjQhkWifiFH/view?usp=sharing"
+                                target="_blank"
+                                rel="noopener"
+                                className="text-blue-600 hover:underline"
+                              >
+                                קובץ 'המוח' של אתר.בוט
+                              </a>
+                              <div
+                                className="relative flex items-center ml-2"
+                                tabIndex={0}
+                                onMouseEnter={() => setShowBrainTooltip(true)}
+                                onMouseLeave={() => setShowBrainTooltip(false)}
+                                onFocus={() => setShowBrainTooltip(true)}
+                                onBlur={() => setShowBrainTooltip(false)}
+                                style={{ cursor: 'pointer', position: 'relative' }}
+                              >
+                            &nbsp;
+                                <img
+                                  src={infoIcon}
+                                  alt="הסבר"
+                                  style={{ width: 18, height: 18, display: 'inline-block' }}
+                                  aria-label="הסבר"
+                                />
+                                {showBrainTooltip && (
+                                  <div
+                                    className="absolute z-50 right-full mr-2 top-1/2 -translate-y-1/2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-72 max-w-xs"
+                                    style={{ direction: 'rtl', whiteSpace: 'normal' }}
+                                  >
+                                    הקובץ מכיל את כל שלבי התהליך , ההנחיות והידע אודת CBSA הנדרש לביצוע.
+                                    ניתן לשמור אותו ולהעלות לכל סביבת צאטבוט (גמיני, קלוד, צאטגפט וכו) ולבצע את התהליך שם - מומלץ להתשמש בו בסביבת פרויקט המאפשר זיכרון בין שיחות הפרויקט
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                            <li><a href="https://poloclub.github.io/transformer-explainer/" target="_blank" rel="noopener" className="text-blue-600 hover:underline">הדמיה של מנגנון הטרנספורמר לכתיבת המילה הבאה </a></li>
+                            <li className="relative flex items-center">
+                                <a
+                                    href="https://notebooklm.google.com/notebook/1e35445c-cebc-4b5c-a09d-13b13e432254/"
+                                    target="_blank"
+                                    rel="noopener"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    ניתוח אתגרים ופתרונות (NotebookLM)
+                                </a>
+                                <div
+                                    className="relative flex items-center ml-2"
+                                    tabIndex={0}
+                                    onMouseEnter={() => setShowTooltip(true)}
+                                    onMouseLeave={() => setShowTooltip(false)}
+                                    onFocus={() => setShowTooltip(true)}
+                                    onBlur={() => setShowTooltip(false)}
+                                    style={{ cursor: 'pointer', position: 'relative' }}
+                                >
+                                  &nbsp;
+                                    <img
+                                        src={infoIcon}
+                                        alt="הסבר"
+                                        style={{ width: 18, height: 18, display: 'inline-block' }}
+                                        aria-label="הסבר"
+                                    />
+                                    {showTooltip && (
+                                        <div
+                                            className="absolute z-50 right-full mr-2 top-1/2 -translate-y-1/2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-72 max-w-xs"
+                                            style={{ direction: 'rtl', whiteSpace: 'normal' }}
+                                        >
+                                            ניתוח הדיונים בפתיחת המחזורים ובסיכומם, במטרה להפיק תובנות על קידום נושא ההערכה התרבותית ושילוב AI.
+                                        </div>
+                                    )}
+                                </div>
+                            </li>
+
+ 
+
+                        </ul>
+                        {/* <h3 className="font-bold text-xl mb-2">
+                            <a href="https://notebooklm.google.com/notebook/1e35445c-cebc-4b5c-a09d-13b13e432254" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                ניתוח אתגרים ופתרונות (קישור ל-NotebookLM)
+                            </a>
+                        </h3> */}
+                        {/* <p>ניתוח הדיונים בפתיחת המחזורים ובסיכומם, במטרה להפיק תובנות על קידום נושא ההערכה התרבותית ושילוב AI.</p> */}
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow">
+                        <p className="mt-2 text-gray-700 leading-relaxed">
+                            בסדנת אתר.בוט בחנו מחדש את הדרכים שבהן אנו מעריכים את משמעותם של נכסי מורשת, תוך שימוש בשיטת CBSA (הערכת משמעות מבוססת הקשר) שמבוססת על הקשר, מידע וקריאה פרשנית. לצד זאת, ניסינו לשלב בינה מלאכותית יוצרת כשותפה קוגניטיבית – שיכולה להרחיב את המבט, לחדד ניסוחים ולחשוף הקשרים, כל עוד נשמרת ביקורת אנושית.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <img src="https://alephplace.com/atar.bot/llms.jpg" alt="איור סאטירי על האכלת מודלי שפה באינטרנט" className="w-full h-auto rounded-md object-cover" />
+                            <img src="https://alephplace.com/atar.bot/alice.jpg" alt="איור של עליסה בארץ הפלאות מסתכלת במראה" className="w-full h-auto rounded-md object-cover" />
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const ExperiencePage = () => (
-   <div className="space-y-4">
+    <div className="space-y-4">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <h2 className="text-xl font-bold text-slate-800 mb-3">שלב 1 – ניתוח הקשרים ותיאור הנכס</h2>
             <ul className="custom-list space-y-2 text-lg">
@@ -353,9 +438,9 @@ const ExperiencePage = () => (
                 <li>הבוט ייצור טיוטה של הצהרת המשמעות עם כל הניתוחים.</li>
                 <li>העתיקו לוורד ובצעו עריכה סופית.</li>
                 <li>העלו את קובץ הוורד לדרייב <a
-                        href="https://drive.google.com/drive/folders/1aPSRCph5KVgD2feMP8LKWp_qp6wcB9ea?usp=sharing"
-                        target="_blank" rel="noopener" className="text-blue-600 hover:underline">(העלאה לדרייב
-                        המשותף)</a></li>
+                    href="https://drive.google.com/drive/folders/1aPSRCph5KVgD2feMP8LKWp_qp6wcB9ea?usp=sharing"
+                    target="_blank" rel="noopener" className="text-blue-600 hover:underline">(העלאה לדרייב
+                    המשותף)</a></li>
             </ul>
         </div>
     </div>
