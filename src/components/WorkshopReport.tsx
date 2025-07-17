@@ -3,10 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 interface WorkshopReportProps {}
 
 const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab, setActiveTab] = useState('panel-failures');
-  const [geminiInput, setGeminiInput] = useState('בית הכנסת הגדול בחיפה, שנבנה ב-1925 בסגנון אקלקטי, שימש כמרכז קהילתי חשוב עבור עולי הבלקן. כיום המבנה נטוש וסובל מהזנחה.');
-  const [geminiResults, setGeminiResults] = useState('');
+  const [geminiInput, setGeminiInput] = useState('בית הכנסת הגדול בחיפה, שנבנה ב-1925 בסגנון אקלקטי, שימש כמרכז קהילתי חשוב עבור עולי הבלקן. כיום המבנה נטוש וסובל מהזנחה.');  const [geminiResults, setGeminiResults] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState<{[key: number]: boolean}>({});
+  const [selectedInfo, setSelectedInfo] = useState<{type: 'advantage' | 'challenge' | null, key: string | null}>({type: null, key: null});
 
   const accordionData = [
     {
@@ -40,6 +40,27 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
       questions: "האם ההצהרה משקפת את מהות הנכס? האם תרצה להוסיף המלצות לשימור או לבצע ניתוח סמיוטי?"
     }
   ];
+
+  // Information for interactive cards
+  const cardInfo = {
+    advantage: {
+      'new-world': 'הכלי חושף אפשרויות ודרכי חשיבה שלא היו זמינות קודם, ומאפשר גישה חדשנית לתהליך ההערכה. במקום להסתמך רק על שיטות מסורתיות, המומחה יכול לגלות זוויות חדשות לניתוח הנכס.',
+      'precision': 'בניגוד לכלי AI כלליים, ניתן לאמן את הבוט על מידע ספציפי, מה שמאפשר לו לספק תוצרים רלוונטיים ומדויקים יותר להקשר. הבוט מבין את הטרמינולוגיה המקצועית ואת עקרונות ההערכה התרבותית.',
+      'perspectives': 'ה-AI יכול לזהות קשרים ותבניות בטקסט שאדם עשוי לפספס, ובכך להציע מסקנות מרעננות ולהרחיב את זוויות המבט על הנכס. הוא מסוגל לעבד כמויות גדולות של מידע ולמצוא קשרים לא צפויים.',
+      'research': 'על ידי ניתוח מהיר של חומרים קיימים, הכלי יכול לזהות פערים במידע, להצביע על כיווני חקירה נדרשים, לאפשר שלב הערכה ראשוני מהיר, ולחסוך זמן יקר. זה מאפשר למומחה להתמקד במשימות המורכבות יותר.'
+    },
+    challenge: {
+      'garbage': 'איכות התוצר תלויה לחלוטין באיכות חומר הגלם. הבוט ישקף במדויק כל הטיה או שגיאה במידע המקורי. אם המידע הבסיסי לא מדויק או חלקי, גם הניתוח לא יהיה אמין.',
+      'hallucinations': 'ביטחון היתר של ה-AI עלול להטעות. הוא יכול "להמציא" עובדות ומקורות ולהציג אותם בצורה משכנעת מאוד. אימות ובדיקה של כל מידע הם שלבים קריטיים שאסור לדלג עליהם.',
+      'black-box': 'המודל עלול לספק תשובות שונות לאותה שאלה, ומתקשה להבין היבטים סובייקטיביים כמו "רוח המקום", תחושות ואווירה. תהליך החשיבה שלו לא תמיד שקוף.',
+      'literacy': 'שימוש נכון דורש מיומנות: לדעת כיצד לנסח שאלות, לאתגר את הכלי, ולזהות את מגבלותיו והטיותיו. זו מיומנות חדשה שצריך לפתח ולטפח.'
+    }
+  };
+
+  // Update info function
+  const updateInfo = (type: 'advantage' | 'challenge', key: string) => {
+    setSelectedInfo({ type, key });
+  };
 
   // Utility to render bold markdown-like **bold** segments
   const renderWithBold = (text: string) => {
@@ -270,54 +291,64 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Panel 3: AI Role */}
+              )}              {/* Panel 3: AI Role */}
               {activeTab === 'panel-ai-role' && (
                 <div className="challenge-panel">
                   <h3 className="font-bold text-xl mb-8 text-blue-700 text-center">תפקיד ה-AI: מאזן הכוחות בשותפות</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
                     <div>
-                      <h4 className="font-bold text-lg text-green-700 text-right mb-3">✅ יתרונות ופוטנציאל</h4>
+                      <h3 className="text-2xl font-bold text-green-600 text-center mb-4">✅ יתרונות ופוטנציאל</h3>
                       <div className="space-y-4">
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-green-800">פתיחת "עולם חדש"</h5>
-                          <p className="text-sm text-gray-600 mt-1">הכלי חושף אפשרויות ודרכי חשיבה שלא היו זמינות קודם, ומאפשר גישה חדשנית לתהליך ההערכה.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'new-world')}>
+                          <h4 className="font-bold text-green-800">פתיחת "עולם חדש"</h4>
+                          <p className="text-sm text-gray-600">הכלי פותח אפשרויות חדשות ומסייע לראות את המידע והתהליך באור אחר.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-green-800">סיוע בחקירה והנגשה</h5>
-                          <p className="text-sm text-gray-600 mt-1">על ידי ניתוח מהיר של חומרים קיימים, הכלי יכול לזהות פערים במידע, להצביע על כיווני חקירה נדרשים, לאפשר שלב הערכה ראשוני מהיר, ולחסוך זמן יקר.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'precision')}>
+                          <h4 className="font-bold text-green-800">דיוק ויכולת כוונון</h4>
+                          <p className="text-sm text-gray-600">ממוקד יותר מכלי AI כלליים, עם יכולת להבין מידע ספציפי שהוזן לו.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-green-800">דיוק ויכולת כוונון</h5>
-                          <p className="text-sm text-gray-600 mt-1">בניגוד לכלי AI כלליים, ניתן לאמן את הבוט על מידע ספציפי, מה שמאפשר לו לספק תוצרים רלוונטיים ומדויקים יותר להקשר.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'perspectives')}>
+                          <h4 className="font-bold text-green-800">הרחבת נקודות מבט</h4>
+                          <p className="text-sm text-gray-600">מספק תובנות, "מסקנות מרעננות" וזוויות מבט חדשות, גם על טקסטים קיימים.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-green-800">הרחבת נקודות מבט</h5>
-                          <p className="text-sm text-gray-600 mt-1">ה-AI יכול לזהות קשרים ותבניות בטקסט שאדם עשוי לפספס, ובכך להציע מסקנות מרעננות ולהרחיב את זוויות המבט על הנכס.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'research')}>
+                          <h4 className="font-bold text-green-800">סיוע בחקירה והנגשה</h4>
+                          <p className="text-sm text-gray-600">יכול לסייע בחקירה מעמיקה, זיהוי חוסרים במידע וחיסכון בזמן.</p>
                         </div>
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-bold text-lg text-red-700 text-right mb-3">⚠️ אתגרים וסיכונים</h4>
+                      <h3 className="text-2xl font-bold text-red-600 text-center mb-4">⚠️ אתגרים וסיכונים</h3>
                       <div className="space-y-4">
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-red-800">"הזיות" ויכולת שכנוע</h5>
-                          <p className="text-sm text-gray-600 mt-1">ביטחון היתר של ה-AI עלול להטעות. הוא יכול 'להמציא' עובדות ומקורות. אימות ובדיקה הם שלבים קריטיים.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'garbage')}>
+                          <h4 className="font-bold text-red-800">Garbage In, Garbage Out</h4>
+                          <p className="text-sm text-gray-600">איכות התוצר תלויה לחלוטין באיכות חומר הגלם. מידע שגוי יוביל לתוצאה שגויה.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-red-800">הצורך ב"אוריינות AI"</h5>
-                          <p className="text-sm text-gray-600 mt-1">שימוש נכון דורש מיומנות: לדעת כיצד לנסח שאלות, לאתגר את הכלי, ולזהות את מגבלותיו והטיותיו.</p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'hallucinations')}>
+                          <h4 className="font-bold text-red-800">"הזיות" ויכולת שכנוע</h4>
+                          <p className="text-sm text-gray-600">הכלי עלול להמציא מידע ולהציגו בצורה משכנעת. חובה קריטית לבדוק מקורות.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-red-800">Garbage In, Garbage Out</h5>
-                          <p className="text-sm text-gray-600 mt-1">איכות התוצר תלויה לחלוטין באיכות חומר הגלם. <span className="bg-yellow-200 px-1 rounded">הבוט ישקף במדויק כל הטיה או שגיאה במידע המקורי.</span></p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'black-box')}>
+                          <h4 className="font-bold text-red-800">"קופסה שחורה"</h4>
+                          <p className="text-sm text-gray-600">אופן הפעולה לא תמיד שקוף, והכלי עלול לספק תשובות שונות לאותה שאלה.</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm">
-                          <h5 className="font-semibold text-red-800">אי-דטרמיניסטיות ומגבלת "רוח המקום"</h5>
-                          <p className="text-sm text-gray-600 mt-1">המודל עלול לספק תשובות שונות לאותה שאלה, ו<span className="bg-yellow-200 px-1 rounded">מתקשה להבין היבטים סובייקטיביים כמו "רוח המקום", תחושות ואווירה.</span></p>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'literacy')}>
+                          <h4 className="font-bold text-red-800">הצורך ב"אוריינות AI"</h4>
+                          <p className="text-sm text-gray-600">דורש מיומנות חדשה: לנסח שאלות נכון, להיות ביקורתי ולזהות הטיות.</p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                  
+                  {/* Info Box */}
+                  <div className="mt-8 max-w-4xl mx-auto">
+                    <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
+                      <p className="font-semibold">
+                        {selectedInfo.type && selectedInfo.key 
+                          ? cardInfo[selectedInfo.type][selectedInfo.key]
+                          : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>
