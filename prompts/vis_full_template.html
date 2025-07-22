@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>Knowledge Graph</title>
+
+  <!-- CSS חיצוני קבוע -->
+  <link rel="stylesheet"
+        href="https://alephplace.com/atar.bot/canvas/knowledge-graph.css"
+        crossorigin="anonymous" />
+
+  <!-- vis-network CDN -->
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <div id="mynetwork"></div>
+
+  <div id="infowindow">
+    <span id="closeinfo">✖</span>
+    <h3 id="info_name"></h3>
+    <p><strong>סוג:</strong> <span id="info_type"></span></p>
+    <p><strong>ערך מורשתי:</strong> <span id="info_heritageValue"></span></p>
+    <p><strong>משמעות:</strong> <span id="info_meaning"></span></p>
+  </div>
+
+  <!-- ⬇️ הבוט מחליף כאן את DATA (חובה: JSON.stringify) ⬇️ -->
+  <script>
+    const DATA = __DATA_JSON__;
+  </script>
+
+  <!-- JS חיצוני קבוע -->
+  <script src="https://alephplace.com/atar.bot/canvas/knowledge-graph.js"
+          crossorigin="anonymous"></script>
+</body>
+</html>

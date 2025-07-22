@@ -217,6 +217,11 @@ main.container {
   line-height: 1.3;
 }
 
+/* מרחיק את ה-tooltip של vis-network מהעכבר */
+.vis-tooltip {
+  transform: translate(40px, 40px) !important;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
@@ -235,8 +240,123 @@ main.container {
   background: #a8a8a8;
 }
 
+/* Guide-specific styles */
+.guide-container {
+    font-family: 'Assistant', sans-serif;
+    scroll-behavior: smooth;
+}
+
+.guide-chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 300px;
+    max-height: 400px;
+}
+
+@media (min-width: 768px) {
+    .guide-chart-container {
+        height: 400px;
+        max-height: 500px;
+    }
+}
+
+.guide-tab.active {
+    border-color: #3b82f6; /* border-blue-500 */
+    color: #1e40af; /* text-blue-800 */
+    background-color: #eff6ff; /* bg-blue-50 */
+}
+
+.guide-nav-link {
+    transition: all 0.2s ease-in-out;
+}
+
+.guide-nav-link:hover {
+    color: #2563eb; /* text-blue-600 */
+    transform: translateY(-2px);
+}
+
+.guide-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.guide-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.guide-info-box {
+    transition-duration: 300ms;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 0;
   }
+}
+
+/* Workshop Report specific styles */
+.workshop-report {
+    font-family: 'Assistant', sans-serif;
+    scroll-behavior: smooth;
+    background-color: #f8f7f4;
+}
+
+.workshop-nav-link {
+    transition: all 0.2s ease-in-out;
+    position: relative;
+}
+
+.workshop-nav-link:hover {
+    color: #1d4ed8;
+}
+
+.workshop-nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    display: block;
+    margin-top: 5px;
+    right: 0;
+    background: #1d4ed8;
+    transition: width 0.3s ease;
+}
+
+.workshop-nav-link:hover::after {
+    width: 100%;
+}
+
+.workshop-report .tab.active {
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+.workshop-report .tab {
+    transition: all 0.2s ease-in-out;
+}
+
+.workshop-report .accordion-button {
+    transition: background-color 0.2s ease-in-out;
+}
+
+.workshop-report .accordion-button.open {
+    background-color: #eef2ff;
+}
+
+.workshop-report .accordion-content {
+    transition: max-height 0.4s ease-in-out;
+}
+
+.workshop-report .card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.workshop-report .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
 }

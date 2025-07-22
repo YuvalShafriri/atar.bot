@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טכניון - אתר.בוט - קורס אותנטית</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Assistant:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* Custom styles to complement Tailwind */
+        body {
+            font-family: 'Assistant', 'Inter', sans-serif;
+        }
+
+        /* Custom list bullet style */
+        .custom-list {
+            list-style-type: '🔹';
+            padding-right: 1.2rem;
+            /* rtl padding */
+        }
+
+        .custom-list li::marker {
+            font-size: 0.8em;
+        }
+
+        /* Styles for tab transitions */
+        .tabcontent {
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Responsive sticky header for mobile */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 5rem;
+                /* Adjust based on tab bar height */
+            }
+
+            #tab-bar {
+                position: fixed;
+                top: 0;
+                right: 0;
+                left: 0;
+                z-index: 50;
+                background-color: white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        /* Hide default summary marker */
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        /* --- Smooth Dropdown Animation --- */
+        details .dropdown-content {
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, opacity 0.5s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+        }
+
+        details[open] .dropdown-content {
+            max-height: 1000px;
+            /* A value larger than the content's height */
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto max-w-6xl p-4 sm:p-6 md:px-8 md:py-4">
+        <h1 class="text-xl md:text-2xl font-bold text-slate-700 mb-1">התנסות באתר.בוט - קורס אותנטיות - טכניון</h1>
+
+        <!-- Tab Navigation -->
+        <div id="tab-bar" class="mb-4 border-b border-slate-200">
+            <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
+                <button class="tablinks shrink-0 border-b-2 font-semibold p-4 text-slate-500 hover:text-blue-600 hover:border-blue-300" onclick="openTab(event, 'demo')" id="tab-btn-demo">🏛️ תכנים ותוצרים</button>
+                <!-- <button class="tablinks shrink-0 border-b-2 font-semibold p-4 text-slate-500 hover:text-blue-600 hover:border-blue-300" onclick="openTab(event, 'links')" id="tab-btn-links">🏛️ תכנים ותוצרים</button> -->
+                <button class="tablinks shrink-0 border-b-2 font-semibold p-4 text-slate-500 hover:text-blue-600 hover:border-blue-300" onclick="openTab(event, 'cbsa')" id="tab-btn-cbsa">🧩 CBSA - הנחיות</button>
+                <button class="tablinks shrink-0 border-b-2 font-semibold p-4 text-slate-500 hover:text-blue-600 hover:border-blue-300" onclick="openTab(event, 'prompt')" id="tab-btn-prompt">📝 פרומפט לדוגמה</button>
+                <button class="tablinks shrink-0 border-b-2 font-semibold p-4 text-slate-500 hover:text-blue-600 hover:border-blue-300" onclick="openTab(event, 'tamuz-new')" id="tab-btn-tamuz-new">𓂀 מהכתב ל-AI </button>
+
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <main>
+            <!-- Links Tab (Original) -->
+            <div id="links" class="tabcontent hidden opacity-0">
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li><a href="https://chatgpt.com/g/g-684fc78f67e0819189f359c7a02ae390-tr-bvt-qvrs-vtntyvt-tknyvn"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">קישור
+                                    לאתר.בוט</a></li>
+                            <li><a href="https://drive.google.com/drive/folders/1E-6f7xjL7ui0jSbQ02zYaB_Bq8dPstxm?usp=sharing"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">שיתוף
+                                    תוצרים</a></li>
+                            <li><a href="https://drive.google.com/file/d/1drgIzYAl28Y-W0ySfFUI_RjQhkWifiFH/view?usp=sharing"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">קובץ 'המוח' של
+                                    אתר.בוט</a></li>
+                            <li><a href="https://poloclub.github.io/transformer-explainer/" target="_blank"
+                                    rel="noopener" class="text-blue-600 hover:underline">הדמיה של מנגנון הטרנספורמר
+                                    לכתיבת המילה הבאה </a></li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <details class="group">
+                            <summary class="flex justify-between items-center font-medium cursor-pointer list-none">
+                                <span class="text-xl font-bold text-slate-800">גרפי ידע</span>
+                                <span class="transition group-open:rotate-180">
+                            <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                        </span>
+                            </summary>
+                            <ul class="custom-list space-y-2 text-lg mt-4 pt-4 border-t">
+                                <li><a href="https://gemini.google.com/share/94c1950476db" target="_blank"
+                                        rel="noopener" class="text-blue-600 hover:underline">גרפי ידע-ג'ימיני</a></li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686b4044137c8191a3f9f71bca5c57ba"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline"> גרף כלל
+                                        הנכסים אתר.בוט (Custom GPTs)</a></li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686b485584e48191b34f490052b0681c"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline">אל באסה</a>
+                                </li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686b489bd17c819191de4dd16afad0a5"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline">טיגרארט</a>
+                                </li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686ab9ac70f48191a6bf87b1ffcea8d4"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline">חצר
+                                        סרגי</a></li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686a9e754a7c81918ba7ad6913f0b914"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline">בית
+                                        ברנשטיין</a></li>
+                                <li><a href="https://chatgpt.com/canvas/shared/686b4a6d931481918c63ae1c941dfe3b"
+                                        target="_blank" rel="noopener" class="text-blue-600 hover:underline">מצודת דהאר
+                                        אל-עומר</a></li>
+                            </ul>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompt Tab -->
+            <div id="prompt" class="tabcontent hidden opacity-0">
+                <div
+                    class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-lg leading-relaxed space-y-4">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">פרומפט הדגמה לסדנה – הבנת Gen AI דרך הערכה
+                        תרבותית</h2>
+                    <div class="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-4">
+                        <p>📝 <b>הנחיה:</b> העתיקו את הפרומפט כמו שהוא והדביקו בתיבת הצ'אט ב-ChatGPT של אתר.בוט</p>
+                    </div>
+                    <p><strong>תפקיד:</strong> כמומחה לתחום הערכה תרבותית וגם לבינה מלאכותית יוצרת (Gen AI). אתה מנוסה
+                        בהסבר מורכבות בצורה פשוטה, מעניינת וממחישה.</p>
+                    <p><strong>מטרה:</strong> להסביר למשתתפי הסדנה מהו מודל שפה גדול (LLM), ואיך הוא בונה משמעות תרבותית
+                        וסמנטית — באמצעות השוואה לתהליך של הערכה תרבותית אנושית.</p>
+                    <p><strong>משימות:</strong> כתוב איך מודל שפה גדול (LLM) מנסה להבין משמעויות תרבותיות וסמנטיות של
+                        מבנים לשימור. הצג באיזה אופן זה דומה ושונה מהערכה אנושית. תאר את Gen-AI כּמְשַׁקֶפֶת (כמו בארץ
+                        המראה) את תהליך ההערכה התרבותית.</p>
+                    <p><strong>סגנון:</strong> כתוב זאת באופן ביקורתי אך מעניין.</p>
+                    <p><strong>דוגמה:</strong> התייחס לדוגמה של של מגדל מים שנבנה בקיבוץ בשנות העשרים.</p>
+                    <p><strong>פנייה אישית:</strong> חשוב לי מאוד להבין מה רוצים ממני בסדנה הזו, (ובעצם גם בחיים) - אז
+                        תכתוב הסבר מעולה.</p>
+                    <p><strong>שימוש:</strong> משתתפים יפעילו את הפרומפט בסדנת הערכה בשילוב AI בחלק של אוריינות AI.</p>
+                    <p>🌀 <strong>תוספת רפלקטיבית (אופציונלית):</strong> אילו שאלות אתה מציע שאשאל אודות הנכס שאני
+                        מעריך?</p>
+                </div>
+            </div>
+
+            <!-- CBSA Tab -->
+            <div id="cbsa" class="tabcontent hidden opacity-0">
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-800 mb-3">שלב 1 – ניתוח הקשרים ותיאור הנכס</h2>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>העלו קובץ מידע על נכס מורשת.</li>
+                            <li>אמרו לבוט: "בצע שלב 1 על המידע שהעליתי".</li>
+                            <li>בדקו שהתיאור כולל פתיחה, התפתחות היסטורית, סרגל זמן, והקשרים מרכזיים.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
+                        <h3 class="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 1</h3>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>מה עבד טוב בתהליך ההפעלה של הבוט?</li>
+                            <li>איפה נדרשה התערבות אנושית כדי לדייק או להשלים מידע?</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-800 mb-3">שלבים 2–3–4 – ערכים, אותנטיות והשוואה</h2>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>בקשו: המשך לשלב הבא</li>
+                            <li>ודאו שהבוט מזהה היטב את הערכים, בוחן אותנטיות לפי נארה גריד, ומשווה לאתרים דומים.</li>
+                            <li>במידת הצורך בקשו השלמות, דיוק ומיקוד של המידע.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
+                        <h3 class="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 2–3–4</h3>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>האם אתר.בוט הצליח לנסח ערכים מורכבים, ניואנסים ותובנות לא צפויות</li>
+                            <li>מה דרש חיזוק אנושי או הקשר תרבותי נוסף?</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-800 mb-3">שלב 5 – ניסוח הצהרת משמעות ראשונית</h2>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>כתבו: המשך לשלב 5</li>
+                            <li>ודאו שהצהרת המשמעות משָקפת את כלל הערכים והקשרים.</li>
+                            <li>שימו לב לשאולות בסוף התהליך.</li>
+                            <li>נסו להגיע לטיוטה ראשונית של הצהרה בכמה פסקאות.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-800 mb-3">ביצוע חוזר – העמקה ודיוק</h2>
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li>חזרו לשלבים שבהם התגלו פערים או שאלות.</li>
+                            <li>בקשו עדכון/דיוק של שלב (למשל: "עדכן שלב 2 עם ערכים קהילתיים").</li>
+                            <li><strong>ניתוח תמונה:</strong> בצע ניתוח ויזואלי של התמונה ואילו ערכים תרבותיים מיוצגים
+                                בתמונה? (אפרופו ניתוח השטח)</li>
+                            <li><strong>ניתוח סמיוטי:</strong> בצע ניתוח סמיוטי ופרשנות ביקורתית של ההערכה.</li>
+                            <li><strong>הצפת בעיות:</strong> מהן הבעיות, הדילמות והשאלות העולות מתהליך ההערכה באשר
+                                לתכנון השימור?</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-800 mb-3">פורמט לתוצר סופי ושיתוף</h2>
+                        <div class="text-lg space-y-3">
+                            <p>🧩 השתדלו להגיע לא רק לחלוקת ערכים אלא לסינתזה שיוצרת נרטיב מחבר: מה הסיפור הייחודי? מה
+                                ראוי במיוחד לשימור ולמה? מהי רשת המשמעויות ואיך דבר קשור לדבר?</p>
+                        </div>
+                        <ul class="custom-list space-y-2 text-lg mt-4">
+                            <li>הבוט ייצור טיוטה של הצהרת המשמעות עם כל הניתוחים.</li>
+                            <li>העתיקו לוורד ובצעו עריכה סופית.</li>
+                            <li>העלו את קובץ הוורד לדרייב <a
+                                    href="https://drive.google.com/drive/folders/1E-6f7xjL7ui0jSbQ02zYaB_Bq8dPstxm?usp=sharing"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">(העלאה לדרייב
+                                    המשותף)</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tamuz Tab (New Proposal) -->
+            <div id="tamuz-new" class="tabcontent hidden opacity-0">
+                <div class="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 md:items-start">
+                        <!-- Right Column (Main Content) - Order changed for RTL -->
+                        <div class="md:col-span-2 order-1 md:order-2">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-4 md:-mt-2.5">אז כיצד לעשות הערכה תרבותית
+                                בעידן שלנו?</h3>
+                            <ul class="custom-list space-y-3 text-base mb-6">
+                                <li>הערכת נכסי מורשת דורשת חשיבה היסטורית, ערכית וקהילתית. כלומר אנושית.</li>
+                                <li>AI יכול להוביל ל"מראית עין של חכמה" – ללא הבנה עמוקה.</li>
+                                <li>CBSA מחייבת אותך להיות נוכח – להבין הקשרים, לזהות ערכים, ולנסח משמעות.</li>
+                            </ul>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-right border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th
+                                                class="p-3 font-bold uppercase bg-green-100 text-green-800 border border-slate-300 rounded-tr-lg">
+                                                ✅ עשה </th>
+                                            <th
+                                                class="p-3 font-bold uppercase bg-red-100 text-red-800 border border-slate-300 rounded-tl-lg">
+                                                ❌ אל תעשה </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm">
+                                        <tr class="bg-white hover:bg-slate-50">
+                                            <td class="p-4 border border-slate-200">השתמש ב-AI רק אחרי עיבוד עצמאי</td>
+                                            <td class="p-4 border border-slate-200">אל תבקש מהבוט "לכתוב את כל ההערכה"
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-white hover:bg-slate-50">
+                                            <td class="p-4 border border-slate-200">בדוק את ההצעות שלו – באור ביקורתי
+                                            </td>
+                                            <td class="p-4 border border-slate-200">אל תעתיק מבלי לחשוב</td>
+                                        </tr>
+                                        <tr class="bg-white hover:bg-slate-50">
+                                            <td class="p-4 border border-slate-200">השתמש בו כדי לנסח שאלות חדשות</td>
+                                            <td class="p-4 border border-slate-200">אל תדלג על שלב הניתוח שלך</td>
+                                        </tr>
+                                        <tr class="bg-white hover:bg-slate-50">
+                                            <td class="p-4 border border-slate-200">היעזר ביכולת הניסוח של הבינה</td>
+                                            <td class="p-4 border border-slate-200">אך אל תוותר על ה"קול שלך"</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Left Column (Side Content) - Order changed for RTL -->
+                        <div class="md:col-span-1 order-2 md:order-1 space-y-6">
+                            <img src="https://alephplace.com/atar.bot/tamuz.jpg?text=תמוז+והמלך"
+                    alt="The Invention of Writing and AI" class="rounded-sm 
+                    shadow-md w-full h-auto object-cover"
+                    onerror="this.onerror=null;this.src='https://placehold.co/400x280/e2e8f0/4a5568?text=Image+not+found';">
+                            <blockquote class="bg-slate-100 p-4 rounded-lg border-r-4 border-slate-400">
+                                <p class="italic text-slate-600 text-sm">"סם לִשְׁכֵּחָה הוא זה, לא לִרְפוּאָה
+                                    לַזִּכָּרוֹן. לא חָכְמָה אֶלָּא דְּמוּת-חָכְמָה יִרְכְּשׁו..."</p>
+                                <cite class="block not-italic mt-2 text-sm text-slate-500">(המלך תמוז לאל תוֹת על המצאת הכתב – פיידרוס/אפלטון, 275a)</cite>
+                            </blockquote>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Tab (Updated) -->
+            <div id="demo" class="tabcontent hidden opacity-0">
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <ul class="custom-list space-y-2 text-lg">
+                            <li><a href="https://chatgpt.com/g/g-684fc78f67e0819189f359c7a02ae390-tr-bvt-qvrs-vtntyvt-tknyvn"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">קישור
+                                    לאתר.בוט</a></li>
+                            <li><a href="https://drive.google.com/drive/folders/1E-6f7xjL7ui0jSbQ02zYaB_Bq8dPstxm?usp=sharing"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">שיתוף
+                                    תוצרים</a></li>
+                            <li><a href="https://drive.google.com/file/d/1drgIzYAl28Y-W0ySfFUI_RjQhkWifiFH/view?usp=sharing"
+                                    target="_blank" rel="noopener" class="text-blue-600 hover:underline">קובץ 'המוח' של
+                                    אתר.בוט</a></li>
+                            <li><a href="https://poloclub.github.io/transformer-explainer/" target="_blank"
+                                    rel="noopener" class="text-blue-600 hover:underline">הדמיה של מנגנון הטרנספורמר
+                                    לכתיבת המילה הבאה </a></li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <details class="group">
+                            <summary class="flex items-center font-medium cursor-pointer list-none">
+
+                                <div class="flex items-center gap-4 ml-auto mr-0">
+                                    <img src="https://alephplace.com/atar.bot/kglogo.jpg" alt="גרף ידע תמונה ממוזערת"
+                            class="w-18 h-14 object-cover rounded-md group-open:hidden"
+                            onerror="this.onerror=null;this.src='https://placehold.co/64x40/e2e8f0/4a5568?text=...';">
+                                    <span class="text-xl font-bold text-slate-800">גרפי ידע</span>
+                                    <span class="transition group-open:rotate-180">
+                                <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                            </span>
+                                </div>
+                            </summary>
+                            <div
+                                class="dropdown-content mt-4 pt-4 border-t flex flex-col md:flex-row-reverse gap-6 md:justify-center">
+                                <div class="md:w-3/6 flex-shrink-0 md:ml-10">
+                                    <img src="https://alephplace.com/atar.bot/kg.jpg" alt="גרף ידע" class="rounded-lg shadow-sm w-full h-auto object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x280/e2e8f0/4a5568?text=Image+not+found';">
+                                </div>
+                                <div class="flex-grow">
+                                    <ul class="custom-list space-y-2 text-lg">
+                                        <li><a href="https://gemini.google.com/share/94c1950476db" target="_blank"
+                                                rel="noopener" class="text-blue-600 hover:underline">גרפי
+                                                ידע-ג'ימיני</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686b4044137c8191a3f9f71bca5c57ba"
+                                                target="_blank" rel="noopener" class="text-blue-600 hover:underline">
+                                                גרף כלל הנכסים אתר.בוט (Custom GPTs)</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686b485584e48191b34f490052b0681c"
+                                                target="_blank" rel="noopener" class="text-blue-600 hover:underline">אל
+                                                באסה</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686b489bd17c819191de4dd16afad0a5"
+                                                target="_blank" rel="noopener"
+                                                class="text-blue-600 hover:underline">טיגרארט</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686ab9ac70f48191a6bf87b1ffcea8d4"
+                                                target="_blank" rel="noopener" class="text-blue-600 hover:underline">חצר
+                                                סרגי</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686a9e754a7c81918ba7ad6913f0b914"
+                                                target="_blank" rel="noopener" class="text-blue-600 hover:underline">בית
+                                                ברנשטיין</a></li>
+                                        <li><a href="https://chatgpt.com/canvas/shared/686b4a6d931481918c63ae1c941dfe3b"
+                                                target="_blank" rel="noopener"
+                                                class="text-blue-600 hover:underline">מצודת דהאר אל-עומר</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Tab Switching Logic ---
+    function openTab(evt, tabName) {
+      // Get all elements with class="tabcontent" and hide them
+      const tabcontent = document.getElementsByClassName("tabcontent");
+      for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].classList.add("hidden", "opacity-0");
+      }
+
+      // Get all elements with class="tablinks" and remove the "active" classes
+      const tablinks = document.getElementsByClassName("tablinks");
+      for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove("border-blue-500", "text-blue-600");
+        tablinks[i].classList.add("text-slate-500", "hover:text-blue-600", "hover:border-blue-300");
+      }
+
+      // Show the current tab, and add an "active" class to the button that opened the tab
+      const currentTab = document.getElementById(tabName);
+      currentTab.classList.remove("hidden");
+      // Use a tiny timeout to allow the display property to change before starting the opacity transition
+      setTimeout(() => {
+        currentTab.classList.remove("opacity-0");
+      }, 10);
+      
+      evt.currentTarget.classList.add("border-blue-500", "text-blue-600");
+      evt.currentTarget.classList.remove("text-slate-500", "hover:text-blue-600", "hover:border-blue-300");
+
+      // Update URL hash without jumping
+      history.pushState(null, null, '#' + tabName);
+    }
+
+    // --- On Page Load Logic ---
+    window.onload = function() {
+      // Check for a hash in the URL to open the correct tab
+      const hash = window.location.hash.substring(1);
+      const tabButton = document.getElementById('tab-btn-' + hash);
+
+      if (tabButton) {
+        // If a valid tab hash is found, click its corresponding button
+        tabButton.click();
+      } else {
+        // Otherwise, default to the first tab
+        document.getElementsByClassName("tablinks")[0].click();
+      }
+    };
+    </script>
+</body>
+
+</html>

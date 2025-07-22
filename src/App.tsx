@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import GraphDashboard from './components/Graph/GraphDashboard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { geminiService } from './services/gemini';
 import { UI_MESSAGES } from './utils/constants';
 import './styles/globals.css';
 import infoIcon from './images/i.png';
-
+import AtarBotTab from './components/AtarBotTab';
+import Neo4jGraph from './components/Neo4jGraph';
+import { WorkshopReport } from './components/WorkshopReport';
+import GraphDashboard from './components/Graph/GraphDashboard';
 declare const vis: any;
 
 const LLM_MODEL = 'gemini-1.5-flash';
+console.log('[Gemini] Using LLM_MODEL:', LLM_MODEL);
 
 // AI Configuration
 const ai = {
@@ -172,84 +175,24 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
     );
 };
 
-// Dashboard Page with the existing GraphDashboard component
-const DashboardPage: React.FC<{ allGraphData: Record<string, any>; thematicGraphData: any; nodeColors: Record<string, any> }> = ({ allGraphData, thematicGraphData, nodeColors }) => {
-    const [showTooltip, setShowTooltip] = useState(false);
-    const [selectedGraph, setSelectedGraph] = useState('all_assets');
-
-    const handleGraphChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedGraph(event.target.value);
-    };
-
+// Dashboard Page with GraphDashboard component
+const DashboardPage: React.FC<{ allGraphData: Record<string, any>; allGrapheCleanData: any; thematicGraphData: any; nodeColors: Record<string, any> }> = ({ allGraphData, allGrapheCleanData, thematicGraphData, nodeColors }) => {
     return (
         <div id="dashboard" className="page active">
-            <div className="flex items-center mb-0 relative" style={{ minHeight: 0 }}>
-                {/* Container for the icon and dropdown */}
-                <div className="flex items-center">
-
-                    {/* The original select element */}
-                    <select dir="rtl" id="asset-select" className="p-2 border rounded" value={selectedGraph} onChange={handleGraphChange}>
-                        <option value="all_assets">כלל הנכסים</option>
-                        <option value="thematic_graph">גרף נושאים</option>
-                        <option value="herzliyaStudios">אולפני הרצליה</option>
-                        <option value="bateiBairy">בתי בארי, תל אביב</option>
-                        <option value="haifaHangar15">האנגר 15, נמל חיפה</option>
-                        <option value="zichronFoundersCourt">חצר המייסדים 37, זכרון יעקב</option>
-                        <option value="sheferAlley">מבנה בסמטת שפר, תל אביב</option>
-                        <option value="regbaWaterTower">מגדל המים, מושב רגבה</option>
-                        <option value="mandelbaumGate">מעבר מנדלבאום, ירושלים</option>
-                        <option value="beitShemeshPolice">משטרת בית שמש (מצודת טיגארט)</option>
-                        <option value="gezerRegionalSurvey_v4">סקר מורשת, מ.א. גזר (כולל ערכים)</option>
-                        <option value="akkoCourtyardHouse">בית חצר עות'מאני בעכו העתיקה</option>
-                        <option value="manofFarm">החווה החקלאית בעכו(מנוף)</option>
-                        <option value="roosterGaaton">התרנגול, געתון</option>
-                        <option value="einTzviTower">מגדל שמירה 2, מעין צבי</option>
-                        <option value="duniyeRestaurant_unified">מסעדת דוניינא, עכו (ניתוח מאוחד)</option>
-                        <option value="tegertForts">מצודות טיגארט</option>
-                        <option value="givatHatanach">מצודת האייל, גבעת התנ"ך</option>
-                        <option value="etzionGever">מתחם עציון גבר, יפו</option>
-                        <option value="pardesGutGurevich">פרדס גוט-גורביץ'</option>
-                        <option value="kiryatShmuel">שכונת קריית שמואל, טבריה</option>
-                        <option value="kfarYehoshua_unified">תחנת רכבת העמק, כפר יהושע (שני דוחות)</option>
-                        <option value="nirOzCamp_v2">אתר המחנה בניר עוז</option>
-                        <option value="bayaratBarakat_v2">בית באר בראכאת, יפו</option>
-                        <option value="dagonSilos_unified">ממגורות דגון, חיפה (ניתוח מורחב)</option>
-                        <option value="shivta">שבטה</option>
-                    </select>
-                    {/* Info icon with tooltip, to the left of the select */}
-                    <div
-                        className="relative flex items-center mr-2"
-                        onMouseEnter={() => setShowTooltip(true)}
-                        onMouseLeave={() => setShowTooltip(false)}
-                        onClick={() => setShowTooltip((v) => !v)}
-                        tabIndex={0}
-                        onFocus={() => setShowTooltip(true)}
-                        onBlur={() => setShowTooltip(false)}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <img
-                            src={infoIcon}
-                            alt="הסבר על הגרפים"
-                            style={{ width: 22, height: 22, display: 'inline-block' }}
-                            aria-label="הסבר על הגרפים"
-                        />
-                        {showTooltip && (
-                            <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs" style={{ direction: 'rtl', whiteSpace: 'normal' }}>
-                                הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.<br />
-                                כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <div className="mb-4">
+                <h2 className="text-2xl font-bold mb-2">גרפי ידע</h2>
+                <p className="text-gray-600">
+                    הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.
+                    כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
+                </p>
             </div>
-            <div className="graph-dashboard-max">
-                <GraphDashboard
-                    allGraphData={allGraphData}
-                    thematicGraphData={thematicGraphData}
-                    nodeColors={nodeColors}
-                    selectedGraph={selectedGraph}
-                />
-            </div>
+            
+            <GraphDashboard 
+                allGraphData={allGraphData}
+                allGrapheCleanData={allGrapheCleanData}
+                thematicGraphData={thematicGraphData}
+                nodeColors={nodeColors}
+            />
         </div>
     );
 };
@@ -279,7 +222,9 @@ const HomePage: React.FC<{ onNavClick?: (id: SpotId) => void }> = () => {
                             {/* <li><a href="https://drive.google.com/drive/folders/1E-6f7xjL7ui0jSbQ02zYaB_Bq8dPstxm?usp=sharing" target="_blank" rel="noopener" className="text-blue-600 hover:underline">שיתוף תוצרים</a></li> */}
                             <li className="relative flex items-center">
                               <a
-                                href="https://drive.google.com/file/d/1drgIzYAl28Y-W0ySfFUI_RjQhkWifiFH/view?usp=sharing"
+                                href="https://drive.google.com/file/d/1UJkHNSPJA5hjsN6-uVkOVmNHzpyIieaN/view?usp=sharing"
+                                // href="../prompts/instructions.md"
+                                // href="https://drive.google.com/file/d/1drgIzYAl28Y-W0ySfFUI_RjQhkWifiFH/view?usp=sharing"
                                 target="_blank"
                                 rel="noopener"
                                 className="text-blue-600 hover:underline"
@@ -375,77 +320,196 @@ const HomePage: React.FC<{ onNavClick?: (id: SpotId) => void }> = () => {
     );
 };
 
-const ExperiencePage = () => (
-    <div className="space-y-4">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-3">שלב 1 – ניתוח הקשרים ותיאור הנכס</h2>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>העלו קובץ מידע על נכס מורשת.</li>
-                <li>אמרו לבוט: "בצע שלב 1 על המידע שהעליתי".</li>
-                <li>בדקו שהתיאור כולל פתיחה, התפתחות היסטורית, סרגל זמן, והקשרים מרכזיים.</li>
-            </ul>
-        </div>
-        <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 1</h3>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>מה עבד טוב בתהליך ההפעלה של הבוט?</li>
-                <li>איפה נדרשה התערבות אנושית כדי לדייק או להשלים מידע?</li>
-            </ul>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-3">שלבים 2–3–4 – ערכים, אותנטיות והשוואה</h2>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>בקשו: המשך לשלב הבא</li>
-                <li>ודאו שהבוט מזהה היטב את הערכים, בוחן אותנטיות לפי נארה גריד, ומשווה לאתרים דומים.</li>
-                <li>במידת הצורך בקשו השלמות, דיוק ומיקוד של המידע.</li>
-            </ul>
-        </div>
-        <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 2–3–4</h3>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>האם אתר.בוט הצליח לנסח ערכים מורכבים, ניואנסים ותובנות לא צפויות</li>
-                <li>מה דרש חיזוק אנושי או הקשר תרבותי נוסף?</li>
-            </ul>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-3">שלב 5 – ניסוח הצהרת משמעות ראשונית</h2>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>כתבו: המשך לשלב 5</li>
-                <li>ודאו שהצהרת המשמעות משָקפת את כלל הערכים והקשרים.</li>
-                <li>שימו לב לשאולות בסוף התהליך.</li>
-                <li>נסו להגיע לטיוטה ראשונית של הצהרה בכמה פסקאות.</li>
-            </ul>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-3">ביצוע חוזר – העמקה ודיוק</h2>
-            <ul className="custom-list space-y-2 text-lg">
-                <li>חזרו לשלבים שבהם התגלו פערים או שאלות.</li>
-                <li>בקשו עדכון/דיוק של שלב (למשל: "עדכן שלב 2 עם ערכים קהילתיים").</li>
-                <li><strong>ניתוח תמונה:</strong> בצע ניתוח ויזואלי של התמונה ואילו ערכים תרבותיים מיוצגים
-                    בתמונה? (אפרופו ניתוח השטח)</li>
-                <li><strong>ניתוח סמיוטי:</strong> בצע ניתוח סמיוטי ופרשנות ביקורתית של ההערכה.</li>
-                <li><strong>הצפת בעיות:</strong> מהן הבעיות, הדילמות והשאלות העולות מתהליך ההערכה באשר
-                    לתכנון השימור?</li>
-            </ul>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-800 mb-3">פורמט לתוצר סופי ושיתוף</h2>
-            <div className="text-lg space-y-3">
-                <p>🧩 השתדלו להגיע לא רק לחלוקת ערכים אלא לסינתזה שיוצרת נרטיב מחבר: מה הסיפור הייחודי? מה
-                    ראוי במיוחד לשימור ולמה? מהי רשת המשמעויות ואיך דבר קשור לדבר?</p>
-            </div>
-            <ul className="custom-list space-y-2 text-lg mt-4">
-                <li>הבוט ייצור טיוטה של הצהרת המשמעות עם כל הניתוחים.</li>
-                <li>העתיקו לוורד ובצעו עריכה סופית.</li>
-                <li>העלו את קובץ הוורד לדרייב <a
-                    href="https://drive.google.com/drive/folders/1aPSRCph5KVgD2feMP8LKWp_qp6wcB9ea?usp=sharing"
-                    target="_blank" rel="noopener" className="text-blue-600 hover:underline">(העלאה לדרייב
-                    המשותף)</a></li>
-            </ul>
-        </div>
-    </div>
-);
+// const ExperiencePage = () => (
+//     <div className="space-y-4">
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+//             <h2 className="text-xl font-bold text-slate-800 mb-3">שלב 1 – ניתוח הקשרים ותיאור הנכס</h2>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>העלו קובץ מידע על נכס מורשת.</li>
+//                 <li>אמרו לבוט: "בצע שלב 1 על המידע שהעליתי".</li>
+//                 <li>בדקו שהתיאור כולל פתיחה, התפתחות היסטורית, סרגל זמן, והקשרים מרכזיים.</li>
+//             </ul>
+//         </div>
+//         <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
+//             <h3 className="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 1</h3>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>מה עבד טוב בתהליך ההפעלה של הבוט?</li>
+//                 <li>איפה נדרשה התערבות אנושית כדי לדייק או להשלים מידע?</li>
+//             </ul>
+//         </div>
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+//             <h2 className="text-xl font-bold text-slate-800 mb-3">שלבים 2–3–4 – ערכים, אותנטיות והשוואה</h2>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>בקשו: המשך לשלב הבא</li>
+//                 <li>ודאו שהבוט מזהה היטב את הערכים, בוחן אותנטיות לפי נארה גריד, ומשווה לאתרים דומים.</li>
+//                 <li>במידת הצורך בקשו השלמות, דיוק ומיקוד של המידע.</li>
+//             </ul>
+//         </div>
+//         <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-6">
+//             <h3 className="text-xl font-bold text-slate-700 mb-3">רפלקציה שלב 2–3–4</h3>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>האם אתר.בוט הצליח לנסח ערכים מורכבים, ניואנסים ותובנות לא צפויות</li>
+//                 <li>מה דרש חיזוק אנושי או הקשר תרבותי נוסף?</li>
+//             </ul>
+//         </div>
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+//             <h2 className="text-xl font-bold text-slate-800 mb-3">שלב 5 – ניסוח הצהרת משמעות ראשונית</h2>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>כתבו: המשך לשלב 5</li>
+//                 <li>ודאו שהצהרת המשמעות משָקפת את כלל הערכים והקשרים.</li>
+//                 <li>שימו לב לשאולות בסוף התהליך.</li>
+//                 <li>נסו להגיע לטיוטה ראשונית של הצהרה בכמה פסקאות.</li>
+//             </ul>
+//         </div>
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+//             <h2 className="text-xl font-bold text-slate-800 mb-3">ביצוע חוזר – העמקה ודיוק</h2>
+//             <ul className="custom-list space-y-2 text-lg">
+//                 <li>חזרו לשלבים שבהם התגלו פערים או שאלות.</li>
+//                 <li>בקשו עדכון/דיוק של שלב (למשל: "עדכן שלב 2 עם ערכים קהילתיים").</li>
+//                 <li><strong>ניתוח תמונה:</strong> בצע ניתוח ויזואלי של התמונה ואילו ערכים תרבותיים מיוצגים
+//                     בתמונה? (אפרופו ניתוח השטח)</li>
+//                 <li><strong>ניתוח סמיוטי:</strong> בצע ניתוח סמיוטי ופרשנות ביקורתית של ההערכה.</li>
+//                 <li><strong>הצפת בעיות:</strong> מהן הבעיות, הדילמות והשאלות העולות מתהליך ההערכה באשר
+//                     לתכנון השימור?</li>
+//             </ul>
+//         </div>
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+//             <h2 className="text-xl font-bold text-slate-800 mb-3">פורמט לתוצר סופי ושיתוף</h2>
+//             <div className="text-lg space-y-3">
+//                 <p>🧩 השתדלו להגיע לא רק לחלוקת ערכים אלא לסינתזה שיוצרת נרטיב מחבר: מה הסיפור הייחודי? מה
+//                     ראוי במיוחד לשימור ולמה? מהי רשת המשמעויות ואיך דבר קשור לדבר?</p>
+//             </div>
+//             <ul className="custom-list space-y-2 text-lg mt-4">
+//                 <li>הבוט ייצור טיוטה של הצהרת המשמעות עם כל הניתוחים.</li>
+//                 <li>העתיקו לוורד ובצעו עריכה סופית.</li>
+//                 <li>העלו את קובץ הוורד לדרייב <a
+//                     href="https://drive.google.com/drive/folders/1aPSRCph5KVgD2feMP8LKWp_qp6wcB9ea?usp=sharing"
+//                     target="_blank" rel="noopener" className="text-blue-600 hover:underline">(העלאה לדרייב
+//                     המשותף)</a></li>
+//             </ul>
+//         </div>
+//     </div>
+// );
 
+const experienceSteps = [
+    {
+        title: "שלב 1 – ניתוח הקשרים ותיאור הנכס",
+        practical: [
+            "העלו קובץ מידע על נכס מורשת.",
+            "אמרו לבוט: \"בצע שלב 1 על המידע שהעליתי\".",
+            "בדקו שהתיאור כולל פתיחה, התפתחות היסטורית, סרגל זמן, והקשרים מרכזיים."
+        ],
+        goal: "יצירת תיאור מקיף של הנכס (לפחות 800 מילים) על בסיס ההקשרים שזוהו.",
+        actions: "עיבוד מידע וזיהוי הקשרים (מבני, היסטורי, חברתי וכו'), כתיבת תיאור מובנה הכולל פתיחה, התפתחות היסטורית וסרגל זמן.",
+        questions: "האם יש פרטים נוספים שכדאי להוסיף לתיאור? האם לדייק את התיאור?",
+        reflection: [
+            "מה עבד טוב בתהליך ההפעלה של הבוט?",
+            "איפה נדרשה התערבות אנושית כדי לדייק או להשלים מידע?"
+        ]
+    },
+    {
+        title: "שלב 2 – ניתוח משמעות תרבותית (ערכים)",
+        practical: [
+            "בקשו: המשך לשלב 2",
+            "ודאו שהבוט מזהה היטב את הערכים המרכזיים (אסתטי, היסטורי, חברתי).",
+            "במידת הצורך בקשו השלמות, דיוק ומיקוד של המידע."
+        ],
+        goal: "זיהוי וניתוח הערכים המרכזיים של הנכס, תוך התבססות על הקשרים ועדויות.",
+        actions: "זיהוי ערכים (אסתטי, היסטורי, חברתי), ניתוח אופן ביטויים בנכס, וקישורם להקשרים רחבים.",
+        questions: "האם יש ערכים נוספים? האם יש נרטיבים מתנגשים או ערכים קהילתיים שלא באו לידי ביטוי?",
+        reflection: [
+            "האם אתר.בוט הצליח לנסח ערכים מורכבים, ניואנסים ותובנות לא צפויות?",
+            "מה דרש חיזוק אנושי או הקשר תרבותי נוסף?"
+        ]
+    },
+    {
+        title: "שלב 3 – ניתוח אותנטיות ושלמות",
+        practical: [
+            "בקשו: המשך לשלב 3",
+            "ודאו שהבוט בוחן אותנטיות לפי נארה גריד (צורה, חומרים, שימוש).",
+            "במידת הצורך בקשו השלמות או דיוק."
+        ],
+        goal: "ניתוח מצב השימור, השלמות והאותנטיות של הנכס והשפעתם על ערכיו.",
+        actions: "השוואה בין מצב נוכחי להיסטורי, יישום של Nara Grid לבחינת היבטים כמו צורה, חומרים ושימוש, והערכת מצב ההשתמרות הכללי.",
+        questions: "האם יש פרטים נוספים על מצב השימור? האם התיאור מדויק?",
+        reflection: [
+            "האם הבוט הצליח להבחין בין שלמות פיזית לערכים תרבותיים?",
+            "האם נדרשה הבהרה או השלמה אנושית?"
+        ]
+    },
+    {
+        title: "שלב 4 – הערכה השוואתית",
+        practical: [
+            "בקשו: המשך לשלב 4",
+            "ודאו שהבוט מזהה אתרי השוואה, מנתח מאפיינים עיצוביים ותפקודיים, ומדגיש ייחודיות או נדירות."
+        ],
+        goal: "ניתוח ייחודיות הנכס בהשוואה לאתרים דומים מבחינה ערכית, תפקודית והיסטורית.",
+        actions: "זיהוי אתרי השוואה, ניתוח מאפיינים עיצוביים ותפקודיים, והדגשת הייחודיות או הנדירות של הנכס.",
+        questions: "האם ידוע לך על אתרים נוספים להשוואה? האם יש נקודות השוואה נוספות להדגיש?",
+        reflection: [
+            "האם הבוט הצליח להדגיש את ייחודיות הנכס?",
+            "האם נדרשה השלמה אנושית או דוגמאות נוספות?"
+        ]
+    },
+    {
+        title: "שלב 5 – ניסוח הצהרת משמעות תרבותית",
+        practical: [
+            "כתבו: המשך לשלב 5",
+            "ודאו שהצהרת המשמעות משקפת את כלל הערכים והקשרים.",
+            "נסו להגיע לטיוטה ראשונית של הצהרה בכמה פסקאות."
+        ],
+        goal: "ניסוח נרטיב מגובש, שלם ומבוסס המבליט את משמעותו התרבותית של הנכס.",
+        actions: "כתיבה סינתטית המשלבת את כלל הממצאים, הדגשת תרומת הנכס לערכים, שימוש בשפה מקצועית ונרטיבית.",
+        questions: "האם ההצהרה משקפת את מהות הנכס? האם תרצה להוסיף המלצות לשימור או לבצע ניתוח סמיוטי?",
+        reflection: [
+            "האם ההצהרה מסכמת את כל הערכים והקשרים?",
+            "האם יש מקום להרחבה או דיוק נוסף?"
+        ]
+    }
+];
+
+const ExperiencePage = () => {
+    const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+    return (
+        <div className="space-y-4">
+            {experienceSteps.map((step, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg mb-2">
+                    <button
+                        type="button"
+                        className={`w-full flex items-center justify-between p-5 font-semibold text-right text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors ${openIdx === idx ? 'bg-indigo-50' : ''}`}
+                        onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
+                    >
+                        <span>{step.title}</span>
+                        <svg className={`w-6 h-6 shrink-0 transform transition-transform ${openIdx === idx ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                        </svg>
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${openIdx === idx ? 'max-h-screen p-5' : 'max-h-0'}`}>
+                        {openIdx === idx && (
+                            <div className="space-y-4">
+                                <ul className="custom-list space-y-2 text-lg">
+                                    {step.practical.map((item, i) => <li key={i}>{item}</li>)}
+                                </ul>
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <p><strong>🎯 מטרה:</strong> {step.goal}</p>
+                                    <p><strong>🧠 פעולות הבוט:</strong> {step.actions}</p>
+                                    <p className="bg-indigo-50 p-3 rounded-md mt-2"><strong>❓ שאלות עצירה:</strong> {step.questions}</p>
+                                </div>
+                                <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-4 mt-2">
+                                    <h3 className="text-xl font-bold text-slate-700 mb-3">רפלקציה</h3>
+                                    <ul className="custom-list space-y-2 text-lg">
+                                        {step.reflection.map((item, i) => <li key={i}>{item}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}; 
 const TipsPage = () => {
     const tipsList = [
         { title: "הגדירו את הפרסונה", text: 'התחילו את הפרומפט בהגדרה ברורה: "אתה אדריכל שימור", "אתה היסטוריון", "אתה מומחה למורשת תרבותית". זה ממקד את הבוט ומייצר תשובות רלוונטיות יותר.' },
@@ -453,7 +517,13 @@ const TipsPage = () => {
         { title: "בקשו פורמטים ספציפיים", text: 'אל תהססו לבקש מהבוט לארגן את התשובה בפורמט מסוים: "סכם בנקודות", "צור טבלה המשווה בין...", "כתוב כפסקה רציפה".' },
         { title: "בצעו איטרציות", text: "אל תצפו לתשובה מושלמת בפעם הראשונה. השתמשו בתשובה הראשונית כבסיס, ובקשו מהבוט לדייק, להרחיב, לקצר או לשנות את המיקוד." },
         { title: "השתמשו בשרשור (Chaining)", text: 'נהלו "שיחה" עם הבוט. התייחסו לתשובות קודמות שלו ובקשו ממנו להרחיב עליהן. למשל: "בהמשך לתשובתך על הערך האדריכלי, הסבר כיצד הוא בא לידי ביטוי...".' },
-        { title: "שאלו על קשרים וסתירות", text: 'אחד היתרונות של הבוט הוא היכולת לזהות קשרים. שאלו אותו: "מה הקשר בין X ל-Y?", "האם קיימת סתירה בין ערך A לערך B?".' },
+        { title: "שאלו על קשרים וסתירות", text: 'אחד היתרונות של אתר.בוט הוא היכולת לזהות קשרים. שאלו אותו: "מה הקשר בין X ל-Y?", "זהה אם קיימים ערכים שיש בינהם סתירות"' },
+        { title: "התמקדות", text: "אפשרות להפעיל רק שלב מסוים (למשל רק נארה גריד) או שאלות על המידע ללא ביצוע התהליך." },
+        { title: "השתמשו בשאלות פתוחות", text: 'שאלות כמו "אילו שלבי בנייה מבטאים ערכים שונים?" או "כיצד להעריך את האותנטיות לצרכי תכנון כשיש יותר משלב בנייה אחד בעל ערך?" מאפשרות לבוט להרחיב את התשובה.' },
+        { title: "בדקו את התשובות", text: "לאחר קבלת תשובה, קראו אותה בעיון. האם היא עונה על הציפיות? האם יש מקום לשיפור? אל תהססו לבקש הבהרות." },
+        { title: "התנסו עם פרומפטים שונים", text: 'אל תתביישו לנסות ניסוחים שונים של השאלות. לפעמים שינוי קטן יכול להביא לתשובה שונה לחלוטין.' }
+
+    
     ];
 
     const handleQuery = (question: string) => askTipsLLM(question, tipsList);
@@ -476,14 +546,13 @@ const TipsPage = () => {
 
 const IdeasPage = () => {
     const ideasList = [
-        { title: "גרף ידע מאוחד", text: 'יצירת גרף-על המאחד את כל הנכסים מהסדנאות. גרף כזה יאפשר לזהות קשרים ותמות רוחביות בין נכסים שונים.' },
+        // { title: "גרף ידע מאוחד", text: 'יצירת גרף-על המאחד את כל הנכסים מהסדנאות. גרף כזה יאפשר לזהות קשרים ותמות רוחביות בין נכסים שונים.' },
         { title: "ציר זמן אינטראקטיבי", text: "הצגת כל הנכסים על ציר זמן ויזואלי לפי תקופות. לחיצה על תקופה תסנן את הנכסים הרלוונטיים." },
-        { title: "הצהרות משמעות אוטומטיות", text: "לאמן את הבוט לייצר טיוטה ראשונית של הצהרת משמעות (Statement of Significance) על בסיס גרף הידע וההקשר שנמסר לו." },
-        { title: "מיפוי ערכים מרחבי", text: "פיצ'ר ליצירת מפת חום אינטראקטיבית המציגה היכן ערכים שונים (אסתטי, קהילתי) ממוקמים פיזית באתר." },
+        { title: "מיפוי ערכים מרחבי", text: "פיצ'ר ליצירת מפת חום אינטראקטיבית המציגה היכן ערכים שונים (אסתטי, קהילתית) ממוקמים פיזית באתר." },
         { title: "מערכת המלצות לתכנון", text: "סוכן המציע פעילויות חינוכיות או תכנוניות על בסיס הערכים הדומיננטיים שזוהו בהערכה." },
         { title: "סימולטור תרחישי שימור", text: "כלי סימולציה הבוחן כיצד שינוי פיזי מוצע (למשל, בניית קומה) ישפיע על מכלול הערכים של האתר." },
         { title: "סוכן לניתוח סנטימנט ציבורי", text: "סוכן הסורק רשתות חברתיות וחדשות כדי לזהות מה הציבור חושב ומעריך באתר, מעבר להערכה המקצועית." },
-        { title: "מחולל נרטיבים חלופיים", text: "יכולת לספר את סיפור האתר מנקודות מבט מושתקות (פועל, דיירת) כדי להציף ערכים נסתרים." },
+        { title: "מחולל נרטיבים חלופיים", text: "יכולת לספר את סיפור האתר מנקודות מבט טופ-דאון (פועל, דיירת) כדי להציף ערכים נסתרים." },
         { title: "ניתוח השוואתי למכלול נכסים", text: "הזנת מספר הערכות למערכת כדי לזהות תמות משותפות ולסייע בגיבוש מדיניות שימור רחבה." },
         { title: " 'סנגור השטן'", text: "סוכן המקבל פרסונה ביקורתית ומעלה טיעוני נגד כדי לאתגר ולחזק את הצהרת המשמעות." }
     ];
@@ -509,28 +578,29 @@ const IdeasPage = () => {
 const App = () => {
     const [page, setPage] = useState('home');
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [data, setData] = useState({
+    const [error, setError] = useState<string | null>(null);    const [data, setData] = useState({
         allGraphData: {},
+        allGrapheCleanData: { nodes: [], edges: [] },
         thematicGraphData: { nodes: [], edges: [] },
         nodeColors: {}
     });
 
     useEffect(() => {
-        async function loadData() {
-            try {
-                const [graphRes, thematicRes] = await Promise.all([
-                    fetch('data/graphData.json'),
-                    fetch('data/thematicGraph.json')
+        async function loadData() {            try {
+                const [graphRes, thematicRes, allGrapheCleanRes] = await Promise.all([
+                    fetch('/icomos/atar.bot/data/graphData.json'),
+                    fetch('/icomos/atar.bot/data/thematicGraph.json'),
+                    fetch('/icomos/atar.bot/data/allGrapheClean.json')
                 ]);
-                if (!graphRes.ok || !thematicRes.ok) {
+                if (!graphRes.ok || !thematicRes.ok || !allGrapheCleanRes.ok) {
                     throw new Error('Network response was not ok.');
                 }
                 const graphJson = await graphRes.json();
                 const thematicJson = await thematicRes.json();
-                setData({
+                const allGrapheCleanJson = await allGrapheCleanRes.json();                setData({
                     nodeColors: graphJson.NODE_COLORS,
                     allGraphData: graphJson.allGraphData,
+                    allGrapheCleanData: allGrapheCleanJson,
                     thematicGraphData: thematicJson,
                 });
             } catch (err) {
@@ -552,10 +622,9 @@ const App = () => {
 
     const renderPage = () => {
         if (loading) return <div className="text-center p-10">טוען נתונים...</div>;
-        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;
-
-        const pageProps = {
+        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;        const pageProps = {
             allGraphData: data.allGraphData,
+            allGrapheCleanData: data.allGrapheCleanData,
             thematicGraphData: data.thematicGraphData,
             nodeColors: data.nodeColors
         };
@@ -570,18 +639,22 @@ const App = () => {
             case 'tips':
                 return <TipsPage />;
             case 'ideas':
-                return <IdeasPage />;
+                return <IdeasPage />;            case 'atarbot':
+                return <AtarBotTab />;            case 'neo4j':
+                return <Neo4jGraph />;
+            case 'workshop-report':
+                return <WorkshopReport />;
             default:
                 return <HomePage onNavClick={setPage} />;
         }
-    };
-
-    const navItems = [
+    };    const navItems = [
         { id: 'home', label: 'עמוד הבית' },
+         { id: 'dashboard', label: 'גרפי ידע' },
         { id: 'experience', label: 'תיאור ההתנסות' },
-        { id: 'dashboard', label: 'לוח תוצרים' },
-        { id: 'tips', label: 'טיפים' },
+         { id: 'tips', label: 'טיפים' },
         { id: 'ideas', label: 'סיעור מוחות' },
+        { id: 'neo4j', label: 'גרף Neo4j' },
+        { id: 'workshop-report', label: 'דוח סיכום הסדנה' },
     ];
 
     return (

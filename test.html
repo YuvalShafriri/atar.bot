@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>Knowledge Graph</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    body, #infowindow, #infowindow *, #mynetwork, #mynetwork * {
+      font-family: Calibri, sans-serif !important;
+    }
+    #mynetwork {
+      width: 100%;
+      height: 95vh;
+      border: 1px solid lightgray;
+    }
+    #infowindow {
+      display: none;
+      position: absolute;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      padding: 8px;
+      line-height: 1.1rem;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+      direction: rtl;
+      text-align: right;
+      max-width: 280px;
+      z-index: 10;
+      font-size: 1.0rem;
+    }
+    #infowindow p {
+      margin: 5px;
+      padding: 1px;
+    }
+    #infowindow h3 {
+      margin: 0;
+    }
+    #closeinfo {
+      float: left;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>-
+<div id="mynetwork"></div>
+<div id="infowindow">
+  <span id="closeinfo">X</span>
+  <h3 id="info_name"></h3>
+  <p><strong>סוג:</strong> <span id="info_type"></span></p>
+  <p><strong>ערך מורשתי:</strong> <span id="info_heritageValue"></span></p>
+  <p><strong>משמעות:</strong> <span id="info_meaning"></span></p>
+</div>
+<script>
+  const DATA = {
+    nodes: [
+      { id: 1, name: "מתחם ההיאחזות ניר עוז", type: "מקום", heritageValue: "אתר מורשת", meaning: "מרחב היסטורי, קהילתי וסמלי בשולי הנגב" },
+      { id: 2, name: "צריפים שוודיים", type: "מבנה", heritageValue: "ערך היסטורי ואדריכלי", meaning: "עדות להסכם השילומים ולפתרונות מגורים של שנות ה-50" },
+      { id: 3, name: "מקלחת ציבורית", type: "מבנה", heritageValue: "ערך חברתי", meaning: "מייצגת את חיי הקהילה בעבר והיום כמרכז מבקרים" },
+      { id: 4, name: "נקודה ירוקה", type: "מקום", heritageValue: "ערך סביבתי", meaning: "גן בוטני ניסיוני למדבור בר קיימא" },
+      { id: 5, name: "אירועי 7 באוקטובר 2023", type: "אירוע", heritageValue: "ערך סמלי וזיכרון קולקטיבי", meaning: "אירוע טראומטי שהפך את האתר לסמל לאומי של שבר ותקומה" },
+      { id: 6, name: "קהילת ניר עוז", type: "קבוצה חברתית", heritageValue: "ערך חברתי", meaning: "מובילה את שימור הזיכרון והשיקום" },
+      { id: 7, name: "מגדל שמירה", type: "אלמנט אדריכלי", heritageValue: "ערך סמלי", meaning: "מסמל ביטחון ואובדן" },
+      { id: 8, name: "היאחזויות נחל", type: "סיפור", heritageValue: "ערך היסטורי וטיפולוגי", meaning: "מודל ההתיישבות הצבאית-אזרחית של שנות ה-50" },
+      { id: 9, name: "שיקום ושימוש חינוכי", type: "סיפור", heritageValue: "ערך חינוכי וקהילתי", meaning: "החזון לעתיד המבוסס על ערכי האתר והקהילה" },
+      { id: 10, name: "גן פורח במדבר", type: "סמל", heritageValue: "ערך אסתטי וסביבתי", meaning: "הפרדוקס בין צמחייה שופעת לבין זיכרון ההרס" },
+      { id: 11, name: "מוזיאון וחלל זיכרון", type: "שימוש", heritageValue: "ערך חינוכי וזיכרון", meaning: "שימוש עכשווי בצריפים כאתר למידה והנצחה" },
+      { id: 12, name: "זיכרון טראומטי", type: "זיכרון קולקטיבי", heritageValue: "ערך לא מוחשי", meaning: "הפך למוקד זהות וזיכרון בעקבות האירועים" },
+      { id: 13, name: "שיח קהילתי", type: "מסורת/מנהג", heritageValue: "ערך חברתי ורוחני", meaning: "התמודדות עם הטראומה דרך תיעוד וסדנאות" },
+      { id: 14, name: "היסטוריה של הפרחת השממה", type: "סיפור", heritageValue: "ערך מדיני והיסטורי", meaning: "מימוש אידאולוגיית בן גוריון במרחב הגבול" },
+      { id: 15, name: "שירות נחל", type: "קבוצה חברתית", heritageValue: "ערך היסטורי", meaning: "שילוב צבא וחקלאות – מרכיב בזהות האתר" },
+      { id: 16, name: "תיעוד בארכיון", type: "שימוש", heritageValue: "ערך תיעודי", meaning: "איסוף חומרים היסטוריים וקהילתיים" },
+      { id: 17, name: "שיקום נופי חכם", type: "סיפור", heritageValue: "ערך סביבתי עכשווי", meaning: "חזון להקמה מחדש עם ערכים אקולוגיים" },
+      { id: 18, name: "ערך חברתי", type: "Value [חברתי]", heritageValue: "ערך", meaning: "האתר כמוקד לזהות ושייכות קהילתית" },
+      { id: 19, name: "ערך סמלי", type: "Value [סמלי]", heritageValue: "ערך", meaning: "האתר כסמל לשבר ותקומה" },
+      { id: 20, name: "ערך סביבתי", type: "Value [סביבתי]", heritageValue: "ערך", meaning: "המשכיות של חזון האקולוגיה במדבר" },
+      { id: 21, name: "ערך אדריכלי", type: "Value [אדריכלי]", heritageValue: "ערך", meaning: "שימור טיפוסי הבינוי של היאחזות נחל" }
+    ],
+    edges: [
+      { from: 1, to: 2, label: "מכיל" },
+      { from: 1, to: 3, label: "מכיל" },
+      { from: 1, to: 4, label: "כולל" },
+      { from: 1, to: 5, label: "הושפע מ" },
+      { from: 1, to: 6, label: "קשור ל" },
+      { from: 1, to: 7, label: "כולל" },
+      { from: 1, to: 8, label: "שייך למסגרת" },
+      { from: 1, to: 9, label: "חזון עתידי" },
+      { from: 1, to: 10, label: "מסמל" },
+      { from: 1, to: 11, label: "שימוש עכשווי" },
+      { from: 1, to: 12, label: "מהווה מוקד ל" },
+      { from: 1, to: 13, label: "מאפשר" },
+      { from: 1, to: 14, label: "נבנה כחלק מ" },
+      { from: 1, to: 15, label: "הוקם על ידי" },
+      { from: 1, to: 16, label: "כולל שימוש ב" },
+      { from: 1, to: 17, label: "מתוכנן עבור" },
+      { from: 1, to: 18, label: "מגלם" },
+      { from: 1, to: 19, label: "מגלם" },
+      { from: 1, to: 20, label: "מגלם" },
+      { from: 1, to: 21, label: "מגלם" }
+    ]
+  };
+
+  const COLOR_BY_TYPE = {
+    'מקום':               { background: 'rgba(100,149,237,0.7)', border: '#6495ED' },
+    'מבנה':               { background: 'rgba(178,34,34,0.7)', border: '#B22222' },
+    'אלמנט אדריכלי':      { background: 'rgba(129,199,132,0.7)', border: '#81C784' },
+    'אירוע':              { background: 'rgba(255,160,122,0.7)', border: '#FFA07A' },
+    'סיפור':              { background: 'rgba(255,228,181,0.7)', border: '#FFE4B5' },
+    'קבוצה חברתית':       { background: 'rgba(255,215,0,0.7)', border: '#FFD700' },
+    'שימוש':              { background: 'rgba(0,180,180,0.7)', border: '#00B4B4' },
+    'סמל':                { background: 'rgba(218,112,214,0.7)', border: '#DA70D6' },
+    'זיכרון קולקטיבי':    { background: 'rgba(75,0,130,0.7)', border: '#4B0082' },
+    'מסורת/מנהג':         { background: 'rgba(139,69,19,0.7)', border: '#8B4513' },
+    'Value [חברתי]':      { background: 'rgba(255,193,7,0.7)', border: '#FFC107' },
+    'Value [סמלי]':       { background: 'rgba(255,193,7,0.7)', border: '#FFC107' },
+    'Value [סביבתי]':     { background: 'rgba(255,193,7,0.7)', border: '#FFC107' },
+    'Value [אדריכלי]':    { background: 'rgba(255,193,7,0.7)', border: '#FFC107' }
+  };
+
+  DATA.nodes.forEach(n => {
+    const col = COLOR_BY_TYPE[n.type] || { background: 'rgba(200,200,200,0.7)', border: '#666666' };
+    n.label = n.name;
+    n.color = col;
+  });
+
+  const nodes = new vis.DataSet(DATA.nodes);
+  const edges = new vis.DataSet(DATA.edges);
+  const container = document.getElementById('mynetwork');
+  const data = { nodes, edges };
+  const options = {
+    nodes: {
+      shape: 'box',
+      font: { align: 'center', size: 14, color: '#333333' },
+      borderWidth: 1,
+      margin: { top: 8, right: 10, bottom: 8, left: 10 },
+      widthConstraint: { maximum: 160 }
+    },
+    edges: {
+      arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+      font: { align: 'middle', size: 11, color: '#555555', background: 'white' },
+      smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.5 },
+      color: { color: '#848484', highlight: '#333333', hover: '#555555', inherit: false }
+    },
+    layout: { improvedLayout: true },
+    physics: {
+      enabled: true,
+      solver: 'repulsion',
+      repulsion: { nodeDistance: 230, centralGravity: 0.05, springLength: 20, springConstant: 0.005, damping: 0.09 },
+      stabilization: { iterations: 2500, fit: true }
+    },
+    interaction: { hover: true, tooltipDelay: 300000 }
+  };
+
+  const network = new vis.Network(container, data, options);
+
+  network.on('click', params => {
+    const info = document.getElementById('infowindow');
+    if (params.nodes.length) {
+      const node = nodes.get(params.nodes[0]);
+      document.getElementById('info_name').innerText = node.name;
+      document.getElementById('info_type').innerText = node.type;
+      document.getElementById('info_heritageValue').innerText = node.heritageValue;
+      document.getElementById('info_meaning').innerText = node.meaning;
+      info.style.left = params.pointer.DOM.x + 'px';
+      info.style.top = params.pointer.DOM.y + 'px';
+      info.style.display = 'block';
+    } else {
+      info.style.display = 'none';
+    }
+  });
+
+  document.getElementById('closeinfo').addEventListener('click', () => {
+    document.getElementById('infowindow').style.display = 'none';
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('infowindow').style.display = 'none'; });
+</script>
+</body>
+</html>

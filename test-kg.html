@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <title>Knowledge Graph Test</title>
+
+  <!-- CSS חיצוני קבוע -->
+  <link rel="stylesheet"
+        href="https://alephplace.com/atar.bot/canvas/knowledge-graph.css"
+        crossorigin="anonymous" />
+
+  <!-- vis-network CDN -->
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <div id="mynetwork"></div>
+
+  <div id="infowindow">
+    <span id="closeinfo">✖</span>
+    <h3 id="info_name"></h3>
+    <p><strong>סוג:</strong> <span id="info_type"></span></p>
+    <p><strong>ערך מורשתי:</strong> <span id="info_heritageValue"></span></p>
+    <p><strong>משמעות:</strong> <span id="info_meaning"></span></p>
+  </div>
+
+  <!-- דוגמה לנתונים עם תווים מיוחדים -->
+  <script>
+    const DATA = {
+      "nodes": [
+        { "id": 1, "name": "נחל דן", "type": "תופעה טבעית", "meaning": "נחל בצפון ישראל", "heritageValue": "ערך נופי" },
+        { "id": 2, "name": "תל דן", "type": "מקום", "meaning": "אתר ארכיאולוגי עתיק", "heritageValue": "ערך היסטורי" },
+        { "id": 3, "name": "שער דן", "type": "מבנה", "meaning": "שער עיר עתיקה", "heritageValue": "ערך אדריכלי" }
+      ],
+      "edges": [
+        { "from": 1, "to": 2, "label": "זורם ליד" },
+        { "from": 2, "to": 3, "label": "כולל" }
+      ]
+    };
+  </script>
+
+  <!-- JS חיצוני קבוע -->
+  <script src="./knowledge-graph.js" crossorigin="anonymous"></script>
+</body>
+</html>
