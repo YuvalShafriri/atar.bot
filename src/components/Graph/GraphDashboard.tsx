@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
-import { generateMetaGraphContext, getPresetQuestions, getExampleQuestions } from '../../meta-graph-generator';
+import { quickHybridChat } from '../../quickHybridSetup'; // ⭐ הוספת המערכת ההיברידית
+import {  getPresetQuestions } from './meta-graph-generator';
 import AllAssetsGraph from './AllAssetsGraph';
 
 // Token counting utility
@@ -18,8 +19,7 @@ const fetchChatCompletion = async (
   
   const bodyJson = JSON.stringify(body);
   const inputTokens = estimateTokensGlobal(bodyJson);
-  
-  console.log(`[LLM Tokens] Input tokens: ${inputTokens.toLocaleString()}`);
+    // console.log(`[LLM Tokens] Input tokens: ${inputTokens.toLocaleString()}`);
   
   try {
     const startTime = Date.now();
@@ -39,10 +39,8 @@ const fetchChatCompletion = async (
     const outputCost = (outputTokens / 1000) * 0.06;
     const totalCost = inputCost + outputCost;
     
-    console.log(`[LLM Tokens] Output tokens: ${outputTokens.toLocaleString()}`);
-    console.log(`[LLM Tokens] Total tokens: ${totalTokens.toLocaleString()}`);
-    console.log(`[LLM Tokens] Estimated cost: $${totalCost.toFixed(4)}`);
-    console.log(`[LLM Tokens] Response time: ${endTime - startTime}ms`);
+    // Essential metrics only
+    console.log(`[Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
     
     return result;
   } catch (err) {
@@ -153,7 +151,9 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
 1. התשובה חייבת להיות קצרה ותמציתית (מקסימום 4 משפטים).
 2. התבסס רק על הנתונים המסופקים.
 3. ענה בעברית.
-5. השתמש במילים פשוטות וברורות.
+4. השתמש במילים פשוטות וברורות.
+5. **אל תסביר מגבלות או תוסיף הערות על היכולות הטכניות שלך**.
+6. **התמקד במה שיש, לא במה שחסר**.
 `;
 // 4. התמקד בנקודה המרכזית ביותר.
     const fullPrompt = `
@@ -215,9 +215,11 @@ interface AiSpotProps {
     onQuery: (input: string) => Promise<string>;
     placeholder?: string;
     exampleQueries?: string[];
+    useHybridMode?: boolean; // ⭐ הוספת prop למצב היברידי
+    onToggleHybrid?: () => void; // ⭐ הוספת callback לשינוי מצב
 }
 
-const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries }) => {
+const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries, useHybridMode, onToggleHybrid }) => {
     const [input, setInput] = useState<string>('');
     const [output, setOutput] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);    const config = {
@@ -272,14 +274,26 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                         placeholder={config.placeholder}
                         className="flex-grow p-2 border rounded bg-white text-gray-900 placeholder:text-gray-500 text-sm"
                         disabled={isLoading}
-                    />
-                    <button
+                    />                    <button
                         onClick={() => handleAsk()}
                         className="px-3 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
                         disabled={isLoading || !input.trim()}
                     >
                         {isLoading ? 'חושב...' : 'שאל'}
-                    </button>
+                    </button>                    {/* ⭐ כפתור היברידי */}
+                    {onToggleHybrid && (
+                        <button
+                            onClick={onToggleHybrid}
+                            className={`px-3 py-2 font-bold rounded-lg transition text-sm ${
+                                useHybridMode 
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                            title={useHybridMode ? "מערכת היברידית: מופעלת" : "מערכת רגילה: מופעלת"}
+                        >
+                            🧠 {useHybridMode ? 'HYBRID' : 'STANDARD'}
+                        </button>
+                    )}
                 </div>
                 {/* כפתורי שאלות לדוגמה */}
                 {exampleQueries && exampleQueries.length > 0 && (
@@ -392,6 +406,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
     const [infoBoxContent, setInfoBoxContent] = useState<string>('');
     const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});
     const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
+    const [useHybridMode, setUseHybridMode] = useState<boolean>(false); // ⭐ הוספת mode היברידי
 
     const graphContainerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<any>(null);
@@ -421,36 +436,37 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
         }
 
         let graphData: GraphData;
-        
-        if (assetId === 'all_assets') {
+          if (assetId === 'all_assets') {
             // עבור כלל הנכסים, נטען את המטא-גרף החדש עם דגל Asset
             try {
-                console.log('[Graph Loading] Attempting to load meta-graph with asset flag...');
+                // console.log('[Graph Loading] Attempting to load meta-graph with asset flag...');
                 const metaGraph = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
                 graphData = metaGraph;
                 
                 const graphTokens = estimateGraphTokens(graphData);
-                console.log(`[Graph Tokens] Using meta-graph for all_assets`);
-                console.log(`[Graph Tokens] Nodes: ${graphData.nodes?.length || 0}`);
-                console.log(`[Graph Tokens] Edges: ${graphData.edges?.length || 0}`);
-                console.log(`[Graph Tokens] Estimated graph tokens: ${graphTokens.toLocaleString()}`);
-                console.log(`[Graph Tokens] Graph size: ${(JSON.stringify(graphData).length / 1024).toFixed(2)} KB`);
+                // console.log(`[Graph Tokens] Using meta-graph for all_assets`);
+                // console.log(`[Graph Tokens] Nodes: ${graphData.nodes?.length || 0}`);
+                // console.log(`[Graph Tokens] Edges: ${graphData.edges?.length || 0}`);
+                // console.log(`[Graph Tokens] Estimated graph tokens: ${graphTokens.toLocaleString()}`);
+                // console.log(`[Graph Tokens] Graph size: ${(JSON.stringify(graphData).length / 1024).toFixed(2)} KB`);
             } catch (error) {
                 console.error('[Graph] Failed to load meta-graph, falling back to allGrapheCleanData:', error);
                 graphData = allGrapheCleanData;
             }
-            
-            console.log('🚀 [QUERY START] Starting graph query...');
+              // console.log('🚀 [QUERY START] Starting graph query...');
             const queryStartTime = Date.now();
             
-            const result = await chatGraph(question, graphData, fetchChatCompletion);
+            // ⭐ בחירה בין מערכת רגילה להיברידית
+            const result = useHybridMode 
+                ? await quickHybridChat(question, graphData, fetchChatCompletion)
+                : await chatGraph(question, graphData, fetchChatCompletion);
             
             const queryEndTime = Date.now();
             const totalDuration = queryEndTime - queryStartTime;
             
-            console.log('✅ [QUERY COMPLETE] Total query duration:', totalDuration + 'ms');
-            console.log(`🏁 [DASHBOARD SUMMARY] Selected Graph: ${assetId}`);
-            console.log(`🏁 [DASHBOARD SUMMARY] Graph Size: ${graphData.nodes?.length || 0} nodes, ${graphData.edges?.length || 0} edges`);
+            // console.log('✅ [QUERY COMPLETE] Total query duration:', totalDuration + 'ms');
+            // console.log(`🏁 [DASHBOARD SUMMARY] Selected Graph: ${assetId}`);
+            // console.log(`🏁 [DASHBOARD SUMMARY] Graph Size: ${graphData.nodes?.length || 0} nodes, ${graphData.edges?.length || 0} edges`);
             
             queryCache.current.set(cacheKey, result);
             return result;
@@ -465,9 +481,52 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             if (!graphData) {
                 return "שגיאה: לא נמצא נתוני גרף.";
             }
-            
-            // בניית הקשר הטקסטואלי - כמו במקור
+              // בניית הקשר הטקסטואלי - עם דגש על זיהוי קשרים עקיפים
             let contextData = '';
+            
+            // זיהוי קשרים עקיפים אם השאלה מכילה שמות נכסים
+            const questionLower = question.toLowerCase();
+            if (questionLower.includes('קשר') && graphData.nodes && graphData.edges) {
+                // חפש צמתים שעשויים להיות נכסים הנזכרים בשאלה
+                const mentionedAssets = graphData.nodes.filter((node: any) => 
+                    questionLower.includes(node.label.toLowerCase()) ||
+                    (node.name && questionLower.includes(node.name.toLowerCase()))
+                );
+                
+                if (mentionedAssets.length >= 2) {
+                    // חפש קשרים עקיפים בין הנכסים הנזכרים
+                    contextData += `--- ניתוח קשרים עקיפים ---\n`;
+                    for (let i = 0; i < mentionedAssets.length; i++) {
+                        for (let j = i + 1; j < mentionedAssets.length; j++) {
+                            const asset1 = mentionedAssets[i];
+                            const asset2 = mentionedAssets[j];
+                            
+                            // מצא צמתים משותפים
+                            const asset1Connections = graphData.edges
+                                .filter((e: any) => e.from === asset1.id)
+                                .map((e: any) => e.to);
+                            
+                            const asset2Connections = graphData.edges
+                                .filter((e: any) => e.from === asset2.id)
+                                .map((e: any) => e.to);
+                            
+                            const sharedConnections = asset1Connections.filter((conn: string) => 
+                                asset2Connections.includes(conn)
+                            );
+                            
+                            if (sharedConnections.length > 0) {
+                                const sharedNodes = sharedConnections.map((connId: string) => {
+                                    const node = graphData.nodes.find((n: any) => n.id === connId);
+                                    return node ? node.label : connId;
+                                });
+                                
+                                contextData += `קשר עקיף: ${asset1.label} ↔ ${asset2.label} דרך: ${sharedNodes.join(', ')}\n`;
+                            }
+                        }
+                    }
+                    contextData += '\n';
+                }
+            }
             
             // הוספת צמתים
             contextData += `--- צמתים בגרף ---\n`;
@@ -488,20 +547,23 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                     contextData += `- "${fromNode.label}" -> ${edge.label || ''} -> "${toNode.label}"\n`;
                 }
             });
-            
-            // פרומפט פשוט ומדויק
+              // פרומפט מותאם לתשובות תמציתיות ומדויקות
             const systemPrompt = `
-אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לענות על שאלות של משתמשים אך ורק על סמך נתוני JSON שיסופקו לך.
-התהליך שלך: זהה את הצמתים והקשרים הרלוונטיים מהנתונים כדי לענות על השאלה, וחבר תשובה נרטיבית ומשמעותית.
+אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
 
-**חשוב ביותר לשאילתות על נכסים**: כאשר נשאלות שאלות על "נכסים" (כמו "כמה נכסים", "אילו נכסים"), ענה אך ורק על צמתים שיש להם השדה "asset": true בנתונים. התעלם מכל הצמתים האחרים כאשר מדובר בספירת נכסים או זיהוי נכסים.
+**כללי תשובה**:
+1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
+2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
+3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
+4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
 
-הנחיות לתשובה:
-1. ענה ישירות לשאלה בלבד, ללא מידע נוסף, הקשר, או הרחבות. אל תוסיף הקדמות, סיכומים או המלצות.
-2. התשובה חייבת להיות קצרה ותמציתית (2-3 משפטים בלבד).
-3. התבסס רק על הנתונים המסופקים.
-4. ענה בעברית.
-5. השתמש במילים פשוטות וברורות.
+**חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
+
+הנחיות נוספות:
+1. היה תמציתי - לא צריך הסברים מפורטים
+2. אם אין קשר בגרף - אמר שאין קשר
+3. התבסס רק על הנתונים המסופקים
+4. ענה בעברית פשוטה וברורה
 `;
 
             const fullPrompt = `
@@ -814,15 +876,15 @@ ${contextData}
                         )}
                     </div>
                 </div>
-            </div>
-
-            {/* AI Query Interface */}
+            </div>            {/* AI Query Interface */}
             <AiSpot
                 spotId="dashboard"
                 onQuery={handleQuery}
                 key={assetId}
                 exampleQueries={selectedQueries}
                 placeholder="שאל את הבוט על הנכס - קבל הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
+                useHybridMode={useHybridMode}
+                onToggleHybrid={() => setUseHybridMode(!useHybridMode)}
             />
             
             {/* Graph Display */}

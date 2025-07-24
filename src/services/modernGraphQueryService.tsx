@@ -352,7 +352,7 @@ export async function chatGraphModern(
   
   // Step 3: Check if we need to find indirect connections
   const questionLower = question.toLowerCase();
-  let indirectConnections = null;
+  let indirectConnections: { paths: any[]; explanation: string } | null = null;
   
   if (questionLower.includes('עקיף') || questionLower.includes('קשור')) {
     const sourceKeywords = questionLower.match(/(?:ל|עם|של)\s+([^\s]+)/g);

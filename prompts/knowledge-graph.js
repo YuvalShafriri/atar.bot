@@ -138,7 +138,7 @@ if (params.nodes.length) {
 const node = nodes.get(params.nodes[0]);
 document.getElementById('info_name').innerText = node.name;
 document.getElementById('info_type').innerText = node.type;
-document.getElementById('info_heritageValue').innerText = node.heritageValue || '—';
+//document.getElementById('info_heritageValue').innerText = node.heritageValue || '—';
 document.getElementById('info_meaning').innerText = node.meaning || '—';
 info.style.left = params.pointer.DOM.x + 'px';
 info.style.top = params.pointer.DOM.y + 'px';

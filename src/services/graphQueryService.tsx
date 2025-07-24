@@ -12,8 +12,9 @@ export const logTokenUsage = (context: string, data: any, isInput: boolean = tru
   const size = (dataStr.length / 1024).toFixed(2);
   const direction = isInput ? 'Input' : 'Output';
   
-  console.log(`[${context} Tokens] ${direction} tokens: ${tokens.toLocaleString()}`);
-  console.log(`[${context} Tokens] ${direction} size: ${size} KB`);
+  // Only log essential token info
+  // console.log(`[${context} Tokens] ${direction} tokens: ${tokens.toLocaleString()}`);
+  // console.log(`[${context} Tokens] ${direction} size: ${size} KB`);
   
   return tokens;
 };
@@ -72,19 +73,23 @@ function createRAGChunks(graph: GraphData): RAGChunk[] {
         .filter(e => e.from === asset.id)
         .map(e => {
           const target = graph.nodes.find(n => n.id === e.to);
-          return target ? target.name || target.label || target.id : e.to;
+          const targetName = target ? target.name || target.label || target.id : e.to;
+          return e.label ? `${targetName} (${e.label})` : targetName;
         });
       
-      // Find indirect connections (2-hop paths)
+      // Find indirect connections (2-hop paths) with relationship details
       const indirectConnections = graph.edges
         .filter(e => e.from === asset.id)
-        .map(e => e.to)
-        .flatMap(intermediateId => 
+        .map(e => ({ to: e.to, label: e.label }))
+        .flatMap(firstHop => 
           graph.edges
-            .filter(e => e.from === intermediateId)
+            .filter(e => e.from === firstHop.to)
             .map(e => {
               const target = graph.nodes.find(n => n.id === e.to);
-              return target ? target.name || target.label || target.id : e.to;
+              const intermediate = graph.nodes.find(n => n.id === firstHop.to);
+              const targetName = target ? target.name || target.label || target.id : e.to;
+              const intermediateName = intermediate ? intermediate.name || intermediate.label || intermediate.id : firstHop.to;
+              return `${targetName} (דרך ${intermediateName})`;
             })
         );
       
@@ -104,7 +109,49 @@ ${indirectConnections.length > 0 ? `קשרים עקיפים: ${indirectConnectio
       });
     });
   
-  // 2. Value Connection Chunks  
+  // 2. Asset-to-Asset Connection Chunks (for identifying shared connections)
+  const assetNodes = graph.nodes.filter(n => n.asset === true || n.Asset === true);
+  
+  // Find shared connection patterns between assets
+  assetNodes.forEach(asset1 => {
+    assetNodes.forEach(asset2 => {
+      if (asset1.id !== asset2.id) {
+        // Find shared intermediate nodes (indirect connections)
+        const asset1Connections = graph.edges
+          .filter(e => e.from === asset1.id)
+          .map(e => e.to);
+        
+        const asset2Connections = graph.edges
+          .filter(e => e.from === asset2.id)
+          .map(e => e.to);
+        
+        const sharedConnections = asset1Connections.filter(conn => 
+          asset2Connections.includes(conn)
+        );
+        
+        if (sharedConnections.length > 0) {
+          const sharedNodes = sharedConnections.map(connId => {
+            const node = graph.nodes.find(n => n.id === connId);
+            return node ? node.name || node.label || node.id : connId;
+          });
+          
+          const chunk = `קשר עקיף בין נכסים:
+נכס 1: ${asset1.name || asset1.label || asset1.id}
+נכס 2: ${asset2.name || asset2.label || asset2.id}
+קשר דרך: ${sharedNodes.join(', ')}
+סוג קשר: עקיף`;
+
+          chunks.push({
+            id: `indirect_${asset1.id}_${asset2.id}`,
+            content: chunk,
+            type: 'relationship'
+          });
+        }
+      }
+    });
+  });
+  
+  // 3. Value Connection Chunks  
   const valueNodes = graph.nodes.filter(n => 
     n.name?.includes('ערך') || 
     n.type?.includes('ערך') ||
@@ -149,36 +196,91 @@ ${indirectConnections.length > 0 ? `קשרים עקיפים: ${indirectConnectio
     type: 'heritage_asset'
   });
   
+  // 4. Relationship Pattern Chunks - analyze common connection types
+  const relationshipTypes = new Map<string, number>();
+  graph.edges.forEach(edge => {
+    if (edge.label) {
+      relationshipTypes.set(edge.label, (relationshipTypes.get(edge.label) || 0) + 1);
+    }
+  });
+  
+  if (relationshipTypes.size > 0) {
+    const topRelationships = Array.from(relationshipTypes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    const relationshipChunk = `סוגי קשרים נפוצים בגרף:
+${topRelationships.map(([type, count]) => `- ${type}: ${count} פעמים`).join('\n')}`;
+
+    chunks.push({
+      id: 'relationship_patterns',
+      content: relationshipChunk,
+      type: 'relationship'
+    });
+  }
+  
   return chunks;
 }
 
-// Simple semantic search based on keyword matching
-function searchRelevantChunks(question: string, chunks: RAGChunk[], maxChunks: number = 12): RAGChunk[] {
+// Enhanced semantic search with better scoring
+function searchRelevantChunks(question: string, chunks: RAGChunk[], maxChunks: number = 20): RAGChunk[] {
   const questionLower = question.toLowerCase();
-  const keywords = questionLower.split(/\s+/);
+  const keywords = questionLower.split(/\s+/).filter(word => word.length > 2);
   
-  // Score chunks based on keyword matches
+  // Score chunks based on multiple relevance factors
   const scoredChunks = chunks.map(chunk => {
     const contentLower = chunk.content.toLowerCase();
     let score = 0;
     
-    // Exact phrase matches (high score)
-    if (contentLower.includes(questionLower)) {
-      score += 100;
+    // Exact phrase matches (highest priority)
+    if (contentLower.includes(questionLower.trim())) {
+      score += 200;
     }
     
-    // Individual keyword matches
+    // Individual keyword matches with frequency weighting
     keywords.forEach(keyword => {
-      if (keyword.length > 2 && contentLower.includes(keyword)) {
-        score += 10;
-      }
+      const matches = (contentLower.match(new RegExp(keyword, 'g')) || []).length;
+      score += matches * 15; // Higher score for repeated mentions
     });
     
-    // Special handling for specific locations/names
-    if (questionLower.includes('שפר') || questionLower.includes('שפירא')) {
-      if (contentLower.includes('שפר') || contentLower.includes('שפירא')) {
+    // Question type boosts - focus on connection queries
+    if (questionLower.includes('קשר') || questionLower.includes('חיבור') || questionLower.includes('קשור')) {
+      if (chunk.type === 'relationship') {
+        score += 150; // High priority for relationship chunks
+      }
+      if (chunk.content.includes('קשר עקיף')) {
+        score += 100; // Boost for indirect connections
+      }
+    }
+    
+    // Boost for specific asset name mentions
+    const assetMentions = questionLower.match(/(?:בין|של|עם|ל)\s+([א-ת\s]+?)(?:\s+ל|\s+ו|\s+עם|$)/g);
+    if (assetMentions && assetMentions.length >= 2) {
+      // This looks like a connection query between specific assets
+      if (chunk.type === 'relationship') {
+        score += 120;
+      }
+    }
+    
+    if (questionLower.includes('אילו') || questionLower.includes('מהם')) {
+      if (chunk.type === 'heritage_asset') {
+        score += 50;
+      }
+    }
+    
+    if (questionLower.includes('קשר') || questionLower.includes('קשור')) {
+      if (chunk.type === 'relationship' || chunk.type === 'value_connection') {
         score += 80;
       }
+    }
+    
+    // Content type priorities
+    if (chunk.type === 'heritage_asset' && questionLower.includes('נכס')) {
+      score += 30;
+    }
+    
+    if (chunk.type === 'relationship' && (questionLower.includes('בין') || questionLower.includes('עם'))) {
+      score += 40;
     }
     
     // Boost for specific question types
@@ -220,19 +322,19 @@ export async function chatGraph(
   graph: GraphData,
   fetchChatCompletion: (messages: LLMMessage[], tools?: any[]) => Promise<any>
 ): Promise<string> {
-  console.log('[chatGraph] Starting RAG-based query:', question);
+  // console.log('[chatGraph] Starting RAG-based query:', question);
   logTokenUsage('Full Graph Input', graph, true);
   
   // Step 1: Create RAG chunks from graph
   const chunks = createRAGChunks(graph);
-  console.log(`[RAG] Created ${chunks.length} knowledge chunks`);
+  // console.log(`[RAG] Created ${chunks.length} knowledge chunks`);
   
   // Step 2: Search for relevant chunks (increased limit for better context)
-  const relevantChunks = searchRelevantChunks(question, chunks, 12);
-  console.log(`[RAG] Found ${relevantChunks.length} relevant chunks`);
+  const relevantChunks = searchRelevantChunks(question, chunks, 20);
+  // console.log(`[RAG] Found ${relevantChunks.length} relevant chunks`);
   
-  // Step 3: Build context from relevant chunks with token limit
-  const TARGET_CONTEXT_TOKENS = 800; // Leave room for system prompt + question
+  // Step 3: Build context from relevant chunks with enhanced token limit
+  const TARGET_CONTEXT_TOKENS = 2000; // Increased for richer context
   let contextContent = '';
   let usedChunks = 0;
   
@@ -248,7 +350,7 @@ export async function chatGraph(
     }
   }
   
-  console.log(`[RAG] Using ${usedChunks} chunks within token limit`);
+  // console.log(`[RAG] Using ${usedChunks} chunks within token limit`);
   logTokenUsage('RAG Context', contextContent, true);
   
   // Calculate token savings
@@ -257,20 +359,30 @@ export async function chatGraph(
   const tokenSavings = originalTokens - contextTokens;
   const savingsPercent = ((tokenSavings / originalTokens) * 100).toFixed(1);
   
-  console.log(`[Token Savings] Original: ${originalTokens.toLocaleString()} tokens`);
-  console.log(`[Token Savings] Context: ${contextTokens.toLocaleString()} tokens`);
-  console.log(`[Token Savings] Saved: ${tokenSavings.toLocaleString()} tokens (${savingsPercent}%)`);
+  // console.log(`[Token Savings] Original: ${originalTokens.toLocaleString()} tokens`);
+  // console.log(`[Token Savings] Context: ${contextTokens.toLocaleString()} tokens`);
+  // console.log(`[Token Savings] Saved: ${tokenSavings.toLocaleString()} tokens (${savingsPercent}%)`);
   
-  // Step 4: Query LLM with focused context
+  // Step 4: Query LLM with focused and precise instructions
   const systemMessage: LLMMessage = {
     role: 'system',
-    content: `אתה עוזר מומחה לנכסי מורשת תרבותית. ענה על השאלות בהתבסס אך ורק על המידע שסופק לך.
+    content: `אתה עוזר מומחה לנכסי מורשת תרבותית. המטרה שלך היא לספק תשובות תמציתיות ומדויקות בהתבסס על הגרף בלבד.
 
-**חשוב מאוד**: כאשר נשאלות שאלות על "נכסים" או "נכסי מורשת", התייחס אך ורק לצמתים המסומנים כ"נכס מורשת" במידע שלמטה. התעלם מצמתים אחרים כמו ערכים, תקופות או נושאים כאשר מונים נכסים.
+**כללי תשובה**:
+1. תשובות קצרות ומדויקות - רק העובדות מהגרף, ללא הרחבות או פרשנויות
+2. אם נשאל על "קשר" בין שני נכסים - חפש קשר ישיר או עקיף דרך צמת משותף
+3. קשר עקיף = שני נכסים מחוברים לאותו צומת (ערך, תקופה, וכו')
+4. ציין בבירור אם הקשר הוא ישיר או עקיף ודרך איזה צומת
+5. **אל תוסיף הסברים על מגבלות המערכת או יכולות ניתוח**
+6. **אל תזכיר שאתה צריך "כללים נוספים" או "מידע נוסף"**
+7. **התמקד במה שיש בגרף, לא במה שחסר**
 
-אם המידע לא מספק, אמר זאת בבירור. היה מדויק ותמציתי.
+**כללים קריטיים**:
+- נכסי מורשת = רק צמתים עם asset=true
+- היה תמציתי ומדויק - לא צריך להיות מפורט
+- אם אין קשר בגרף - אמר שאין קשר
 
-מידע רלוונטי:
+מידע מהגרף:
 ${contextContent}`
   };
   
@@ -289,13 +401,13 @@ ${contextContent}`
                 'לא ניתן היה לענות על השאלה על בסיס המידע הזמין';
   
   logTokenUsage('LLM Response', answer, false);
-  console.log('[chatGraph] RAG answer:', answer);
+  // console.log('[chatGraph] RAG answer:', answer);
   
   // ⭐ FINAL TOKEN SUMMARY ⭐
   console.log('');
-  console.log('🎯 ===== FINAL TOKEN SUMMARY =====');
+  console.log('🎯 ===== TOKEN SUMMARY =====');
   console.log(`📊 Question: "${question}"`);
-  console.log(`📊 Original Graph: ${originalTokens.toLocaleString()} tokens`);
+  console.log(`📊 Input Graph: ${originalTokens.toLocaleString()} tokens`);
   console.log(`📊 RAG Context: ${contextTokens.toLocaleString()} tokens`);
   console.log(`📊 LLM Input: ${estimateTokens(JSON.stringify([systemMessage, userMessage])).toLocaleString()} tokens`);
   console.log(`📊 LLM Output: ${estimateTokens(answer).toLocaleString()} tokens`);
