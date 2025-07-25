@@ -10,7 +10,7 @@ import { WorkshopReport } from './components/WorkshopReport';
 import GraphDashboard from './components/Graph/GraphDashboard';
 declare const vis: any;
 
-const LLM_MODEL = 'gemini-1.5-flash';
+const LLM_MODEL = 'gemini-2.5-flash-lite';
 console.log('[Gemini] Using LLM_MODEL:', LLM_MODEL);
 
 // AI Configuration

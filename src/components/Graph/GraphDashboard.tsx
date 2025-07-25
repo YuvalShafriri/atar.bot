@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
 import { quickHybridChat } from '../../quickHybridSetup'; // ⭐ הוספת המערכת ההיברידית
+import { getQueryPlan, AgentAction } from '../../services/agentService'; // ⭐ הוספת סוכן הניתוב
 import {  getPresetQuestions } from './meta-graph-generator';
 import AllAssetsGraph from './AllAssetsGraph';
 
@@ -15,7 +16,7 @@ const fetchChatCompletion = async (
 ) => {
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
   const contents = messages.map(m => ({ text: m.content }));
-  const body = { model: 'gemini-1.5-flash', contents, tools };
+  const body = { model: 'gemini-2.5-flash-lite', contents, tools };
   
   const bodyJson = JSON.stringify(body);
   const inputTokens = estimateTokensGlobal(bodyJson);
@@ -79,7 +80,7 @@ type Edge = {
 };
 
 // LLM Configuration - שונה ל-8b למהירות טובה יותר
-const LLM_MODEL = 'gemini-1.5-flash';
+const LLM_MODEL = 'gemini-2.5-flash-lite';
 //const LLM_MODEL = 'gemini-1.5-flash';
  //const LLM_MODEL = 'gemini-2.5-flash';
 //const//  LLM_MODEL = 'gemini-2.5-pro';
@@ -217,9 +218,11 @@ interface AiSpotProps {
     exampleQueries?: string[];
     useHybridMode?: boolean; // ⭐ הוספת prop למצב היברידי
     onToggleHybrid?: () => void; // ⭐ הוספת callback לשינוי מצב
+    useAgentMode?: boolean; // ⭐ הוספת prop למצב סוכן
+    onToggleAgent?: () => void; // ⭐ הוספת callback לשינוי מצב סוכן
 }
 
-const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries, useHybridMode, onToggleHybrid }) => {
+const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries, useHybridMode, onToggleHybrid, useAgentMode, onToggleAgent }) => {
     const [input, setInput] = useState<string>('');
     const [output, setOutput] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);    const config = {
@@ -292,6 +295,20 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                             title={useHybridMode ? "מערכת היברידית: מופעלת" : "מערכת רגילה: מופעלת"}
                         >
                             🧠 {useHybridMode ? 'HYBRID' : 'STANDARD'}
+                        </button>
+                    )}
+                    {/* ⭐ כפתור סוכן */}
+                    {onToggleAgent && (
+                        <button
+                            onClick={onToggleAgent}
+                            className={`px-3 py-2 font-bold rounded-lg transition text-sm ${
+                                useAgentMode 
+                                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                            title={useAgentMode ? "סוכן AI: מופעל" : "סוכן AI: כבוי"}
+                        >
+                            🤖 {useAgentMode ? 'AGENT' : 'MANUAL'}
                         </button>
                     )}
                 </div>
@@ -404,9 +421,9 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
     const [assetId, setAssetId] = useState<string>(selectedGraph || 'all_assets');
     const [showTooltip, setShowTooltip] = useState(false);
     const [infoBoxContent, setInfoBoxContent] = useState<string>('');
-    const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});
-    const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
-    const [useHybridMode, setUseHybridMode] = useState<boolean>(false); // ⭐ הוספת mode היברידי
+    const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});    const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
+    const [useHybridMode, setUseHybridMode] = useState<boolean>(false); // ⭐ הוספת mode היברידית
+    const [useAgentMode, setUseAgentMode] = useState<boolean>(false); // ⭐ הוספת mode סוכן
 
     const graphContainerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<any>(null);
@@ -452,14 +469,46 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             } catch (error) {
                 console.error('[Graph] Failed to load meta-graph, falling back to allGrapheCleanData:', error);
                 graphData = allGrapheCleanData;
-            }
-              // console.log('🚀 [QUERY START] Starting graph query...');
+            }            // console.log('🚀 [QUERY START] Starting graph query...');
             const queryStartTime = Date.now();
             
-            // ⭐ בחירה בין מערכת רגילה להיברידית
-            const result = useHybridMode 
-                ? await quickHybridChat(question, graphData, fetchChatCompletion)
-                : await chatGraph(question, graphData, fetchChatCompletion);
+            let result: string;
+              // ⭐ בחירה בין מערכת רגילה, היברידית או עם סוכן
+            if (useAgentMode) {
+                // שימוש בסוכן AI לניתוב השאלה
+                try {
+                    console.log('🤖 [AGENT] Using agent routing for question:', question);
+                    const presetQuestions = getPresetQuestions();
+                    const predefinedQuestions = presetQuestions.map((q, idx) => ({ 
+                        id: q.id, 
+                        text: q.text 
+                    }));
+                    
+                    const plan = await getQueryPlan(question, predefinedQuestions, fetchChatCompletion);
+                    console.log('📋 [AGENT] Generated plan:', plan);
+                    
+                    if (plan.action === 'answer_from_config' && plan.question_id) {
+                        // תשובה מוכנה מראש
+                        const presetQuestion = presetQuestions.find(q => q.id === plan.question_id);
+                        result = presetQuestion ? presetQuestion.answer : `תשובה מוכנה מראש לשאלה: "${question}"`;
+                    } else {
+                        // שאילתת גרף עם תכנון מתקדם
+                        result = useHybridMode 
+                            ? await quickHybridChat(question, graphData, fetchChatCompletion)
+                            : await chatGraph(question, graphData, fetchChatCompletion);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ [AGENT] Agent failed, falling back to regular mode:', error);
+                    result = useHybridMode 
+                        ? await quickHybridChat(question, graphData, fetchChatCompletion)
+                        : await chatGraph(question, graphData, fetchChatCompletion);
+                }
+            } else {
+                // מערכת רגילה או היברידית ללא סוכן
+                result = useHybridMode 
+                    ? await quickHybridChat(question, graphData, fetchChatCompletion)
+                    : await chatGraph(question, graphData, fetchChatCompletion);
+            }
             
             const queryEndTime = Date.now();
             const totalDuration = queryEndTime - queryStartTime;
@@ -587,7 +636,7 @@ ${contextData}
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    model: 'gemini-1.5-flash',
+                    model: 'gemini-2.5-flash-lite',
                     contents: fullPrompt
                 })
             });
@@ -876,15 +925,16 @@ ${contextData}
                         )}
                     </div>
                 </div>
-            </div>            {/* AI Query Interface */}
-            <AiSpot
+            </div>            {/* AI Query Interface */}            <AiSpot
                 spotId="dashboard"
                 onQuery={handleQuery}
                 key={assetId}
                 exampleQueries={selectedQueries}
-                placeholder="שאל את הבוט על הנכס - קבל הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
+                placeholder="שאל את הבוט על הנכס - קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
                 useHybridMode={useHybridMode}
                 onToggleHybrid={() => setUseHybridMode(!useHybridMode)}
+                useAgentMode={useAgentMode}
+                onToggleAgent={() => setUseAgentMode(!useAgentMode)}
             />
             
             {/* Graph Display */}

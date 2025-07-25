@@ -2,9 +2,9 @@
 
 interface ImportMetaEnv {
   readonly VITE_GEMINI_PROXY_URL: string;
-  // more env variables...
+  // add more env variables here if needed
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }
