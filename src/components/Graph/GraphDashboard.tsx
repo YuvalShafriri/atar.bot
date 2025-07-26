@@ -440,12 +440,25 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
         let graphData: GraphData;
         if (assetId === 'all_assets') {
             // --- DATA UPDATE: use meta-graph-asset-flag.json for all_assets (id-based) ---
-            try {
-                graphData = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
-            } catch (error) {
-                console.error('[Graph] Failed to load meta-graph-asset-flag.json, falling back to allGrapheCleanData:', error);
-                graphData = allGrapheCleanData;
-            }
+            // try {
+            //     graphData = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
+            // } catch (error) {
+            //     console.error('[Graph] Failed to load meta-graph-asset-flag.json, falling back to allGrapheCleanData:', error);
+            //     graphData = allGrapheCleanData;
+            // }
+                try {
+        graphData = await fetch('data/graphMaster.json').then(r => r.json());
+        // Shim: הוספת label לכל node אם חסר
+        if (Array.isArray(graphData.nodes)) {
+            graphData.nodes = graphData.nodes.map((node: any) => ({
+                ...node,
+                label: node.label || node.name || node.id // label עדיפות, אח"כ name, אח"כ id
+            }));
+        }
+    } catch (error) {
+        console.error('[Graph] Failed to load graphMaster.json, falling back to allGrapheCleanData:', error);
+        graphData = allGrapheCleanData;
+    }
             const queryStartTime = Date.now();
             let result;
             if (useAgentMode) {
