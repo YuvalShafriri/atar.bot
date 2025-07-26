@@ -5,12 +5,12 @@ import { UI_MESSAGES } from './utils/constants';
 import './styles/globals.css';
 import infoIcon from './images/i.png';
 import AtarBotTab from './components/AtarBotTab';
-import Neo4jGraph from './components/Neo4jGraph';
+// import Neo4jGraph from './components/Neo4jGraph';
 import { WorkshopReport } from './components/WorkshopReport';
 import GraphDashboard from './components/Graph/GraphDashboard';
 declare const vis: any;
-
-const LLM_MODEL = 'gemini-1.5-flash';
+const LLM_MODEL = 'gemini-2.5-flash-lite';
+//const LLM_MODEL = 'gemini-1.5-flash';
 console.log('[Gemini] Using LLM_MODEL:', LLM_MODEL);
 
 // AI Configuration
@@ -473,6 +473,7 @@ const ExperiencePage = () => {
 
     return (
         <div className="space-y-4">
+            <h2 className="text-2xl font-bold mb-4 text-center">שלבי הערכה תרבותית בגישת CBSA - באתר.בוט</h2>
             {experienceSteps.map((step, idx) => (
                 <div key={idx} className="border border-gray-200 rounded-lg mb-2">
                     <button
@@ -622,7 +623,8 @@ const App = () => {
 
     const renderPage = () => {
         if (loading) return <div className="text-center p-10">טוען נתונים...</div>;
-        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;        const pageProps = {
+        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;
+        const pageProps = {
             allGraphData: data.allGraphData,
             allGrapheCleanData: data.allGrapheCleanData,
             thematicGraphData: data.thematicGraphData,
@@ -639,22 +641,176 @@ const App = () => {
             case 'tips':
                 return <TipsPage />;
             case 'ideas':
-                return <IdeasPage />;            case 'atarbot':
-                return <AtarBotTab />;            case 'neo4j':
-                return <Neo4jGraph />;
+                return <IdeasPage />;
+            case 'atarbot':
+                return <AtarBotTab />;
+            // case 'neo4j':
+            //     return <Neo4jGraph />;
             case 'workshop-report':
                 return <WorkshopReport />;
+            case 'workshop-report-new':
+                return (
+                    <div className="workshop-report bg-stone-50 text-gray-800" dir="rtl">
+                        <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
+                            <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex items-center justify-between h-16">
+                                    <div className="flex-shrink-0">
+                                        <h1 className="text-xl font-bold text-gray-700">דו"ח סיכום סדנה (חדש)</h1>
+                                    </div>
+                                </div>
+                            </nav>
+                        </header>
+                        <main className="container mx-auto p-2 sm:p-6 lg:p-8 pt-2">
+                            {/* אתגר ומענה */}
+                            <section id="challenge" className="pb-12 sm:pb-16">
+                                <div className="text-center px-1 pt-1">
+                                    <h2 className="pt-1 text-2xl font-bold text-blue-900">האתגר והמענה: הערכת מורשת בישראל</h2>
+                                    <p className="mt-1 text-lg text-gray-600 max-w-3xl mx-auto pt-1">
+                                        הערכת מורשת ניצבת בפני אתגרים מורכבים. בדיונים ובסיכום בחנו את הכשלים והאתגרים, ואת מקום ה-AI.
+                                    </p>
+                                </div>
+                                <div className="mt-10 max-w-6xl mx-auto">
+                                    <div className="border-b border-gray-200">
+                                        <nav className="-mb-px flex space-x-4 space-x-reverse justify-center" aria-label="Tabs">
+                                            <button 
+                                                className="tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg active border-blue-500 bg-white text-blue-800 font-bold"
+                                            >
+                                                1. כשלים ואתגרים
+                                            </button>
+                                            <button 
+                                                className="tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent"
+                                            >
+                                                2. דרכי התמודדות
+                                            </button>
+                                            <button 
+                                                className="tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent"
+                                            >
+                                                3. תפקיד ה-AI
+                                            </button>
+                                        </nav>
+                                    </div>
+                                    <div className="mt-8">
+                                        {/* Panel 1: Failures */}
+                                        <div className="challenge-panel">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div>
+                                                    <h3 className="font-bold text-xl mb-2 text-red-700 text-right">כשלים מערכתיים ורגולטוריים</h3>
+                                                    <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                                                        <li><b>היעדר דרישה:</b> גופים סטטוטוריים אינם דורשים הערכות מורשת.</li>
+                                                        <li><b>קבלת החלטות מוקדמת:</b> החלטות מתקבלות מלחצים פוליטיים וכלכליים.</li>
+                                                        <li><b>היעדר אחידות ותקינה:</b> פערים בהנחיות וחוסר בשפה משותפת.</li>
+                                                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>כשל בצד המקבל:</b> גם לגופים הבודקים אין כלים מספקים לנתח את חומר ההערכה.</span></li>
+                                                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>תרבות ארגונית:</b> תיעוד והערכה נעשים "רק כדי לסמן וי", מה שמוביל לשחיקה מקצועית.</span></li>
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-xl mb-2 text-red-700 text-right">פערים מקצועיים וקוגניטיביים</h3>
+                                                    <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                                                        <li><b>היעדר הכשרה:</b> בתי ספר לאדריכלות אינם מלמדים את שלב ההערכה לעומק.</li>
+                                                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>קשיי שפה והמשגה:</b> קושי להבחין בין "ערך", "משמעות" וה"אטריביוט" (תכונה בנכס) שלהם, וקושי לבטא ערך באופן ברור ומנומק.</span></li>
+                                                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>מורכבות וסובייקטיביות:</b> הערכה דורשת חשיבה מורכבת וניתוח ערכים, לא רק איסוף נתונים טכני.</span></li>
+                                                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>מגבלות כלים:</b> כלים קיימים (אקסל, GIS) מעדיפים נתונים כמותיים על פני איכותיים.</span></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                                    <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-green-300 hover:transform hover:-translate-y-1 transition-all">
+                                        <h3 className="text-lg font-bold text-gray-800">🛠️ פיגום אנליטי</h3>
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            הכלי מספק מסגרת עבודה שיטתית המארגנת, מעמיקה ומרחיבה את תהליך החשיבה, ומאפשר להגיע לתובנות חדשות.
+                                        </p>
+                                    </div>
+                                    <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-blue-300 hover:transform hover:-translate-y-1 transition-all">
+                                        <h3 className="text-lg font-bold text-gray-800">🧠 עוזר קוגניטיבי</h3>
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            אתר.בוט הוא שותף למחשבה. הוא לא מחליף את המומחה, אלא מספק תמיכה אנליטית לתהליך ההערכה המורכב.
+                                        </p>
+                                    </div>
+                                    <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-yellow-300 hover:transform hover:-translate-y-1 transition-all">
+                                        <h3 className="text-lg font-bold text-gray-800">🧑‍💻 Human-in-the-Loop</h3>
+                                        <p className="mt-2 text-sm text-gray-600">
+                                            המומחיות האנושית נשארת במרכז. שאלות עצירה מובנות מבטיחות שהשיפוט המקצועי מנחה את התהליך בכל שלב.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                            {/* כללי ברזל */}
+                            <section className="py-12 sm:py-16 bg-white rounded-xl shadow-lg">
+                                <div className="mt-12 max-w-5xl mx-auto px-4">
+                                    <h3 className="text-2xl font-bold text-center mb-6">עקרונות מנחים (כללי ברזל)</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                        <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                                            <p className="text-3xl">🔒</p>
+                                            <p className="font-semibold mt-2">פרטיות</p>
+                                            <p className="text-sm text-gray-600">הבוט לא חושף מידע שסופק על ידי המשתמש.</p>
+                                        </div>
+                                        <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                                            <p className="text-3xl">📑</p>
+                                            <p className="font-semibold mt-2">ציטוט</p>
+                                            <p className="text-sm text-gray-600">מסתמך רק על קבצי המקור שהועלו.</p>
+                                        </div>
+                                        <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                                            <p className="text-3xl">⛔</p>
+                                            <p className="font-semibold mt-2">ללא הזיות</p>
+                                            <p className="text-sm text-gray-600">אינו ממציא עובדות, נתונים או מקורות.</p>
+                                        </div>
+                                        <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                                            <p className="text-3xl">🧑‍💻</p>
+                                            <p className="font-semibold mt-2">פיקוח אנושי</p>
+                                            <p className="text-sm text-gray-600">שאלות עצירה מבטיחות שהמומחה נשאר במרכז.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                            {/* סיכום */}
+                            <section id="conclusion" className="py-12 sm:py-16">
+                                <div className="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                                    <h2 className="text-3xl font-bold text-blue-900 text-center mb-8">סיכום: בין ידיעת הלב לידיעת השכל</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                                        <div className="border-l-2 border-dashed border-gray-300 pl-8">
+                                            <div className="italic text-gray-600 text-lg leading-relaxed text-center">
+                                                <p>"אָדָם גֵּאָה בְּיִדְעוֹתָיו</p>
+                                                <p>וְרָאָה כּוּלָן פֵּרְשׁוּ כַּפָּיו:</p>
+                                                <p>אומנויות ומדעים</p>
+                                                <p>ועוד אלפי אמצעים;</p>
+                                                <p className="mt-4">הרוח הנושב –</p>
+                                                <p>אותו בלבד ידע הלב."</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-xl text-gray-700 text-right leading-relaxed">
+                                                ההתייחסות ל"אתר.בוט" כ'כלי' בלבד היא פישוט יתר. בניגוד לכלי פסיבי וצפוי, GenAI הוא שותף
+                                                פעיל, לעיתים מפתיע, בתהליך החשיבה. הוא מציע, יוצר, אך גם עלול לטעות.
+                                            </p>
+                                            <p className="mt-4 text-xl text-gray-700 text-right leading-relaxed">
+                                                יעילותו ובטיחותו תלויות בפיתוח <strong className="text-blue-800">'אוריינות AI'</strong> – יכולת
+                                                ביקורתית מתמדת, אימות מידע, ושיפוט אתי של המומחה האנושי, המשלב את "ידיעת השכל" עם "ידיעת הלב".
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </main>
+                        <footer className="text-center py-6 bg-white border-t mt-12">
+                            <p className="text-gray-600">נוצר כמדריך מאוחד לדוח סדנת איקומוס אתר.בוט</p>
+                        </footer>
+                    </div>
+                );
             default:
                 return <HomePage onNavClick={setPage} />;
         }
     };    const navItems = [
         { id: 'home', label: 'עמוד הבית' },
-         { id: 'dashboard', label: 'גרפי ידע' },
+        { id: 'dashboard', label: 'גרפי ידע' },
         { id: 'experience', label: 'תיאור ההתנסות' },
-         { id: 'tips', label: 'טיפים' },
+        { id: 'tips', label: 'טיפים' },
         { id: 'ideas', label: 'סיעור מוחות' },
-        { id: 'neo4j', label: 'גרף Neo4j' },
+        // { id: 'neo4j', label: 'גרף Neo4j' },
         { id: 'workshop-report', label: 'דוח סיכום הסדנה' },
+        //{ id: 'workshop-report-new', label: 'סיכום סדנה (חדש)' },
     ];
 
     return (

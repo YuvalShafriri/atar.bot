@@ -16,8 +16,8 @@ const fetchChatCompletion = async (
 ) => {
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
   const contents = messages.map(m => ({ text: m.content }));
-  const body = { model: 'gemini-1.5-flash', contents, tools };
-  
+  const body = { model: LLM_MODEL, contents, tools };
+
   const bodyJson = JSON.stringify(body);
   const inputTokens = estimateTokensGlobal(bodyJson);
     // console.log(`[LLM Tokens] Input tokens: ${inputTokens.toLocaleString()}`);
@@ -80,9 +80,9 @@ type Edge = {
 };
 
 // LLM Configuration - שונה ל-8b למהירות טובה יותר
-const LLM_MODEL = 'gemini-1.5-flash';
 //const LLM_MODEL = 'gemini-1.5-flash';
- //const LLM_MODEL = 'gemini-2.5-flash';
+//const LLM_MODEL = 'gemini-1.5-flash';
+const LLM_MODEL = 'gemini-2.5-flash-lite';
 //const//  LLM_MODEL = 'gemini-2.5-pro';
 // קיצ'ינג פשוט לתשובות
 const responseCache = new Map<string, string>();
@@ -590,7 +590,7 @@ ${contextData}
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    model: 'gemini-1.5-flash',
+                    model: LLM_MODEL,
                     contents: fullPrompt
                 })
             });

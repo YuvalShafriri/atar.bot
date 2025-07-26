@@ -170,75 +170,49 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
     }  };
 
   return (
-    <div className="workshop-report bg-stone-50 text-gray-800" dir="rtl">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-gray-700">דו"ח סיכום סדנה (מורחב)</h1>
-            </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-6 space-x-reverse">
-                <button onClick={() => smoothScrollTo('challenge')} className="workshop-nav-link text-gray-600 font-medium">האתגר והמענה</button>
-                <button onClick={() => smoothScrollTo('inside')} className="workshop-nav-link text-gray-600 font-medium">אל תוך הבוט</button>
-                <button onClick={() => smoothScrollTo('gemini-interactive')} className="workshop-nav-link text-gray-600 font-medium">התנסות עם Gemini ✨</button>
-                <button onClick={() => smoothScrollTo('conclusion')} className="workshop-nav-link text-gray-600 font-medium">סיכום</button>
-              </div>
-            </div>
-          </div>
-        </nav>
-      </header>
-
-      <main className="container mx-auto p-2 sm:p-6 lg:p-8 pt-2">
-        {/* Introduction */}
-        <section id="intro" className="pt-12 sm:pt-16 pb-0 text-center">
-          <p className="mt-2 text-lg text-gray-600 max-w-3xl mx-auto font-semibold text-justify">
+    <div className="workshop-report bg-stone-50 text-gray-800 pt-0 mt-0 mb-0 " dir="rtl">
+      {/* Header removed for compactness */}
+      <main className="container mx-auto pt-0 p-2 sm:p-0 lg:p-8 pt-0 mt-0">
+        {/* Introduction - remove top padding, margin, and set tight spacing */}
+        <section id="intro" className="pt-0 mt-0 sm:pt-0 pb-0 text-center">
+          <p className="mt-0 text-lg text-gray-600 max-w-4xl mx-auto font-semibold text-center">
             חלק זה מדגים אפשרות להציג ניתוח של דיונים כתוכן אינטראקטיבי. התוכן הוא שילוב של ניתוח תמלולי הדיונים עם NotebookLM ואתר.בוט
             (משלושת המחזורים), ולאחר מכן עיצוב התוצאה כמדיה אינטרנטית באמצעות כלי הCanvas של גימיני.
           </p>
         </section>
 
-        {/* Challenge and Response Section */}
-        <section id="challenge" className="pb-12 sm:pb-16">
-          <div className="text-center px-1 pt-1">
-            <h2 className="pt-1 text-2xl font-bold text-blue-900">האתגר והמענה: הערכת מורשת בישראל</h2>
-            <p className="mt-1 text-lg text-gray-600 max-w-3xl mx-auto pt-1">
+        {/* Challenge and Response Section - remove top padding, reduce spacing */}
+        <section id="challenge" className="pt-2 pb-8 sm:pb-10">
+          <div className="text-center px-1 pt-0">
+            <h2 className="pt-0 text-2xl font-bold text-blue-900">האתגר והמענה: הערכת מורשת בישראל</h2>
+            <p className="mt-1 text-lg text-gray-600 max-w-3xl mx-auto pt-0">
               הערכת מורשת ניצבת בפני אתגרים מורכבים. בדיונים ובסיכום בחנו את הכשלים והאתגרים, ואת מקום ה-AI.
             </p>
           </div>
-          
-          <div className="mt-10 max-w-6xl mx-auto">
+          <div className="mt-6 max-w-6xl mx-auto">
             <div className="border-b border-gray-200">
               <nav className="-mb-px flex space-x-4 space-x-reverse justify-center" aria-label="Tabs">
                 <button 
                   onClick={() => setActiveTab('panel-failures')}
-                  className={`tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg ${
-                    activeTab === 'panel-failures' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'
-                  }`}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-failures' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
                 >
                   1. כשלים ואתגרים
                 </button>
                 <button 
                   onClick={() => setActiveTab('panel-solutions')}
-                  className={`tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg ${
-                    activeTab === 'panel-solutions' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'
-                  }`}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-solutions' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
                 >
                   2. דרכי התמודדות
                 </button>
                 <button 
                   onClick={() => setActiveTab('panel-ai-role')}
-                  className={`tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg ${
-                    activeTab === 'panel-ai-role' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'
-                  }`}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-ai-role' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
                 >
                   3. תפקיד ה-AI
                 </button>
               </nav>
             </div>
-            
-            <div className="mt-8">
+            <div className="mt-4">
               {/* Panel 1: Failures */}
               {activeTab === 'panel-failures' && (
                 <div className="challenge-panel">
@@ -249,17 +223,17 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                         <li><b>היעדר דרישה:</b> גופים סטטוטוריים אינם דורשים הערכות מורשת.</li>
                         <li><b>קבלת החלטות מוקדמת:</b> החלטות מתקבלות מלחצים פוליטיים וכלכליים.</li>
                         <li><b>היעדר אחידות ותקינה:</b> פערים בהנחיות וחוסר בשפה משותפת.</li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>כשל בצד המקבל:</b> גם לגופים הבודקים אין כלים מספקים לנתח את חומר ההערכה.</span></li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>תרבות ארגונית:</b> תיעוד והערכה נעשים "רק כדי לסמן וי", מה שמוביל לשחיקה מקצועית.</span></li>
+                        <li><span className="px-2 py-1  "><b>כשל בצד המקבל:</b> גם לגופים הבודקים אין כלים מספקים לנתח את חומר ההערכה.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>תרבות ארגונית:</b> תיעוד והערכה נעשים "רק כדי לסמן וי", מה שמוביל לשחיקה מקצועית.</span></li>
                       </ul>
                     </div>
                     <div>
                       <h3 className="font-bold text-xl mb-2 text-red-700 text-right">פערים מקצועיים וקוגניטיביים</h3>
                       <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
                         <li><b>היעדר הכשרה:</b> בתי ספר לאדריכלות אינם מלמדים את שלב ההערכה לעומק.</li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>קשיי שפה והמשגה:</b> קושי להבחין בין "ערך", "משמעות" וה"אטריביוט" (תכונה בנכס) שלהם, וקושי לבטא ערך באופן ברור ומנומק.</span></li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>מורכבות וסובייקטיביות:</b> הערכה דורשת חשיבה מורכבת וניתוח ערכים, לא רק איסוף נתונים טכני.</span></li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>מגבלות כלים:</b> כלים קיימים (אקסל, GIS) מעדיפים נתונים כמותיים על פני איכותיים.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>קשיי שפה והמשגה:</b> קושי להבחין בין "ערך", "משמעות" וה"אטריביוט" (תכונה בנכס) שלהם, וקושי לבטא ערך באופן ברור ומנומק.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>מורכבות וסובייקטיביות:</b> נדרשת חשיבה מורכבת וניתוח ערכים, לא רק איסוף נתונים טכני.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>מגבלות כלים:</b> כלים קיימים (אקסל, GIS) מעדיפים נתונים כמותיים על פני איכותיים.</span></li>
                       </ul>
                     </div>
                   </div>
@@ -286,7 +260,7 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                         <li><b>עבודה רב-תחומית:</b> גיוס שותפים (היסטוריון, נציג קהילה) גם ללא חובה פורמלית.</li>
                         <li><b>שילוב "הסיפור":</b> שימוש בסטוריטלינג חזותי, עדויות אישיות וסיפורים.</li>
                         <li><b>עמידה על אתיקה ושקיפות:</b> תיעוד ניסיונות לחפף תהליכים וחשיפת יזמים לסיפורי קהילות.</li>
-                        <li><span className="bg-yellow-200 px-2 py-1 rounded border border-yellow-400"><b>גישה יזמית ופרואקטיבית:</b> להיות "אושיית שימור", לצבור מוניטין ולהשתמש בהשוואות ככלי שכנוע.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>גישה יזמית ופרואקטיבית:</b> להיות "אושיית שימור", לצבור מוניטין ולהשתמש בהשוואות ככלי שכנוע.</span></li>
                       </ul>
                     </div>
                   </div>
@@ -339,7 +313,6 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                       </div>
                     </div>
                   </div>
-                  
                   {/* Info Box */}
                   <div className="mt-8 max-w-4xl mx-auto">
                     <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
@@ -355,7 +328,6 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
               )}
             </div>
           </div>
-
           {/* Summary cards */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-green-300 hover:transform hover:-translate-y-1 transition-all">
@@ -378,65 +350,24 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
             </div>
           </div>
         </section>
-
-
-        <section id="inside" className="py-12 sm:py-16 bg-white rounded-xl shadow-lg">
-          <div className="text-center px-4">
-            <h2 className="text-3xl font-bold text-blue-900">אל תוך הבוט: מתודולוגיה ועקרונות יסוד</h2>
-            <p className="mt-3 text-lg text-gray-600 max-w-3xl mx-auto">
-              כדי להבין את "אתר.בוט", יש להכיר את שיטת הפעולה המובנית שלו (CBSA) ואת עקרונות היסוד המנחים אותו.
-            </p>
-          </div>
-
-          <div className="mt-10 max-w-5xl mx-auto px-4 space-y-4">
-            {accordionData.map((item, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg">
-                <h2>
-                  <button
-                    type="button"
-                    className={`accordion-button flex items-center justify-between w-full p-5 font-semibold text-right text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors ${accordionOpen[index] ? 'bg-indigo-50' : ''}`}
-                    onClick={() => toggleAccordion(index)}
-                  >
-                    <span>{item.title}</span>
-                    <svg
-                      className={`w-6 h-6 shrink-0 transform transition-transform ${accordionOpen[index] ? 'rotate-180' : ''}`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
-                    </svg>
-                  </button>
-                </h2>
-                <div
-                  className={`accordion-content border-t border-gray-200 text-right overflow-hidden transition-all duration-300 ${accordionOpen[index] ? 'max-h-screen p-5' : 'max-h-0'}`}
-                >
-                  <div className="space-y-4 text-gray-600">
-                    <p><strong>🎯 מטרה:</strong> {item.goal}</p>
-                    <p><strong>🧠 פעולות הבוט:</strong> {item.actions}</p>
-                    <p className="bg-indigo-50 p-3 rounded-md"><strong>❓ שאלות עצירה (Human-in-the-Loop):</strong> {item.questions}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 max-w-5xl mx-auto px-4">
-            <h3 className="text-2xl font-bold text-center mb-6">עקרונות מנחים (כללי ברזל)</h3>
+        {/* חוויות המשתתפים מהשימוש באתר.בוט */}
+        <section className="py-12 sm:py-16 bg-white rounded-xl shadow-lg">
+          <div className="max-w-5xl mx-auto px-4">
+            <h3 className="text-2xl font-bold text-center mb-6">חוויות המשתתפים מהשימוש באתר.בוט</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
-                <p className="text-3xl">🔒</p>
-                <p className="font-semibold mt-2">פרטיות</p>
-                <p className="text-sm text-gray-600">הבוט לא חושף מידע שסופק על ידי המשתמש.</p>
+                <p className="text-3xl">🧭</p>
+                <p className="font-semibold mt-2">גמיש אך ממושמע</p>
+                <p className="text-sm text-gray-600">מפתיע במשמעת שלו אך גם בתובנות חדשות.</p>
               </div>
               <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
                 <p className="text-3xl">📑</p>
-                <p className="font-semibold mt-2">ציטוט</p>
+                <p className="font-semibold mt-2">קרקוע (Grounding)</p>
                 <p className="text-sm text-gray-600">מסתמך רק על קבצי המקור שהועלו.</p>
               </div>
               <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
-                <p className="text-3xl">⛔</p>
-                <p className="font-semibold mt-2">ללא הזיות</p>
+                <p className="text-3xl">🦉</p>
+                <p className="font-semibold mt-2">ללא הזיות (כמעט)</p>
                 <p className="text-sm text-gray-600">אינו ממציא עובדות, נתונים או מקורות.</p>
               </div>
               <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
@@ -447,43 +378,6 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
             </div>
           </div>
         </section>
-
-        {/* Gemini Interactive Section */}
-        <section id="gemini-interactive" className="py-12 sm:py-16 bg-blue-50/50 rounded-xl">
-          <div className="text-center px-4">
-            <h2 className="text-3xl font-bold text-blue-900">התנסות אינטראקטיבית עם Gemini ✨</h2>
-            <p className="mt-3 text-lg text-gray-600 max-w-3xl mx-auto">
-              הדביקו טקסט המתאר נכס מורשת, ו-Gemini ינתח אותו עבורכם לפי עקרונות מתודת CBSA.
-            </p>
-          </div>
-
-          <div className="mt-10 max-w-4xl mx-auto px-4">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <div className="mt-4">
-                <textarea
-                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition"
-                  rows={4}
-                  value={geminiInput}
-                  onChange={(e) => setGeminiInput(e.target.value)}
-                  placeholder="הזן טקסט לניתוח..." />
-                <button
-                  onClick={handleAnalyze}
-                  className="mt-3 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={isAnalyzing || !geminiInput.trim()}
-                >
-                  {isAnalyzing ? 'מנתח...' : 'נתח טקסט'}
-                </button>
-              </div>
-              {geminiResults && (
-                <div className="mt-6 bg-gray-100 p-4 rounded-lg border border-gray-200 text-right">
-                  <h4 className="font-bold text-lg mb-2 text-gray-800">תוצאות הניתוח:</h4>
-                  <div className="text-gray-700 whitespace-pre-wrap">{renderWithBold(geminiResults)}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
         {/* Conclusion Section */}
         <section id="conclusion" className="py-12 sm:py-16">
           <div className="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow-lg">

@@ -302,6 +302,8 @@ main.container {
     font-family: 'Assistant', sans-serif;
     scroll-behavior: smooth;
     background-color: #f8f7f4;
+    padding-top: -10px;
+    margin-top: -40px;
 }
 
 .workshop-nav-link {
