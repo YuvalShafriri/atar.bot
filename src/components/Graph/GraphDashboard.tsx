@@ -439,11 +439,11 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
 
         let graphData: GraphData;
         if (assetId === 'all_assets') {
+            // --- DATA UPDATE: use meta-graph-asset-flag.json for all_assets (id-based) ---
             try {
-                const metaGraph = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
-                graphData = metaGraph;
+                graphData = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
             } catch (error) {
-                console.error('[Graph] Failed to load meta-graph, falling back to allGrapheCleanData:', error);
+                console.error('[Graph] Failed to load meta-graph-asset-flag.json, falling back to allGrapheCleanData:', error);
                 graphData = allGrapheCleanData;
             }
             const queryStartTime = Date.now();
