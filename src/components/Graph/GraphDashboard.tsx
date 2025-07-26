@@ -7,60 +7,60 @@ import AllAssetsGraph from './AllAssetsGraph';
 
 // Token counting utility
 const estimateTokensGlobal = (text: string): number => {
-  return Math.ceil(text.length / 4);
+    return Math.ceil(text.length / 4);
 };
 
 const fetchChatCompletion = async (
-  messages: LLMMessage[],
-  tools?: any[]
+    messages: LLMMessage[],
+    tools?: any[]
 ) => {
-  const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
-  const contents = messages.map(m => ({ text: m.content }));
-  const body = { model: LLM_MODEL, contents, tools };
+    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    const contents = messages.map(m => ({ text: m.content }));
+    const body = { model: LLM_MODEL, contents, tools };
 
-  const bodyJson = JSON.stringify(body);
-  const inputTokens = estimateTokensGlobal(bodyJson);
+    const bodyJson = JSON.stringify(body);
+    const inputTokens = estimateTokensGlobal(bodyJson);
     // console.log(`[LLM Tokens] Input tokens: ${inputTokens.toLocaleString()}`);
-  
-  try {
-    const startTime = Date.now();
-    const res = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const result = await res.json();
-    const endTime = Date.now();
-    
-    const outputText = JSON.stringify(result);
-    const outputTokens = estimateTokensGlobal(outputText);
-    const totalTokens = inputTokens + outputTokens;
-    
-    const inputCost = (inputTokens / 1000) * 0.03;
-    const outputCost = (outputTokens / 1000) * 0.06;
-    const totalCost = inputCost + outputCost;
-    
-    // Essential metrics only
-    console.log(`[Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
-    
-    return result;
-  } catch (err) {
-    console.error('[Gemini] fetchChatCompletion - ERROR:', err);
-    throw err;
-  }
+
+    try {
+        const startTime = Date.now();
+        const res = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        const endTime = Date.now();
+
+        const outputText = JSON.stringify(result);
+        const outputTokens = estimateTokensGlobal(outputText);
+        const totalTokens = inputTokens + outputTokens;
+
+        const inputCost = (inputTokens / 1000) * 0.03;
+        const outputCost = (outputTokens / 1000) * 0.06;
+        const totalCost = inputCost + outputCost;
+
+        // Essential metrics only
+        console.log(`[Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
+
+        return result;
+    } catch (err) {
+        console.error('[Gemini] fetchChatCompletion - ERROR:', err);
+        throw err;
+    }
 };
 
 // Simple preset answer function
 const getPresetAnswer = (question: string): string | null => {
-  const presetQuestions = getPresetQuestions();
-  const normalizedQuestion = question.trim().toLowerCase();
-  
-  for (const preset of presetQuestions) {
-    if (preset.text.toLowerCase().includes(normalizedQuestion) || 
-        normalizedQuestion.includes(preset.text.toLowerCase())) {
-      return preset.answer;
-    }
-  }  return null;
+    const presetQuestions = getPresetQuestions();
+    const normalizedQuestion = question.trim().toLowerCase();
+
+    for (const preset of presetQuestions) {
+        if (preset.text.toLowerCase().includes(normalizedQuestion) ||
+            normalizedQuestion.includes(preset.text.toLowerCase())) {
+            return preset.answer;
+        }
+    } return null;
 };
 
 declare const vis: any;
@@ -68,9 +68,9 @@ declare const vis: any;
 // Types
 type Node = {
     id: string;
-    label: string;
     type: string;
-    title?: string;
+    meaning?: string;
+    asset?: boolean;
 };
 
 type Edge = {
@@ -79,16 +79,78 @@ type Edge = {
     label?: string;
 };
 
-// LLM Configuration - שונה ל-8b למהירות טובה יותר
+// LLM Configuration - שונה ל-8ב למהירות טובה יותר
 //const LLM_MODEL = 'gemini-1.5-flash';
 //const LLM_MODEL = 'gemini-1.5-flash';
-const LLM_MODEL = 'gemini-2.5-flash-lite';
+const LLM_MODEL = 'gemini-2.5-flash';
+
+//const LLM_MODEL = 'gemini-2.5-flash-lite';
 //const//  LLM_MODEL = 'gemini-2.5-pro';
 // קיצ'ינג פשוט לתשובות
 const responseCache = new Map<string, string>();
 
+// --- AGENT MODE: Model selection logic ---
+// Wraps fetchChatCompletion to use gemini-2.5-flash for first call, gemini-2.5-flash-lite for second
+function makeAgentFetchChatCompletion() {
+    let callCount = 0;
+    return async (messages: LLMMessage[], tools?: any[], modelOverride?: string) => {
+        let model = modelOverride;
+        if (!model) {
+            model = callCount === 0 ? 'gemini-2.5-flash' : 'gemini-2.5-flash-lite';
+        }
+        callCount++;
+        const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+        const contents = messages.map(m => ({ text: m.content }));
+        const body = { model, contents, tools };
+        const bodyJson = JSON.stringify(body);
+        const inputTokens = estimateTokensGlobal(bodyJson);
+        try {
+            const startTime = Date.now();
+            const res = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await res.json();
+            const endTime = Date.now();
+            const outputText = JSON.stringify(result);
+            const outputTokens = estimateTokensGlobal(outputText);
+            const totalTokens = inputTokens + outputTokens;
+            const inputCost = (inputTokens / 1000) * 0.03;
+            const outputCost = (outputTokens / 1000) * 0.06;
+            const totalCost = inputCost + outputCost;
+            console.log(`[Agent LLM] Model: ${model} | In: ${inputTokens} | Out: ${outputTokens} | Total: ${totalTokens} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
+            return result;
+        } catch (err) {
+            console.error('[Gemini] fetchChatCompletion (agent) - ERROR:', err);
+            throw err;
+        }
+    };
+}
+
+// --- רגולציה על שאילתות גרף - רק שאלות קצרות וברורות ---
+function isValidGraphQuestion(question: string): boolean {
+    // הגבלת אורך השאלה ל-100 תווים
+    if (question.length > 100) {
+        return false;
+    }
+    // הימנע משאלות עם יותר מדי מילים (לדוגמה, יותר מ-15 מילים)
+    const words = question.trim().split(/\s+/);
+    if (words.length > 15) {
+        return false;
+    }
+    // הימנע משאלות שמתחילות או מסתיימות ברווחים
+    if (/^\s+|\s+$/g.test(question)) {
+        return false;
+    }
+    // הימנע משאלות עם תווים מיוחדים מיותרים
+    if (/[^א-תa-zA-Z0-9\s?.,!]/.test(question)) {
+        return false;
+    }
+    return true;
+}
+
 export async function askLLM(question: string, data: Record<string, any>): Promise<string> {
-    console.log('askLLM called with question:', question);
     if (!question.trim()) return '';
 
     // בדיקת קיצ'ינג
@@ -96,7 +158,7 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     if (responseCache.has(cacheKey)) {
         console.log('Using cached response');
         return responseCache.get(cacheKey)!;
-    }    let contextData = '';
+    } let contextData = '';
 
     if (!data) {
         return "שגיאה: אין נתונים להצגה.";
@@ -118,12 +180,14 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
             const nodesArray = Array.isArray(assetData.nodes) ? assetData.nodes : [];
             const edgesArray = Array.isArray(assetData.edges) ? assetData.edges : [];
             contextData += `צמתים:\n`;
-            nodesArray.forEach((node: Node) => { contextData += `- ${node.label} (סוג: ${node.type}, תיאור: ${node.title || 'אין תיאור'})\n`; });
+            nodesArray.forEach((node: Node) => { contextData += `- - ${node.id} (סוג: ${node.type}, תיאור: ${node.meaning || 'אין תיאור'})\n`; });
             contextData += `קשרים:\n`;
             edgesArray.forEach((edge: Edge) => {
                 const fromNode = nodesArray.find((n: Node) => n.id === edge.from);
                 const toNode = nodesArray.find((n: Node) => n.id === edge.to);
-                if (fromNode && toNode) { contextData += `- "${fromNode.label}" -> ${edge.label || ''} -> "${toNode.label}"\n`; }
+                if (fromNode && toNode) {
+                    contextData += `- ${fromNode.id} --[${edge.label || ''}]→ ${toNode.id}\n`;
+                }
             });
             contextData += '\n';
         }
@@ -136,37 +200,56 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
         nodesArray.forEach(node => { contextData += `- ${node.label} (סוג: ${node.type}, תיאור: ${node.title || 'אין תיאור'})\n`; });
         contextData += `הקשרים בגרף הם:\n`;
         edgesArray.forEach(edge => {
-            const fromNode = nodesArray.find((n: Node) => n.id === edge.from);
-            const toNode = nodesArray.find((n: Node) => n.id === edge.to);
-            if (fromNode && toNode) {
-                contextData += `- "${fromNode.label}" -> ${edge.label || ''} -> "${toNode.label}"\n`;
-            }
-        });
+    const fromNode = nodesArray.find((n: Node) => n.id === edge.from);
+    const toNode = nodesArray.find((n: Node) => n.id === edge.to);
+    if (fromNode && toNode) {
+        contextData += `- "${fromNode.id}" -> ${edge.label || ''} -> "${toNode.id}"\n`;
+    }
+});
     }
 
     // --- פרומפט מעודכן עם הנחיות לתשובה קצרה ומדויקת ---
+    // const systemPrompt = `
+    // אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לענות על שאלות של משתמשים אך ורק על סמך נתוני JSON שיסופקו לך.
+    // התהליך שלך: זהה את הצמתים והקשרים הרלוונטיים מהנתונים כדי לענות על השאלה, וחבר תשובה נרטיבית ומשמעותית.
+    // הנחיות לתשובה:
+    // 1. התשובה חייבת להיות קצרה ותמציתית (מקסימום 3 משפטים).
+    // 2. התבסס רק על הנתונים המסופקים.
+    // 3. ענה בעברית.
+    // 4. השתמש במילים פשוטות וברורות.
+    // 5. **אל תסביר מגבלות או תוסיף הערות על היכולות הטכניות שלך**.
+    // 6. **התמקד במה שיש, לא במה שחסר**.
+    // `;
     const systemPrompt = `
-אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לענות על שאלות של משתמשים אך ורק על סמך נתוני JSON שיסופקו לך.
-התהליך שלך: זהה את הצמתים והקשרים הרלוונטיים מהנתונים כדי לענות על השאלה, וחבר תשובה נרטיבית ומשמעותית.
-הנחיות לתשובה:
-1. התשובה חייבת להיות קצרה ותמציתית (מקסימום 4 משפטים).
-2. התבסס רק על הנתונים המסופקים.
-3. ענה בעברית.
-4. השתמש במילים פשוטות וברורות.
-5. **אל תסביר מגבלות או תוסיף הערות על היכולות הטכניות שלך**.
-6. **התמקד במה שיש, לא במה שחסר**.
+    אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
+
+    **כללי תשובה**:
+    1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
+    2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
+    3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
+    4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
+
+    **חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
+
+    **השתמש תמיד ב-id של הצומת וב-label של הקשר בדיוק כפי שמופיעים בנתונים.**
+
+    הנחיות נוספות:
+    1. היה תמציתי - לא צריך הסברים מפורטים
+    2. אם אין קשר בגרף - אמר שאין קשר
+    3. התבסס רק על הנתונים המסופקים
+    4. ענה בעברית פשוטה וברורה
 `;
-// 4. התמקד בנקודה המרכזית ביותר.
+    // 4. התמקד בנקודה המרכזית ביותר.
     const fullPrompt = `
-${systemPrompt}
+    ${systemPrompt}
 
---- נתוני ההקשר (JSON Data) ---
-${contextData}
----------------------------------
+    --- נתוני ההקשר (JSON Data) ---
+    ${contextData}
+    ---------------------------------
 
-בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
-שאלה: ${question}
-`;
+    בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
+    שאלה: ${question}
+    `;
 
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
@@ -188,11 +271,11 @@ ${contextData}
         console.error("Error from backend proxy:", errorBody);
         const errorMessage = errorBody.details || "שגיאה לא ידועה מהשרת.";
         return `שגיאה בקבלת תשובה מהבוט: ${errorMessage}`;
-    }    const result = await response.json();
+    } const result = await response.json();
     const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
     // Clean up LLM response: trim whitespace, normalize line breaks, and remove any trailing whitespace
     const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
-    
+
     // שמירה בקיצ'ינג
     responseCache.set(cacheKey, text);
 
@@ -223,7 +306,7 @@ interface AiSpotProps {
 const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries, useHybridMode, onToggleHybrid }) => {
     const [input, setInput] = useState<string>('');
     const [output, setOutput] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);    const config = {
+    const [isLoading, setIsLoading] = useState<boolean>(false); const config = {
         dashboard: {
             title: '',
             description: '',
@@ -239,7 +322,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
         const q = typeof customInput === 'string' ? customInput : input;
         if (!q.trim() || isLoading) return;
         setIsLoading(true);
-        setOutput('');        try {
+        setOutput(''); try {
             const answer = await onQuery(q);
             // הצג תשובה עם אפקט typing - trim and clean the response thoroughly
             const cleanAnswer = answer.trim().replace(/\s+$/, ''); // Remove any trailing whitespace
@@ -263,7 +346,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
         if (e.key === 'Enter') {
             handleAsk();
         }
-    };    return (
+    }; return (
         <div className="ai-spot mt-1">
             <div className="flex flex-col gap-1">
                 <div className="flex gap-2">
@@ -285,11 +368,10 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                     {onToggleHybrid && (
                         <button
                             onClick={onToggleHybrid}
-                            className={`px-3 py-2 font-bold rounded-lg transition text-sm ${
-                                useHybridMode 
-                                    ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                            className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useHybridMode
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                             title={useHybridMode ? "מערכת היברידית: מופעלת" : "מערכת רגילה: מופעלת"}
                         >
                             🧠 {useHybridMode ? 'HYBRID' : 'STANDARD'}
@@ -314,7 +396,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                 )}            </div>            {/* תיבת התשובה */}
             {output && (
                 <div className="px-2 pt-2 pb-1 mt-1 bg-white rounded border border-gray-200 text-sm leading-tight"
-                     style={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{output}</div>
+                    style={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{output}</div>
             )}
         </div>
     );
@@ -340,7 +422,7 @@ const DraggableInfoBox: React.FC<DraggableInfoBoxProps> = ({ content }) => {
         el.style.zIndex = '1000';
         el.style.cursor = 'grab';
         el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
-        
+
         // הצבה במיקום ראשוני סביר
         if (!el.style.left && !el.style.top) {
             el.style.left = '20px';
@@ -422,11 +504,11 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
 
     const estimateGraphTokens = (graphData: GraphData): number => {
         if (!graphData?.nodes || !graphData?.edges) return 0;
-        
+
         const nodesJson = JSON.stringify(graphData.nodes);
         const edgesJson = JSON.stringify(graphData.edges);
         const totalChars = nodesJson.length + edgesJson.length;
-        
+
         return Math.ceil(totalChars / 4);
     };
 
@@ -446,24 +528,24 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             //     console.error('[Graph] Failed to load meta-graph-asset-flag.json, falling back to allGrapheCleanData:', error);
             //     graphData = allGrapheCleanData;
             // }
-                try {
-        graphData = await fetch('data/graphMaster.json').then(r => r.json());
-        // Shim: הוספת label לכל node אם חסר
-        if (Array.isArray(graphData.nodes)) {
-            graphData.nodes = graphData.nodes.map((node: any) => ({
-                ...node,
-                label: node.label || node.name || node.id // label עדיפות, אח"כ name, אח"כ id
-            }));
-        }
-    } catch (error) {
-        console.error('[Graph] Failed to load graphMaster.json, falling back to allGrapheCleanData:', error);
-        graphData = allGrapheCleanData;
-    }
+            try {
+                graphData = await fetch('data/graphMaster.json').then(r => r.json());
+                if (Array.isArray(graphData.nodes)) {
+                    graphData.nodes = graphData.nodes.map((node: any) => ({
+                        ...node,
+                        label: node.label || node.name || node.id
+                    }));
+                }
+            } catch (error) {
+                console.error('[Graph] Failed to load graphMaster.json, falling back to allGrapheCleanData:', error);
+                graphData = allGrapheCleanData;
+            }
             const queryStartTime = Date.now();
             let result;
             if (useAgentMode) {
-                // ⭐ Agent mode: use modernGraphQueryService
-                result = await chatGraphModern(question, graphData, fetchChatCompletion);
+                // ⭐ Agent mode: use modernGraphQueryService with model selection logic
+                const agentFetch = makeAgentFetchChatCompletion();
+                result = await chatGraphModern(question, graphData, agentFetch);
             } else if (useHybridMode) {
                 result = await quickHybridChat(question, graphData, fetchChatCompletion);
             } else {
@@ -480,22 +562,22 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             } else {
                 graphData = allGraphData[assetId];
             }
-            
+
             if (!graphData) {
                 return "שגיאה: לא נמצא נתוני גרף.";
             }
-              // בניית הקשר הטקסטואלי - עם דגש על זיהוי קשרים עקיפים
+            // בניית הקשר הטקסטואלי - עם דגש על זיהוי קשרים עקיפים
             let contextData = '';
-            
+
             // זיהוי קשרים עקיפים אם השאלה מכילה שמות נכסים
             const questionLower = question.toLowerCase();
             if (questionLower.includes('קשר') && graphData.nodes && graphData.edges) {
                 // חפש צמתים שעשויים להיות נכסים הנזכרים בשאלה
-                const mentionedAssets = graphData.nodes.filter((node: any) => 
+                const mentionedAssets = graphData.nodes.filter((node: any) =>
                     questionLower.includes(node.label.toLowerCase()) ||
                     (node.name && questionLower.includes(node.name.toLowerCase()))
                 );
-                
+
                 if (mentionedAssets.length >= 2) {
                     // חפש קשרים עקיפים בין הנכסים הנזכרים
                     contextData += `--- ניתוח קשרים עקיפים ---\n`;
@@ -503,44 +585,44 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                         for (let j = i + 1; j < mentionedAssets.length; j++) {
                             const asset1 = mentionedAssets[i];
                             const asset2 = mentionedAssets[j];
-                            
+
                             // מצא צמתים משותפים
                             const asset1Connections = graphData.edges
                                 .filter((e: any) => e.from === asset1.id)
                                 .map((e: any) => e.to);
-                            
+
                             const asset2Connections = graphData.edges
                                 .filter((e: any) => e.from === asset2.id)
                                 .map((e: any) => e.to);
-                            
-                            const sharedConnections = asset1Connections.filter((conn: string) => 
+
+                            const sharedConnections = asset1Connections.filter((conn: string) =>
                                 asset2Connections.includes(conn)
                             );
-                            
+
                             if (sharedConnections.length > 0) {
                                 const sharedNodes = sharedConnections.map((connId: string) => {
                                     const node = graphData.nodes.find((n: any) => n.id === connId);
                                     return node ? node.label : connId;
                                 });
-                                
-                                contextData += `קשר עקיף: ${asset1.label} ↔ ${asset2.label} דרך: ${sharedNodes.join(', ')}\n`;
+
+                                contextData += `קשר עקיף: ${asset1.id} ↔ ${asset2.id} דרך: ${sharedNodes.join(', ')}\n`;
                             }
                         }
                     }
                     contextData += '\n';
                 }
             }
-            
+
             // הוספת צמתים
             contextData += `--- צמתים בגרף ---\n`;
             graphData.nodes?.forEach((node: any) => {
-                contextData += `- ${node.label} (${node.type})`;
+                contextData += `- ${node.id} (${node.type}${node.meaning ? `, תיאור: ${node.meaning}` : ''})`;
                 if (node.title) {
                     contextData += ` - ${node.title}`;
                 }
                 contextData += '\n';
             });
-            
+
             // הוספת קשרים
             contextData += `\n--- קשרים בגרף ---\n`;
             graphData.edges?.forEach(edge => {
@@ -550,35 +632,54 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                     contextData += `- "${fromNode.label}" -> ${edge.label || ''} -> "${toNode.label}"\n`;
                 }
             });
-              // פרומפט מותאם לתשובות תמציתיות ומדויקות
+            // פרומפט מותאם לתשובות תמציתיות ומדויקות
+            // const systemPrompt = `
+            //     אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
+
+            //     **כללי תשובה**:
+            //     1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
+            //     2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
+            //     3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
+            //     4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
+
+            //     **חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
+
+            //     הנחיות נוספות:
+            //     1. היה תמציתי - לא צריך הסברים מפורטים
+            //     2. אם אין קשר בגרף - אמר שאין קשר
+            //     3. התבסס רק על הנתונים המסופקים
+            //     4. ענה בעברית פשוטה וברורה
+            //     `;
             const systemPrompt = `
-אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
+            אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
 
-**כללי תשובה**:
-1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
-2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
-3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
-4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
+            **כללי תשובה**:
+            1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
+            2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
+            3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
+            4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
 
-**חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
+            **חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
 
-הנחיות נוספות:
-1. היה תמציתי - לא צריך הסברים מפורטים
-2. אם אין קשר בגרף - אמר שאין קשר
-3. התבסס רק על הנתונים המסופקים
-4. ענה בעברית פשוטה וברורה
-`;
+            **השתמש תמיד ב-id של הצומת וב-label של הקשר בדיוק כפי שמופיעים בנתונים.**
+
+            הנחיות נוספות:
+            1. היה תמציתי - לא צריך הסברים מפורטים
+            2. אם אין קשר בגרף - אמר שאין קשר
+            3. התבסס רק על הנתונים המסופקים
+            4. ענה בעברית פשוטה וברורה
+        `;
 
             const fullPrompt = `
-${systemPrompt}
+                ${systemPrompt}
 
---- נתוני ההקשר (JSON Data) ---
-${contextData}
----------------------------------
+                --- נתוני ההקשר (JSON Data) ---
+                ${contextData}
+                ---------------------------------
 
-בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
-שאלה: ${question}
-`;
+                בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
+                שאלה: ${question}
+                `;
 
             const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
             if (!proxyUrl) {
@@ -605,7 +706,7 @@ ${contextData}
             const result = await response.json();
             const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
             const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
-            
+
             // Token counting for individual graphs
             function countTokens(str: string): number {
                 return str.split(/\s+/).filter(Boolean).length;
@@ -616,14 +717,14 @@ ${contextData}
             const responseTokens = countTokens(text);
             const inputTokens = promptTokens + contextTokens + questionTokens;
             const totalTokens = inputTokens + responseTokens;
-            
+
             // פישוט לוג הטוקנים
             console.log(`===== TOKEN SUMMARY =====`);
             console.log(`LLM Input: ${inputTokens} tokens`);
             console.log(`LLM Output: ${responseTokens} tokens`);
             console.log(`Total: ${totalTokens} tokens`);
             console.log(`=========================`);
-            
+
             queryCache.current.set(cacheKey, text);
             return text;
         }
@@ -739,17 +840,17 @@ ${contextData}
                 physics: {
                     enabled: true,
                     solver: 'repulsion',
-                    repulsion: { 
-                        nodeDistance: 230, 
-                        centralGravity: 0.05, 
-                        springLength: 20, 
-                        springConstant: 0.005, 
-                        damping: 0.09 
+                    repulsion: {
+                        nodeDistance: 230,
+                        centralGravity: 0.05,
+                        springLength: 20,
+                        springConstant: 0.005,
+                        damping: 0.09
                     },
                     stabilization: { iterations: 2500, fit: true }
                 },
-                interaction: { 
-                    hover: true, 
+                interaction: {
+                    hover: true,
                     tooltipDelay: 200,
                     zoomView: true,
                     dragView: true
@@ -759,7 +860,7 @@ ${contextData}
 
         if (nodes && edges) {
             networkRef.current = new vis.Network(graphContainerRef.current, { nodes, edges }, options);
-            
+
             // Click events for detailed infobox (only for thematic graph)
             networkRef.current.on('click', (params: any) => {
                 setInfoBoxContent('');
@@ -770,7 +871,7 @@ ${contextData}
                     const type = clickedNode.type || '';
                     const heritageValue = clickedNode.heritageValue || clickedNode.title || '';
                     const meaning = clickedNode.meaning || '';
-                    
+
                     let content = `
                         <div style="font-family: Calibri, Assistant, sans-serif; background: #ffffff; border: 1px solid #ccc; padding: 8px; 
                             line-height: 1.1rem; direction: rtl; text-align: right; max-width: 280px; font-size: 1.0rem;">
@@ -781,20 +882,20 @@ ${contextData}
                             <p style="margin: 5px; padding: 1px;"><strong>משמעות:</strong> <span id="info_meaning">${meaning}</span></p>
                         </div>
                     `;
-                    
+
                     setInfoBoxContent(content);
-                    
+
                     setTimeout(() => {
                         const closeButton = document.getElementById('closeinfo');
                         if (closeButton) {
                             closeButton.addEventListener('click', () => setInfoBoxContent(''));
                         }
-                        
+
                         const escHandler = (e: KeyboardEvent) => {
                             if (e.key === 'Escape') setInfoBoxContent('');
                         };
                         document.addEventListener('keydown', escHandler);
-                        
+
                         return () => {
                             document.removeEventListener('keydown', escHandler);
                         };
@@ -805,24 +906,24 @@ ${contextData}
 
     }, [assetId, allGraphData, thematicGraphData, nodeColors]);
 
-    const description = assetId === 'all_assets' ? 
-        'כאן ניתן לשאול שאלות כלליות על אוסף הערכות הנכסים (24 נכסים)' : 
-        assetId === 'thematic_graph' ? 
-        'גרף המתאר את התמות העיקריות העולות מאוסף הנכסים' : 
-        (allGraphData[assetId] as any)?.description || '';
+    const description = assetId === 'all_assets' ?
+        'כאן ניתן לשאול שאלות כלליות על אוסף הערכות הנכסים (24 נכסים)' :
+        assetId === 'thematic_graph' ?
+            'גרף המתאר את התמות העיקריות העולות מאוסף הנכסים' :
+            (allGraphData[assetId] as any)?.description || '';
 
     return (
         <div className="bg-white p-3 rounded-lg shadow">
             <div id="graph-description" className="text-xs text-gray-600 mb-2">{description}</div>
-            
+
             {/* Graph Selection Dropdown */}
             <div className="flex items-center mb-4 relative">
                 <div className="flex items-center">
-                    <select 
-                        dir="rtl" 
-                        id="asset-select" 
-                        className="p-2 border rounded" 
-                        value={assetId} 
+                    <select
+                        dir="rtl"
+                        id="asset-select"
+                        className="p-2 border rounded"
+                        value={assetId}
                         onChange={handleGraphChange}
                     >
                         <option value="all_assets">כלל הנכסים</option>
@@ -852,7 +953,7 @@ ${contextData}
                         <option value="dagonSilos_unified">ממגורות דגון, חיפה (ניתוח מורחב)</option>
                         <option value="shivta">שבטה</option>
                     </select>
-                    
+
                     {/* Info icon with tooltip */}
                     <div
                         className="relative flex items-center mr-2"
@@ -871,8 +972,8 @@ ${contextData}
                             aria-label="הסבר על הגרפים"
                         />
                         {showTooltip && (
-                            <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs" 
-                                 style={{ direction: 'rtl', whiteSpace: 'normal' }}>
+                            <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs"
+                                style={{ direction: 'rtl', whiteSpace: 'normal' }}>
                                 הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.<br />
                                 כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
                             </div>
@@ -918,7 +1019,7 @@ ${contextData}
                     <div ref={graphContainerRef} style={{ width: '100%', height: 600 }} />
                 )}
             </div>
-              <DraggableInfoBox content={infoBoxContent} />
+            <DraggableInfoBox content={infoBoxContent} />
         </div>
     );
 };
