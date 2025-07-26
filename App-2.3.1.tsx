@@ -7,11 +7,10 @@ import infoIcon from './images/i.png';
 import AtarBotTab from './components/AtarBotTab';
 import Neo4jGraph from './components/Neo4jGraph';
 import { WorkshopReport } from './components/WorkshopReport';
-import HeritageDashboard from './components/Graph/HeritageDashboard';
-import type { GraphData } from './services/graphQueryService';
+import GraphDashboard from './components/Graph/GraphDashboard';
 declare const vis: any;
 
-const LLM_MODEL = 'gemini-2.5-flash-lite';
+const LLM_MODEL = 'gemini-1.5-flash';
 console.log('[Gemini] Using LLM_MODEL:', LLM_MODEL);
 
 // AI Configuration
@@ -35,9 +34,7 @@ async function askTipsLLM(question: string, tipsList: Array<{ title: string; tex
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             model: LLM_MODEL,
-            contents: [
-                { parts: [{ text: ideasContext + '\n' + prompt }] }
-            ]
+            contents: ideasContext + '\n' + prompt
         })
     });
 
@@ -66,9 +63,7 @@ async function askBrainstormLLM(question: string, ideasList: any[]): Promise<str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             model: LLM_MODEL,
-            contents: [
-                { parts: [{ text: ideasContext + '\n' + prompt }] }
-            ]
+            contents: ideasContext + '\n' + prompt
         })
     });
 
@@ -180,7 +175,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
     );
 };
 
-// Dashboard Page with HeritageDashboard component
+// Dashboard Page with GraphDashboard component
 const DashboardPage: React.FC<{ allGraphData: Record<string, any>; allGrapheCleanData: any; thematicGraphData: any; nodeColors: Record<string, any> }> = ({ allGraphData, allGrapheCleanData, thematicGraphData, nodeColors }) => {
     return (
         <div id="dashboard" className="page active">
@@ -192,12 +187,11 @@ const DashboardPage: React.FC<{ allGraphData: Record<string, any>; allGrapheClea
                 </p>
             </div>
             
-            <HeritageDashboard 
+            <GraphDashboard 
                 allGraphData={allGraphData}
                 allGrapheCleanData={allGrapheCleanData}
                 thematicGraphData={thematicGraphData}
                 nodeColors={nodeColors}
-                selectedGraph=""
             />
         </div>
     );
@@ -603,14 +597,11 @@ const App = () => {
                 }
                 const graphJson = await graphRes.json();
                 const thematicJson = await thematicRes.json();
-                const allGrapheCleanJson = await allGrapheCleanRes.json();
-                setData({
+                const allGrapheCleanJson = await allGrapheCleanRes.json();                setData({
                     nodeColors: graphJson.NODE_COLORS,
-                    allGraphData: Array.isArray(graphJson.allGraphData) ? graphJson.allGraphData : Object.values(graphJson.allGraphData),
+                    allGraphData: graphJson.allGraphData,
                     allGrapheCleanData: allGrapheCleanJson,
-                    thematicGraphData: Array.isArray(thematicJson)
-                        ? { nodes: thematicJson, edges: [] }
-                        : thematicJson,
+                    thematicGraphData: thematicJson,
                 });
             } catch (err) {
                 console.error("Failed to load data:", err);
@@ -631,8 +622,7 @@ const App = () => {
 
     const renderPage = () => {
         if (loading) return <div className="text-center p-10">טוען נתונים...</div>;
-        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;
-        const pageProps = {
+        if (error) return <div className="text-center p-10 text-red-500 bg-red-100 border border-red-400 rounded-md">{error}</div>;        const pageProps = {
             allGraphData: data.allGraphData,
             allGrapheCleanData: data.allGrapheCleanData,
             thematicGraphData: data.thematicGraphData,
@@ -645,12 +635,7 @@ const App = () => {
             case 'experience':
                 return <ExperiencePage />;
             case 'dashboard':
-                return <DashboardPage
-                    allGraphData={data.allGraphData}
-                    allGrapheCleanData={data.allGrapheCleanData}
-                    thematicGraphData={data.thematicGraphData}
-                    nodeColors={data.nodeColors}
-                />;
+                return <DashboardPage {...pageProps} />;
             case 'tips':
                 return <TipsPage />;
             case 'ideas':

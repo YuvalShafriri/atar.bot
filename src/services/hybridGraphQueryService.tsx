@@ -2,6 +2,7 @@
 // Enhanced RAG with semantic inference rules and heritage-specific logic
 
 import { estimateTokens, logTokenUsage, Node, Edge, AssetNode, GraphData, LLMMessage } from './graphQueryService';
+import { askAgent } from './agentService';
 
 // Heritage inference rules configuration
 export interface HeritageInferenceRule {
@@ -77,9 +78,9 @@ function applySharedArchitectRule(asset1: AssetNode, asset2: AssetNode, graph: G
   
   if (sharedArchitects.length > 0) {
     return {
-      connection: `אותו אדריכל: ${sharedArchitects.map(a => a.name || a.label).join(', ')}`,
+      connection: `אותו אדריכל: ${sharedArchitects.map(a => a.id || a.label).join(', ')}`,
       confidence: 0.9,
-      evidence: [`שני הנכסים תוכננו על ידי ${sharedArchitects[0].name || sharedArchitects[0].label}`],
+      evidence: [`שני הנכסים תוכננו על ידי ${sharedArchitects[0].id || sharedArchitects[0].label}`],
       type: 'inferred'
     };
   }
@@ -98,9 +99,9 @@ function applySamePeriodRule(asset1: AssetNode, asset2: AssetNode, graph: GraphD
   
   if (sharedPeriods.length > 0) {
     return {
-      connection: `אותה תקופה: ${sharedPeriods.map(p => p.name || p.label).join(', ')}`,
+      connection: `אותה תקופה: ${sharedPeriods.map(p => p.id || p.label).join(', ')}`,
       confidence: 0.8,
-      evidence: [`שני הנכסים נבנו באותה תקופה - ${sharedPeriods[0].name || sharedPeriods[0].label}`],
+      evidence: [`שני הנכסים נבנו באותה תקופה - ${sharedPeriods[0].id || sharedPeriods[0].label}`],
       type: 'inferred'
     };
   }
@@ -119,9 +120,9 @@ function applyHeritageValueRule(asset1: AssetNode, asset2: AssetNode, graph: Gra
   
   if (sharedValues.length > 0) {
     return {
-      connection: `ערך מורשת משותף: ${sharedValues.map(v => v.name || v.label).join(', ')}`,
+      connection: `ערך מורשת משותף: ${sharedValues.map(v => v.id || v.label).join(', ')}`,
       confidence: 0.7,
-      evidence: [`שני הנכסים חולקים ערך מורשת - ${sharedValues[0].name || sharedValues[0].label}`],
+      evidence: [`שני הנכסים חולקים ערך מורשת - ${sharedValues[0].id || sharedValues[0].label}`],
       type: 'inferred'
     };
   }
@@ -140,9 +141,9 @@ function applyGeographicProximityRule(asset1: AssetNode, asset2: AssetNode, grap
   
   if (sharedLocations.length > 0) {
     return {
-      connection: `קרבה גיאוגרפית: ${sharedLocations.map(l => l.name || l.label).join(', ')}`,
+      connection: `קרבה גיאוגרפית: ${sharedLocations.map(l => l.id || l.label).join(', ')}`,
       confidence: 0.6,
-      evidence: [`שני הנכסים ממוקמים באותו אזור - ${sharedLocations[0].name || sharedLocations[0].label}`],
+      evidence: [`שני הנכסים ממוקמים באותו אזור - ${sharedLocations[0].id || sharedLocations[0].label}`],
       type: 'inferred'
     };
   }
@@ -161,9 +162,9 @@ function applyArchitecturalStyleRule(asset1: AssetNode, asset2: AssetNode, graph
   
   if (sharedStyles.length > 0) {
     return {
-      connection: `סגנון אדריכלי משותף: ${sharedStyles.map(s => s.name || s.label).join(', ')}`,
+      connection: `סגנון אדריכלי משותף: ${sharedStyles.map(s => s.id || s.label).join(', ')}`,
       confidence: 0.75,
-      evidence: [`שני הנכסים בנויים באותו סגנון - ${sharedStyles[0].name || sharedStyles[0].label}`],
+      evidence: [`שני הנכסים בנויים באותו סגנון - ${sharedStyles[0].id || sharedStyles[0].label}`],
       type: 'inferred'
     };
   }
@@ -177,7 +178,7 @@ function findConnectedNodes(assetId: string, graph: GraphData, nodeTypes: string
     .filter(e => e.from === assetId)
     .map(e => graph.nodes.find(n => n.id === e.to))
     .filter(n => n && nodeTypes.some(type => 
-      n.type?.includes(type) || n.name?.includes(type) || n.label?.includes(type)
+      n.type?.includes(type) || n.id?.includes(type) || n.label?.includes(type)
     )) as Node[];
   
   return directConnections;
@@ -189,20 +190,17 @@ function analyzeSemanticPatterns(graph: GraphData): HybridRAGChunk[] {
   
   // Pattern 1: Architect-Asset clusters
   const architects = graph.nodes.filter(n => 
-    n.name?.includes('אדריכל') || n.type?.includes('אדריכל')
+    n.id?.includes('אדריכל') || n.type?.includes('אדריכל')
   );
-  
-  architects.forEach(architect => {
-    const designedAssets = graph.edges
+    architects.forEach(architect => {    const designedAssets = graph.edges
       .filter(e => e.to === architect.id)
       .map(e => graph.nodes.find(n => n.id === e.from))
-      .filter(n => n && (n.asset === true || n.Asset === true));
-    
-    if (designedAssets.length > 1) {
-      const assetNames = designedAssets.map(a => a?.name || a?.label || a?.id);
+      .filter(n => n && ((n as any).asset === true || (n as any).Asset === true));
+      if (designedAssets.length > 1) {
+      const assetNames = designedAssets.map(a => a?.id || a?.label);
       patterns.push({
         id: `architect_cluster_${architect.id}`,
-        content: `אשכול אדריכלי: ${architect.name || architect.label}
+        content: `אשכול אדריכלי: ${architect.id || architect.label}
 נכסים מתוכננים: ${assetNames.join(', ')}
 קשר משותף: כולם עוצבו על ידי אותו אדריכל
 סוג דפוס: אשכול מקצועי`,
@@ -216,23 +214,21 @@ function analyzeSemanticPatterns(graph: GraphData): HybridRAGChunk[] {
       });
     }
   });
-  
-  // Pattern 2: Period-based groupings
+    // Pattern 2: Period-based groupings
   const periods = graph.nodes.filter(n => 
-    n.name?.includes('תקופה') || n.name?.includes('שנה') || n.type?.includes('תקופה')
+    n.id?.includes('תקופה') || n.id?.includes('שנה') || n.type?.includes('תקופה')
   );
   
-  periods.forEach(period => {
-    const periodAssets = graph.edges
+  periods.forEach(period => {    const periodAssets = graph.edges
       .filter(e => e.to === period.id)
       .map(e => graph.nodes.find(n => n.id === e.from))
-      .filter(n => n && (n.asset === true || n.Asset === true));
+      .filter(n => n && ((n as any).asset === true || (n as any).Asset === true));
     
     if (periodAssets.length > 1) {
-      const assetNames = periodAssets.map(a => a?.name || a?.label || a?.id);
+      const assetNames = periodAssets.map(a => a?.id || a?.label);
       patterns.push({
         id: `period_cluster_${period.id}`,
-        content: `אשכול תקופתי: ${period.name || period.label}
+        content: `אשכול תקופתי: ${period.id || period.label}
 נכסים מהתקופה: ${assetNames.join(', ')}
 קשר משותף: כולם נבנו באותה תקופה
 סוג דפוס: אשכול זמני`,
@@ -252,16 +248,15 @@ function analyzeSemanticPatterns(graph: GraphData): HybridRAGChunk[] {
 
 // Enhanced hybrid chunk creation
 function createHybridRAGChunks(graph: GraphData): HybridRAGChunk[] {
-  const chunks: HybridRAGChunk[] = [];
-    // 1. Basic heritage asset chunks (from original service) - ENHANCED
-  const heritageAssets = graph.nodes.filter(n => n.asset === true || n.Asset === true);
+  const chunks: HybridRAGChunk[] = [];  // 1. Basic heritage asset chunks (from original service) - ENHANCED
+  const heritageAssets = graph.nodes.filter(n => (n as any).asset === true || (n as any).Asset === true);
   
   heritageAssets.forEach(asset => {
     const directConnections = graph.edges
       .filter(e => e.from === asset.id)
       .map(e => {
         const target = graph.nodes.find(n => n.id === e.to);
-        const targetName = target ? target.name || target.label || target.id : e.to;
+        const targetName = target ? target.id || target.label : e.to;
         return e.label ? `${targetName} (${e.label})` : targetName;
       });
     
@@ -270,13 +265,12 @@ function createHybridRAGChunks(graph: GraphData): HybridRAGChunk[] {
       .filter(e => e.from === asset.id)
       .map(e => {
         const target = graph.nodes.find(n => n.id === e.to);
-        const targetName = target ? target.name || target.label || target.id : e.to;
+        const targetName = target ? target.id || target.label : e.to;
         return { target: targetName, label: e.label, targetType: target?.type };
       });
-    
-    let contentDetails = `נכס מורשת: ${asset.name || asset.label || asset.id}
+      let contentDetails = `נכס מורשת: ${asset.id || asset.label}
 סוג: ${asset.type}
-${asset.meaning ? `משמעות: ${asset.meaning}` : ''}
+${(asset as any).meaning ? `משמעות: ${(asset as any).meaning}` : ''}
 קשרים ישירים: ${directConnections.join(', ')}`;
 
     // הוספת פרטים על קשרים חשובים
@@ -292,7 +286,7 @@ ${asset.meaning ? `משמעות: ${asset.meaning}` : ''}
     if (importantConnections.length > 0) {
       contentDetails += `\nקשרים מבניים חשובים: `;
       contentDetails += importantConnections.map(conn => 
-        `${asset.name || asset.label} ${conn.label} ${conn.target}`
+        `${asset.id || asset.label} ${conn.label} ${conn.target}`
       ).join(', ');
     }
 
@@ -321,8 +315,7 @@ ${asset.meaning ? `משמעות: ${asset.meaning}` : ''}
               const inference = rule.apply(asset1, asset2, graph);
               if (inference) {
                 chunks.push({
-                  id: `inference_${rule.id}_${asset1.id}_${asset2.id}`,
-                  content: `קשר היסק: ${asset1.name || asset1.label} ↔ ${asset2.name || asset2.label}
+                  id: `inference_${rule.id}_${asset1.id}_${asset2.id}`,                  content: `קשר היסק: ${asset1.id || asset1.label} ↔ ${asset2.id || asset2.label}
 סוג קשר: ${inference.connection}
 רמת ודאות: ${(inference.confidence * 100).toFixed(0)}%
 עדויות: ${inference.evidence.join(', ')}`,
@@ -425,34 +418,31 @@ function searchHybridRelevantChunks(question: string, chunks: HybridRAGChunk[], 
 export async function hybridChatGraph(
   question: string,
   graph: GraphData,
-  fetchChatCompletion: (messages: LLMMessage[], tools?: any[]) => Promise<any>,
+  fetchChatCompletion?: (messages: LLMMessage[], tools?: any[]) => Promise<any>,
   inferenceRules?: any[]
 ): Promise<string> {
   // Load inference rules if provided
   if (inferenceRules && inferenceRules.length > 0) {
     loadInferenceRules(inferenceRules);
-  }
-  
-  console.log('🚀 [HYBRID] Starting advanced hybrid query:', question);
-  logTokenUsage('Full Graph Input', graph, true);
-  
+  }  console.log('🚀 [HYBRID] Starting advanced hybrid query:', question);
+  // logTokenUsage('Full Graph Input', graph);
+
   // Create hybrid chunks with inference capabilities
   const chunks = createHybridRAGChunks(graph);
   console.log(`🧠 [HYBRID] Created ${chunks.length} hybrid knowledge chunks`);
-  
+
   // Enhanced search with inference prioritization
   const relevantChunks = searchHybridRelevantChunks(question, chunks, 25);
   console.log(`🔍 [HYBRID] Found ${relevantChunks.length} relevant chunks with inference`);
-  
+
   // Build enhanced context
   const TARGET_CONTEXT_TOKENS = 2500; // Higher limit for hybrid approach
   let contextContent = '';
   let usedChunks = 0;
-  
+
   for (const chunk of relevantChunks) {
     const testContent = contextContent + (contextContent ? '\n\n---\n\n' : '') + chunk.content;
     const testTokens = estimateTokens(testContent);
-    
     if (testTokens <= TARGET_CONTEXT_TOKENS) {
       contextContent = testContent;
       usedChunks++;
@@ -460,53 +450,51 @@ export async function hybridChatGraph(
       break;
     }
   }
-  
   console.log(`💡 [HYBRID] Using ${usedChunks} enhanced chunks within token limit`);
-  logTokenUsage('Hybrid RAG Context', contextContent, true);
-    // Enhanced system prompt for hybrid approach
+  // logTokenUsage('Hybrid RAG Context', contextContent, true);
+
+  // Enhanced system prompt for hybrid approach
+  const systemPrompt = `אתה עוזר מומחה לנכסי מורשת תרבותית עם יכולות היסק מתקדמות.\n\n` +
+    `**סדר עדיפויות לזיהוי קשרים**:\n` +
+    `1. **קשרים ישירים** - חיפוש תחילה אחר קשרים מפורשים בגרף (חלק מ-, כולל, שייך ל-)\n` +
+    `2. **קשרים עקיפים** - דרך צמתים משותפים\n` +
+    `3. **קשרים מוסקים** - על בסיס כללי מורשת מתקדמים\n\n` +
+    `**יכולות מתקדמות**:\n` +
+    `1. זיהוי קשרים ישירים מהגרף (עדיפות עליונה)\n` +
+    `2. היסק קשרים עקיפים על בסיס כללי מורשת\n` +
+    `3. ניתוח דפוסים סמנטיים באשכולות נכסים\n` +
+    `4. הערכת רמת ודאות לכל קשר\n\n` +
+    `**כללי תשובה**:\n` +
+    `- **תמיד חפש קשרים ישירים תחילה** - אם יש קשר ישיר, הדגש אותו\n` +
+    `- תשובות תמציתיות ומועילות למשתמש\n` +
+    `- ציין את סוג הקשר: ישיר/עקיף/היסק רק אם רלוונטי\n` +
+    `- **אל תסביר מגבלות או חסרונות טכניים**\n` +
+    `- **אל תוסיף הסברים על יכולות המערכת**\n` +
+    `- התמקד במה שיש ולא במה שחסר\n` +
+    `- כשמוצא קשר ישיר, הזכר גם קשרים נוספים כהקשר אם רלוונטי\n\n` +
+    `**מידע מהגרף (עדיפות לקשרים ישירים)**:\n` + contextContent;
+
+  // אם לא מועברת פונקציית fetchChatCompletion – השתמש ב־askAgent
+  if (!fetchChatCompletion) {
+    // שלח את כל ה־prompt ל־askAgent
+    const answer = await askAgent(question, systemPrompt);
+    return answer.trim();
+  }
+
+  // שימוש ב־LLMMessage (כמו קודם)
   const systemMessage: LLMMessage = {
     role: 'system',
-    content: `אתה עוזר מומחה לנכסי מורשת תרבותית עם יכולות היסק מתקדמות. 
-
-**סדר עדיפויות לזיהוי קשרים**:
-1. **קשרים ישירים** - חיפוש תחילה אחר קשרים מפורשים בגרף (חלק מ-, כולל, שייך ל-)
-2. **קשרים עקיפים** - דרך צמתים משותפים  
-3. **קשרים מוסקים** - על בסיס כללי מורשת מתקדמים
-
-**יכולות מתקדמות**:
-1. זיהוי קשרים ישירים מהגרף (עדיפות עליונה)
-2. היסק קשרים עקיפים על בסיס כללי מורשת
-3. ניתוח דפוסים סמנטיים באשכולות נכסים
-4. הערכת רמת ודאות לכל קשר
-
-**כללי תשובה**:
-- **תמיד חפש קשרים ישירים תחילה** - אם יש קשר ישיר, הדגש אותו
-- תשובות תמציתיות ומועילות למשתמש
-- ציין את סוג הקשר: ישיר/עקיף/היסק רק אם רלוונטי
-- **אל תסביר מגבלות או חסרונות טכניים**
-- **אל תוסיף הסברים על יכולות המערכת**
-- התמקד במה שיש ולא במה שחסר
-- כשמוצא קשר ישיר, הזכר גם קשרים נוספים כהקשר אם רלוונטי
-
-**מידע מהגרף (עדיפות לקשרים ישירים)**:
-${contextContent}`
+    content: systemPrompt
   };
-  
-  const userMessage: LLMMessage = { 
-    role: 'user', 
-    content: question 
-  };
-  
-  logTokenUsage('Hybrid LLM Input', [systemMessage, userMessage], true);
-  
+  const userMessage: LLMMessage = {
+    role: 'user',
+    content: question  };
+  // logTokenUsage('Hybrid LLM Input', [systemMessage, userMessage], true);
   const response = await fetchChatCompletion([systemMessage, userMessage]);
-  
-  const answer = response.candidates?.[0]?.content?.parts?.[0]?.text || 
-                response.message?.content || 
-                response.choices?.[0]?.message?.content || 
-                'לא ניתן היה לענות על השאלה על בסיס המידע הזמין';
-  
-  logTokenUsage('Hybrid LLM Response', answer, false);
+  const answer = response.candidates?.[0]?.content?.parts?.[0]?.text ||
+    response.message?.content ||
+    response.choices?.[0]?.message?.content ||    'לא ניתן היה לענות על השאלה על בסיס המידע הזמין';
+  // logTokenUsage('Hybrid LLM Response', answer, false);
   
   // Enhanced token summary
   const originalTokens = estimateTokens(JSON.stringify(graph));
