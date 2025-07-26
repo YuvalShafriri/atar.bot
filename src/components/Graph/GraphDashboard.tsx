@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
-import { quickHybridChat } from '../../quickHybridSetup'; // ⭐ הוספת המערכת ההיברידית
-import {  getPresetQuestions } from './meta-graph-generator';
+import { chatGraphModern } from '../../services/modernGraphQueryService';
+import { quickHybridChat } from '../../quickHybridSetup';
+import { getPresetQuestions } from './meta-graph-generator';
 import AllAssetsGraph from './AllAssetsGraph';
 
 // Token counting utility
@@ -407,6 +408,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
     const [randomQueries, setRandomQueries] = useState<Record<string, string[]>>({});
     const [selectedQueries, setSelectedQueries] = useState<string[]>([]);
     const [useHybridMode, setUseHybridMode] = useState<boolean>(false); // ⭐ הוספת mode היברידי
+    const [useAgentMode, setUseAgentMode] = useState<boolean>(false); // ⭐ הוספת מצב agent
 
     const graphContainerRef = useRef<HTMLDivElement | null>(null);
     const networkRef = useRef<any>(null);
@@ -429,45 +431,33 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
     };
 
     const handleQuery = async (question: string) => {
-        const cacheKey = assetId + '|' + question.trim();
+        const cacheKey = assetId + '|' + question.trim() + (useAgentMode ? '|agent' : '') + (useHybridMode ? '|hybrid' : '');
         if (queryCache.current.has(cacheKey)) {
             console.log('[CACHE] Returning cached answer for:', cacheKey);
             return queryCache.current.get(cacheKey)!;
         }
 
         let graphData: GraphData;
-          if (assetId === 'all_assets') {
-            // עבור כלל הנכסים, נטען את המטא-גרף החדש עם דגל Asset
+        if (assetId === 'all_assets') {
             try {
-                // console.log('[Graph Loading] Attempting to load meta-graph with asset flag...');
                 const metaGraph = await fetch('data/meta-graph-asset-flag.json').then(r => r.json());
                 graphData = metaGraph;
-                
-                const graphTokens = estimateGraphTokens(graphData);
-                // console.log(`[Graph Tokens] Using meta-graph for all_assets`);
-                // console.log(`[Graph Tokens] Nodes: ${graphData.nodes?.length || 0}`);
-                // console.log(`[Graph Tokens] Edges: ${graphData.edges?.length || 0}`);
-                // console.log(`[Graph Tokens] Estimated graph tokens: ${graphTokens.toLocaleString()}`);
-                // console.log(`[Graph Tokens] Graph size: ${(JSON.stringify(graphData).length / 1024).toFixed(2)} KB`);
             } catch (error) {
                 console.error('[Graph] Failed to load meta-graph, falling back to allGrapheCleanData:', error);
                 graphData = allGrapheCleanData;
             }
-              // console.log('🚀 [QUERY START] Starting graph query...');
             const queryStartTime = Date.now();
-            
-            // ⭐ בחירה בין מערכת רגילה להיברידית
-            const result = useHybridMode 
-                ? await quickHybridChat(question, graphData, fetchChatCompletion)
-                : await chatGraph(question, graphData, fetchChatCompletion);
-            
+            let result;
+            if (useAgentMode) {
+                // ⭐ Agent mode: use modernGraphQueryService
+                result = await chatGraphModern(question, graphData, fetchChatCompletion);
+            } else if (useHybridMode) {
+                result = await quickHybridChat(question, graphData, fetchChatCompletion);
+            } else {
+                result = await chatGraph(question, graphData, fetchChatCompletion);
+            }
             const queryEndTime = Date.now();
             const totalDuration = queryEndTime - queryStartTime;
-            
-            // console.log('✅ [QUERY COMPLETE] Total query duration:', totalDuration + 'ms');
-            // console.log(`🏁 [DASHBOARD SUMMARY] Selected Graph: ${assetId}`);
-            // console.log(`🏁 [DASHBOARD SUMMARY] Graph Size: ${graphData.nodes?.length || 0} nodes, ${graphData.edges?.length || 0} edges`);
-            
             queryCache.current.set(cacheKey, result);
             return result;
         } else {
@@ -880,13 +870,33 @@ ${contextData}
             <AiSpot
                 spotId="dashboard"
                 onQuery={handleQuery}
-                key={assetId}
+                key={assetId + (useAgentMode ? '|agent' : '') + (useHybridMode ? '|hybrid' : '')}
                 exampleQueries={selectedQueries}
-                placeholder="שאל את הבוט על הנכס - קבל הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
+                placeholder="שאל את הבוט על הנכס - קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
                 useHybridMode={useHybridMode}
                 onToggleHybrid={() => setUseHybridMode(!useHybridMode)}
             />
-            
+            {/* ⭐ Agent mode toggle button */}
+            <div className="flex gap-2 mt-2">
+                <button
+                    onClick={() => { setUseAgentMode(false); setUseHybridMode(false); }}
+                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${(!useAgentMode && !useHybridMode) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                >
+                    רגיל
+                </button>
+                <button
+                    onClick={() => { setUseHybridMode(!useHybridMode); setUseAgentMode(false); }}
+                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useHybridMode ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                >
+                    🧠 HYBRID
+                </button>
+                <button
+                    onClick={() => { setUseAgentMode(!useAgentMode); setUseHybridMode(false); }}
+                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useAgentMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                >
+                    🤖 AGENT
+                </button>
+            </div>
             {/* Graph Display */}
             <div className="min-h-[500px] border rounded mt-2">
                 {assetId === 'all_assets' ? (
