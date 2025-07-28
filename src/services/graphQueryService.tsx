@@ -1,9 +1,11 @@
+import { printTokenLogStyled } from './tokenCostService';
+
 // graphQueryService.tsx - RAG-based Heritage Graph Query Service
 // Simple and efficient semantic search approach for heritage graph queries
 
 // Token counting utility for tracking LLM usage
 export const estimateTokens = (text: string): number => {
-  return Math.ceil(text.length / 4);
+  return Math.ceil(text.length / 2.5);
 };
 
 export const logTokenUsage = (context: string, data: any, isInput: boolean = true) => {
@@ -322,6 +324,7 @@ export async function chatGraph(
   graph: GraphData,
   fetchChatCompletion: (messages: LLMMessage[], tools?: any[]) => Promise<any>
 ): Promise<string> {
+  console.log('[QUERY MODE] מנגנון: RAG/חישוב גרף (graphQueryService)');
   // console.log('[chatGraph] Starting RAG-based query:', question);
   logTokenUsage('Full Graph Input', graph, true);
   
@@ -404,17 +407,16 @@ ${contextContent}`
   // console.log('[chatGraph] RAG answer:', answer);
   
   // ⭐ FINAL TOKEN SUMMARY ⭐
-  console.log('');
-  console.log('🎯 ===== TOKEN SUMMARY =====');
-  console.log(`📊 Question: "${question}"`);
-  console.log(`📊 Input Graph: ${originalTokens.toLocaleString()} tokens`);
-  console.log(`📊 RAG Context: ${contextTokens.toLocaleString()} tokens`);
-  console.log(`📊 LLM Input: ${estimateTokens(JSON.stringify([systemMessage, userMessage])).toLocaleString()} tokens`);
-  console.log(`📊 LLM Output: ${estimateTokens(answer).toLocaleString()} tokens`);
-  console.log(`💰 Token Savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercent}%)`);
-  console.log(`💲 Estimated Cost: $${((contextTokens * 0.03 + estimateTokens(answer) * 0.06) / 1000).toFixed(4)}`);
-  console.log('🎯 ===============================');
-  console.log('');
+  printTokenLogStyled({
+    question,
+    inputTokens: estimateTokens(JSON.stringify([systemMessage, userMessage])),
+    outputTokens: estimateTokens(answer),
+    graphTokens: originalTokens,
+    ragTokens: contextTokens,
+    model: 'gemini-2.5-flash', // or use model variable if available
+    cost: ((contextTokens * 0.03 + estimateTokens(answer) * 0.06) / 1000),
+    timeMs: undefined // If available, pass timing
+  });
   
   return answer.trim();
 }

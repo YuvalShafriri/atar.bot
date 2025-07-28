@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
+import { GraphData, LLMMessage } from '../../services/graphQueryService';
 import { chatGraphModern } from '../../services/modernGraphQueryService';
 import AllAssetsGraph from './AllAssetsGraph';
-
+import { calculateTokenCost, estimateTokens, printTokenLogStyled } from '../../services/tokenCostService';
 
 // Token counting utility
-const estimateTokensGlobal = (text: string): number => {
-    return Math.ceil(text.length / 2.5);
-};
+// const estimateTokensGlobal = (text: string): number => {
+//     return Math.ceil(text.length / 2.5);
+// };
 
 const fetchChatCompletion = async (
     messages: LLMMessage[],
@@ -18,7 +18,7 @@ const fetchChatCompletion = async (
     const body = { model: LLM_MODEL, contents, tools };
 
     const bodyJson = JSON.stringify(body);
-    const inputTokens = estimateTokensGlobal(bodyJson);
+    const inputTokens = estimateTokens(bodyJson);
 
     try {
         const startTime = Date.now();
@@ -31,14 +31,18 @@ const fetchChatCompletion = async (
         const endTime = Date.now();
 
         const outputText = JSON.stringify(result);
-        const outputTokens = estimateTokensGlobal(outputText);
-        const totalTokens = inputTokens + outputTokens;
-
-        const inputCost = inputTokens * 0.0000001;
-        const outputCost = outputTokens * 0.0000001;
+        const outputTokens = estimateTokens(outputText);        const inputCost = calculateTokenCost(inputTokens, LLM_MODEL);
+        const outputCost = calculateTokenCost(outputTokens, LLM_MODEL);
         const totalCost = inputCost + outputCost;
 
-        console.log(`[Improved Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(6)} | Time: ${endTime - startTime}ms`);
+        printTokenLogStyled({
+            question: '', // No question variable in scope
+            inputTokens,
+            outputTokens,
+            model: LLM_MODEL,
+            cost: totalCost,
+            timeMs: endTime - startTime
+        });
 
         return result;
     } catch (err) {
@@ -49,7 +53,8 @@ const fetchChatCompletion = async (
 
 declare const vis: any;
 
-const LLM_MODEL = 'gemini-2.5-flash-lite';
+// LLM Configuration
+const LLM_MODEL = 'gemini-2.5-flash';
 
 // שאלות דוגמה מובנות לפי קטגוריות
 const EXAMPLE_QUESTIONS = {
@@ -314,6 +319,146 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId: _spotId, onQuery, placeholder }
     );
 };
 
+// Simple LLM function for individual graphs (original approach)
+async function askLLMSimple(question: string, graphData: any): Promise<string> {
+    if (!question.trim()) return '';
+
+    // בניית הקשר הטקסטואלי - עם דגש על זיהוי קשרים עקיפים
+    let contextData = '';
+
+    // זיהוי קשרים עקיפים אם השאלה מכילה שמות נכסים
+    const questionLower = question.toLowerCase();
+    if (questionLower.includes('קשר') && graphData.nodes && graphData.edges) {
+        // מציאת נכסי מורשת בגרף
+        const heritageAssets = graphData.nodes.filter((n: any) => n.asset === true || n.Asset === true);
+        
+        if (heritageAssets.length >= 2) {
+            contextData += `--- קשרים עקיפים בין נכסי מורשת ---\n`;
+            
+            for (let i = 0; i < heritageAssets.length; i++) {
+                for (let j = i + 1; j < heritageAssets.length; j++) {
+                    const asset1 = heritageAssets[i];
+                    const asset2 = heritageAssets[j];
+                    
+                    // מציאת קשרים משותפים
+                    const asset1Connections = graphData.edges.filter((e: any) => e.from === asset1.id).map((e: any) => e.to);
+                    const asset2Connections = graphData.edges.filter((e: any) => e.from === asset2.id).map((e: any) => e.to);
+                    
+                    const sharedConnections = asset1Connections.filter((conn: string) => asset2Connections.includes(conn));
+                    
+                    if (sharedConnections.length > 0) {
+                        const sharedNodes = sharedConnections.map((connId: string) => {
+                            const node = graphData.nodes.find((n: any) => n.id === connId);
+                            return node ? node.label : connId;
+                        });
+
+                        contextData += `קשר עקיף: ${asset1.id} ↔ ${asset2.id} דרך: ${sharedNodes.join(', ')}\n`;
+                    }
+                }
+            }
+            contextData += '\n';
+        }
+    }
+
+    // הוספת צמתים
+    contextData += `--- צמתים בגרף ---\n`;
+    graphData.nodes?.forEach((node: any) => {
+        contextData += `- ${node.id} (${node.type}${node.meaning ? `, תיאור: ${node.meaning}` : ''})`;
+        if (node.title) {
+            contextData += ` - ${node.title}`;
+        }
+        contextData += '\n';
+    });
+
+    // הוספת קשרים
+    contextData += `\n--- קשרים בגרף ---\n`;
+    graphData.edges?.forEach((edge: any) => {
+        const fromNode = graphData.nodes?.find((n: any) => n.id === edge.from);
+        const toNode = graphData.nodes?.find((n: any) => n.id === edge.to);
+        if (fromNode && toNode) {
+            contextData += `- "${fromNode.label}" -> ${edge.label || ''} -> "${toNode.label}"\n`;
+        }
+    });
+
+    const systemPrompt = `
+    אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
+
+    **כללי תשובה**:
+    1. תשובות קצרות (1-2 משפטים) ומדויקות - רק מה שיש בגרף
+    2. אם נשאל על "קשר" בין צמתים - זהה קשרים ישירים או עקיפים דרך צמתים משותפים
+    3. קשר עקיף = שני צמתים מחוברים לאותו צומת ביניים
+    4. ציין בבירור אם הקשר ישיר או עקיף ודרך מה
+
+    **חשוב לנכסים**: נכסי מורשת = רק צמתים עם asset=true. עבור שאלות על קשרים בין נכסים, חפש צמתים משותפים שמחברים ביניהם.
+
+    **השתמש תמיד ב-id של הצומת וב-label של הקשר בדיוק כפי שמופיעים בנתונים.**
+
+    הנחיות נוספות:
+    1. היה תמציתי - לא צריך הסברים מפורטים
+    2. אם אין קשר בגרף - אמר שאין קשר
+    3. התבסס רק על הנתונים המסופקים
+    4. ענה בעברית פשוטה וברורה
+    `;
+
+    const fullPrompt = `
+        ${systemPrompt}
+
+        --- נתוני ההקשר (JSON Data) ---
+        ${contextData}
+        ---------------------------------
+
+        בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
+        שאלה: ${question}
+        `;
+
+    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    if (!proxyUrl) {
+        console.error("Error: VITE_GEMINI_PROXY_URL is not defined.");
+        return "שגיאה בהגדרות השרת.";
+    }
+
+    const response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model: LLM_MODEL,
+            contents: fullPrompt
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ details: 'Could not parse error response.' }));
+        console.error("Error from backend proxy:", errorBody);
+        const errorMessage = errorBody.details || "שגיאה לא ידועה מהשרת.";
+        return `שגיאה בקבלת תשובה מהבוט: ${errorMessage}`;
+    }
+
+    const result = await response.json();
+    const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+    const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
+
+    // Token counting for individual graphs
+    function countTokens(str: string): number {
+        return Math.ceil(str.length / 2.5);
+    }
+    const promptTokens = countTokens(systemPrompt);
+    const contextTokens = countTokens(contextData);
+    const questionTokens = countTokens(question);
+    const responseTokens = countTokens(text);
+    const inputTokens = promptTokens + contextTokens + questionTokens;
+
+    // Use unified token logging
+    printTokenLogStyled({
+        question,
+        inputTokens,
+        outputTokens: responseTokens,
+        model: LLM_MODEL,
+        cost: calculateTokenCost(inputTokens, LLM_MODEL) + calculateTokenCost(responseTokens, LLM_MODEL)
+    });
+
+    return text;
+}
+
 // Main Improved Graph Dashboard Component
 interface ImprovedGraphDashboardProps {
     allGraphData: Record<string, any>;
@@ -356,8 +501,8 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
         let graphData: GraphData;
         
         if (assetId === 'all_assets') {
+            // טוען את הגרף המאסטר לשאלות כלליות
             try {
-                // טוען את הגרף המאסטר לשאלות כלליות
                 graphData = await fetch('data/graphMaster.json').then(r => r.json());
                 if (Array.isArray(graphData.nodes)) {
                     graphData.nodes = graphData.nodes.map((node: any) => ({
@@ -371,23 +516,26 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
             }
             
             // שימוש ב-LLM מתקדם לשאלות כלליות
+            console.log('[QUERY MODE] מנגנון: מודרני/סוכן (Modern/Agent)');
             const result = await chatGraphModern(question, graphData, fetchChatCompletion);
             queryCache.current.set(cacheKey, result);
             return result;
         } else {
-            // עבור גרפים פרטניים - השתמש במנגנון הפשוט
+            // עבור גרפים פרטניים - השתמש במנגנון הפשוט המקורי
             if (assetId === 'thematic_graph') {
                 graphData = thematicGraphData;
+                console.log('[QUERY MODE] מנגנון: פשוט (Simple) - גרף נושאים');
             } else {
                 graphData = allGraphData[assetId];
+                console.log('[QUERY MODE] מנגנון: פשוט (Simple) - גרף בודד');
             }
 
             if (!graphData) {
                 return "שגיאה: לא נמצא נתוני גרף.";
             }
 
-            // שימוש ב-LLM פשוט לגרפים פרטניים
-            const result = await chatGraph(question, graphData, fetchChatCompletion);
+            // המנגנון הפשוט המקורי לגרפים בודדים
+            const result = await askLLMSimple(question, graphData);
             queryCache.current.set(cacheKey, result);
             return result;
         }
@@ -527,12 +675,10 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
             });
         }
 
-    }, [assetId, allGraphData, thematicGraphData, nodeColors]);
-
-    const description = assetId === 'all_assets' ?
-        'מצב שאלות כלליות - נתונים על כלל הנכסים (24 נכסים)' :
+    }, [assetId, allGraphData, thematicGraphData, nodeColors]);    const description = assetId === 'all_assets' ?
+        'כאן ניתן לשאול שאלות כלליות על אוסף הערכות הנכסים (24 נכסים)' :
         assetId === 'thematic_graph' ?
-            'גרף נושאי - התמות העיקריות מכלל הנכסים' :
+            'גרף המתאר את התמות העיקריות העולות מאוסף הנכסים' :
             (allGraphData[assetId] as any)?.description || '';
 
     return (
@@ -547,30 +693,53 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
                         id="asset-select"
                         className="p-2 border rounded"
                         value={assetId}
-                        onChange={handleGraphChange}
-                    >
-                        <option value="all_assets">כלל הנכסים (שאלות כלליות)</option>
+                        onChange={handleGraphChange}                    >
+                        <option value="all_assets">כלל הנכסים</option>
                         <option value="thematic_graph">גרף נושאים</option>
                         <option value="herzliyaStudios">אולפני הרצליה</option>
                         <option value="bateiBairy">בתי בארי, תל אביב</option>
-                        <option value="beitShemesh">בית שמש</option>
-                        <option value="taggart">טיגארט</option>
-                        <option value="ramatHashofet">רמת השופט</option>
-                        <option value="donya">דוניאנה</option>
-                    </select>
-                    <div
-                        className="relative flex items-center ml-2"
+                        <option value="haifaHangar15">האנגר 15, נמל חיפה</option>
+                        <option value="zichronFoundersCourt">חצר המייסדים 37, זכרון יעקב</option>
+                        <option value="sheferAlley">מבנה בסמטת שפר, תל אביב</option>
+                        <option value="regbaWaterTower">מגדל המים, מושב רגבה</option>
+                        <option value="mandelbaumGate">מעבר מנדלבאום, ירושלים</option>
+                        <option value="beitShemeshPolice">משטרת בית שמש (מצודת טיגארט)</option>
+                        <option value="gezerRegionalSurvey_v4">סקר מורשת, מ.א. גזר (כולל ערכים)</option>
+                        <option value="akkoCourtyardHouse">בית חצר עות'מאני בעכו העתיקה</option>
+                        <option value="manofFarm">החווה החקלאית בעכו(מנוף)</option>
+                        <option value="roosterGaaton">התרנגול, געתון</option>
+                        <option value="einTzviTower">מגדל שמירה 2, מעין צבי</option>
+                        <option value="duniyeRestaurant_unified">מסעדת דוניינא, עכו (ניתוח מאוחד)</option>
+                        <option value="tegertForts">מצודות טיגארט</option>
+                        <option value="givatHatanach">מצודת האייל, גבעת התנ"ך</option>
+                        <option value="etzionGever">מתחם עציון גבר, יפו</option>
+                        <option value="pardesGutGurevich">פרדס גוט-גורביץ'</option>
+                        <option value="kiryatShmuel">שכונת קריית שמואל, טבריה</option>
+                        <option value="kfarYehoshua_unified">תחנת רכבת העמק, כפר יהושע (שני דוחות)</option>
+                        <option value="nirOzCamp_v2">אתר המחנה בניר עוז</option>
+                        <option value="bayaratBarakat_v2">בית באר בראכאת, יפו</option>
+                        <option value="dagonSilos_unified">ממגורות דגון, חיפה (ניתוח מורחב)</option>
+                        <option value="shivta">שבטה</option>
+                    </select>                    <div
+                        className="relative flex items-center mr-2"
                         tabIndex={0}
                         onMouseEnter={() => setShowTooltip(true)}
                         onMouseLeave={() => setShowTooltip(false)}
+                        onClick={() => setShowTooltip((v) => !v)}
+                        onFocus={() => setShowTooltip(true)}
+                        onBlur={() => setShowTooltip(false)}
                         style={{ cursor: 'pointer' }}
                     >
-                        <span className="text-blue-600 text-lg" aria-label="הסבר על הגרפים">ℹ️</span>
+                        <img
+                            src="./images/i.png"
+                            alt="הסבר על הגרפים"
+                            style={{ width: 22, height: 22, display: 'inline-block' }}
+                            aria-label="הסבר על הגרפים"
+                        />
                         {showTooltip && (
                             <div className="absolute z-50 right-8 top-1 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 shadow-lg w-80 max-w-xs"
                                 style={{ direction: 'rtl', whiteSpace: 'normal' }}>
-                                מצב משופר: שאלות מקובצות לפי סוגים, ממשק אחיד לכל סוגי השאלות.
-                                הגרפים מציגים רשתות ידע מהערכות משמעות שכתבו משתתפי הסדנאות.
+                                הגרפים מציגים רשתות ידע מהערכות משמעות שכתבו משתתפי הסדנאות. כל גרף מתחבר לנתונים ולהיגיון שונה במובן הערכת המורשת התרבותית. מצב משופר: שאלות מקובצות לפי סוגים ובאמצעות מבחרי שאלות ייעודיים.
                             </div>
                         )}
                     </div>
@@ -582,10 +751,8 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
                 spotId="improved-dashboard"
                 onQuery={handleQuery}
                 placeholder="שאל שאלה כלשהי על הנכסים, הערכים או הקשרים..."
-            />
-
-            {/* Graph Display */}
-            <div className="min-h-[500px] border rounded mt-4">
+            />            {/* Graph Display */}
+            <div className="min-h-[500px] border rounded mt-2">
                 {assetId === 'all_assets' ? (
                     <AllAssetsGraph />
                 ) : (

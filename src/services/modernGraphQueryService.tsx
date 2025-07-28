@@ -1,22 +1,7 @@
+import { estimateTokens, logTokenUsage, printTokenLogStyled } from './tokenCostService';
+
 // modernGraphQueryService.tsx - LLM-First Heritage Graph Query Service
 // Modern approach leveraging LLM capabilities instead of traditional algorithms
-
-// Token counting utility for tracking LLM usage
-export const estimateTokens = (text: string): number => {
-  return Math.ceil(text.length / 4);
-};
-
-export const logTokenUsage = (context: string, data: any, isInput: boolean = true) => {
-  const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-  const tokens = estimateTokens(dataStr);
-  const size = (dataStr.length / 1024).toFixed(2);
-  const direction = isInput ? 'Input' : 'Output';
-  
-  console.log(`[${context} Tokens] ${direction} tokens: ${tokens.toLocaleString()}`);
-  console.log(`[${context} Tokens] ${direction} size: ${size} KB`);
-  
-  return tokens;
-};
 
 export type Node = {
   id: string;
@@ -339,6 +324,7 @@ export async function chatGraphModern(
   graph: GraphData,
   fetchChatCompletion: (messages: LLMMessage[], tools?: any[]) => Promise<any>
 ): Promise<string> {
+  console.log('[QUERY MODE] מנגנון: מודרני/סוכן (Modern/Agent)');
   console.log('[Modern Graph Query] Starting LLM-first approach:', question);
   logTokenUsage('Full Graph Input', graph, true);
   
@@ -444,6 +430,17 @@ ${contextContent}`
   
   console.log(`[Token Efficiency] Original: ${originalTokens.toLocaleString()}, Optimized: ${optimizedTokens.toLocaleString()}, Saved: ${savings}%`);
   console.log('[Modern Graph Query] Final answer:', answer.substring(0, 200) + '...');
+  
+  printTokenLogStyled({
+    question,
+    inputTokens: estimateTokens(JSON.stringify([systemMessage, userMessage])),
+    outputTokens: estimateTokens(answer),
+    graphTokens: originalTokens,
+    ragTokens: optimizedTokens,
+    model: 'gemini-2.5-flash', // or use model variable if available
+    cost: undefined, // If available, pass cost
+    timeMs: undefined // If available, pass timing
+  });
   
   return answer.trim();
 }

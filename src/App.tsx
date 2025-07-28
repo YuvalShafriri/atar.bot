@@ -7,7 +7,8 @@ import infoIcon from './images/i.png';
 import AtarBotTab from './components/AtarBotTab';
 // import Neo4jGraph from './components/Neo4jGraph';
 import { WorkshopReport } from './components/WorkshopReport';
-import GraphDashboard from './components/Graph/GraphDashboard';
+// import GraphDashboard from './components/Graph/GraphDashboard'; // ⚠️ הדשבורד הישן - זמין להחלפה במידת הצורך
+import ImprovedGraphDashboard from './components/Graph/ImprovedGraphDashboard';
 declare const vis: any;
 const LLM_MODEL = 'gemini-2.5-flash-lite';
 //const LLM_MODEL = 'gemini-1.5-flash';
@@ -197,24 +198,30 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
     );
 };
 
-// Dashboard Page with GraphDashboard component
+// Dashboard Page with ImprovedGraphDashboard component
 const DashboardPage: React.FC<{ allGraphData: Record<string, any>; allGrapheCleanData: any; thematicGraphData: any; nodeColors: Record<string, any> }> = ({ allGraphData, allGrapheCleanData, thematicGraphData, nodeColors }) => {
     return (
         <div id="dashboard" className="page active">
             <div className="mb-4">
-                <h2 className="text-2xl font-bold mb-2">גרפי ידע</h2>
+                <h2 className="text-2xl font-bold mb-2">גרפי ידע - מצב משופר</h2>
                 <p className="text-gray-600">
                     הגרפים שלהלן מציגים את רשתות הידע שנבנו באמצעות אתר.בוט מתוך הערכות המשמעות שכתבו המשתתפים בסדנאות.
                     כל גרף חושף את מערכת הקשרים בין צמתים (ערכים, אירועים, דמויות) - שיחדיו יוצרים את מכלול המשמעות של הנכס.
+                    <br /><strong>מצב חדש:</strong> שאלות מקובצות לפי סוגים עם דרופדאון נוח.
                 </p>
             </div>
             
-            <GraphDashboard 
+            <ImprovedGraphDashboard 
                 allGraphData={allGraphData}
                 allGrapheCleanData={allGrapheCleanData}
                 thematicGraphData={thematicGraphData}
                 nodeColors={nodeColors}
             />
+            
+            {/* 
+            ⚠️ הערה למתכנת: ניתן להחליף חזרה לדשבורד הישן על ידי החלפת ImprovedGraphDashboard ב-GraphDashboard
+            ועדכון הייבוא בראש הקובץ
+            */}
         </div>
     );
 };

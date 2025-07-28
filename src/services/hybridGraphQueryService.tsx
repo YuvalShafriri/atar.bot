@@ -428,6 +428,7 @@ export async function hybridChatGraph(
   fetchChatCompletion: (messages: LLMMessage[], tools?: any[]) => Promise<any>,
   inferenceRules?: any[]
 ): Promise<string> {
+  console.log('[QUERY MODE] מנגנון: היברידי (Hybrid)');
   // Load inference rules if provided
   if (inferenceRules && inferenceRules.length > 0) {
     loadInferenceRules(inferenceRules);

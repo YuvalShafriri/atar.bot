@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
 import { chatGraphModern } from '../../services/modernGraphQueryService';
 import { quickHybridChat } from '../../quickHybridSetup';
-import { getPresetQuestions } from './meta-graph-generator';
+
 import AllAssetsGraph from './AllAssetsGraph';
+import { getTokenLog, printTokenLogStyled, calculateTokenCost } from '../../services/tokenCostService';
 
 // Token counting utility
 const estimateTokensGlobal = (text: string): number => {
@@ -48,19 +49,6 @@ const fetchChatCompletion = async (
         console.error('[Gemini] fetchChatCompletion - ERROR:', err);
         throw err;
     }
-};
-
-// Simple preset answer function
-const getPresetAnswer = (question: string): string | null => {
-    const presetQuestions = getPresetQuestions();
-    const normalizedQuestion = question.trim().toLowerCase();
-
-    for (const preset of presetQuestions) {
-        if (preset.text.toLowerCase().includes(normalizedQuestion) ||
-            normalizedQuestion.includes(preset.text.toLowerCase())) {
-            return preset.answer;
-        }
-    } return null;
 };
 
 declare const vis: any;
@@ -119,35 +107,12 @@ function makeAgentFetchChatCompletion() {
             const inputCost = inputTokens * 0.0000001;
             const outputCost = outputTokens * 0.0000001;
             const totalCost = inputCost + outputCost;
-            console.log(`[Agent LLM] Model: ${model} | In: ${inputTokens} | Out: ${outputTokens} | Total: ${totalTokens} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
-            return result;
+            console.log(`[Agent LLM] Model: ${model} | In: ${inputTokens} | Out: ${outputTokens} | Total: ${totalTokens} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);        return result;
         } catch (err) {
             console.error('[Gemini] fetchChatCompletion (agent) - ERROR:', err);
             throw err;
         }
     };
-}
-
-// --- רגולציה על שאילתות גרף - רק שאלות קצרות וברורות ---
-function isValidGraphQuestion(question: string): boolean {
-    // הגבלת אורך השאלה ל-100 תווים
-    if (question.length > 100) {
-        return false;
-    }
-    // הימנע משאלות עם יותר מדי מילים (לדוגמה, יותר מ-15 מילים)
-    const words = question.trim().split(/\s+/);
-    if (words.length > 15) {
-        return false;
-    }
-    // הימנע משאלות שמתחילות או מסתיימות ברווחים
-    if (/^\s+|\s+$/g.test(question)) {
-        return false;
-    }
-    // הימנע משאלות עם תווים מיוחדים מיותרים
-    if (/[^א-תa-zA-Z0-9\s?.,!]/.test(question)) {
-        return false;
-    }
-    return true;
 }
 
 export async function askLLM(question: string, data: Record<string, any>): Promise<string> {
@@ -277,9 +242,7 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
 
     // שמירה בקיצ'ינג
-    responseCache.set(cacheKey, text);
-
-    // --- Token counting and logging ---
+    responseCache.set(cacheKey, text);    // --- Token counting and logging ---
     // Approximate: count tokens by dividing character length by 2.5
     function countTokens(str: string): number {
         return Math.ceil(str.length / 2.5);
@@ -287,8 +250,7 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     const promptTokens = countTokens(systemPrompt);
     const contextTokens = countTokens(contextData);
     const responseTokens = countTokens(text);
-    const totalTokens = promptTokens + contextTokens + responseTokens;
-    console.log(`🔑 Token counts: prompt=${promptTokens}, context=${contextTokens}, response=${responseTokens}, total=${totalTokens}`);
+    console.log(getTokenLog({ inputTokens: promptTokens + contextTokens, outputTokens: responseTokens, model: LLM_MODEL }));
 
     return text;
 }
@@ -299,11 +261,9 @@ interface AiSpotProps {
     onQuery: (input: string) => Promise<string>;
     placeholder?: string;
     exampleQueries?: string[];
-    useHybridMode?: boolean; // ⭐ הוספת prop למצב היברידי
-    onToggleHybrid?: () => void; // ⭐ הוספת callback לשינוי מצב
 }
 
-const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries, useHybridMode, onToggleHybrid }) => {
+const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQueries }) => {
     const [input, setInput] = useState<string>('');
     const [output, setOutput] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false); const config = {
@@ -364,19 +324,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
                         disabled={isLoading || !input.trim()}
                     >
                         {isLoading ? 'חושב...' : 'שאל'}
-                    </button>                    {/* ⭐ כפתור היברידי */}
-                    {onToggleHybrid && (
-                        <button
-                            onClick={onToggleHybrid}
-                            className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useHybridMode
-                                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                            title={useHybridMode ? "מערכת היברידית: מופעלת" : "מערכת רגילה: מופעלת"}
-                        >
-                            🧠 {useHybridMode ? 'HYBRID' : 'STANDARD'}
-                        </button>
-                    )}
+                    </button>
                 </div>
                 {/* כפתורי שאלות לדוגמה */}
                 {exampleQueries && exampleQueries.length > 0 && (
@@ -496,20 +444,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
     const networkRef = useRef<any>(null);
 
     // Cache for queries: key = assetId + '|' + question
-    const queryCache = useRef(new Map<string, string>());
-
-    const handleGraphChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const queryCache = useRef(new Map<string, string>());    const handleGraphChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setAssetId(event.target.value);
-    };
-
-    const estimateGraphTokens = (graphData: GraphData): number => {
-        if (!graphData?.nodes || !graphData?.edges) return 0;
-
-        const nodesJson = JSON.stringify(graphData.nodes);
-        const edgesJson = JSON.stringify(graphData.edges);
-        const totalChars = nodesJson.length + edgesJson.length;
-
-        return Math.ceil(totalChars / 4);
     };
 
     const handleQuery = async (question: string) => {
@@ -537,22 +473,17 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                     }));
                 }
             } catch (error) {
-                console.error('[Graph] Failed to load graphMaster.json, falling back to allGrapheCleanData:', error);
-                graphData = allGrapheCleanData;
+                console.error('[Graph] Failed to load graphMaster.json, falling back to allGrapheCleanData:', error);                graphData = allGrapheCleanData;
             }
-            const queryStartTime = Date.now();
             let result;
             if (useAgentMode) {
                 // ⭐ Agent mode: use modernGraphQueryService with model selection logic
                 const agentFetch = makeAgentFetchChatCompletion();
-                result = await chatGraphModern(question, graphData, agentFetch);
-            } else if (useHybridMode) {
+                result = await chatGraphModern(question, graphData, agentFetch);            } else if (useHybridMode) {
                 result = await quickHybridChat(question, graphData, fetchChatCompletion);
             } else {
                 result = await chatGraph(question, graphData, fetchChatCompletion);
             }
-            const queryEndTime = Date.now();
-            const totalDuration = queryEndTime - queryStartTime;
             queryCache.current.set(cacheKey, result);
             return result;
         } else {
@@ -714,17 +645,16 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             }
             const promptTokens = countTokens(systemPrompt);
             const contextTokens = countTokens(contextData);
-            const questionTokens = countTokens(question);
-            const responseTokens = countTokens(text);
+            const questionTokens = countTokens(question);            const responseTokens = countTokens(text);
             const inputTokens = promptTokens + contextTokens + questionTokens;
-            const totalTokens = inputTokens + responseTokens;
-
-            // פישוט לוג הטוקנים
-            console.log(`===== TOKEN SUMMARY =====`);
-            console.log(`LLM Input: ${inputTokens} tokens`);
-            console.log(`LLM Output: ${responseTokens} tokens`);
-            console.log(`Total: ${totalTokens} tokens`);
-            console.log(`=========================`);
+            const totalCost = calculateTokenCost(inputTokens, LLM_MODEL) + calculateTokenCost(responseTokens, LLM_MODEL);
+            printTokenLogStyled({
+                question,
+                inputTokens,
+                outputTokens: responseTokens,
+                model: LLM_MODEL,
+                cost: totalCost
+            });
 
             queryCache.current.set(cacheKey, text);
             return text;
@@ -981,37 +911,42 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                         )}
                     </div>
                 </div>
-            </div>            {/* AI Query Interface */}
+            </div>            {/* Original Query Mode Dropdown */}
+            <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    מצב שאילתה:
+                </label>
+                <select 
+                    value={useAgentMode ? 'agent' : useHybridMode ? 'hybrid' : 'simple'}
+                    onChange={(e) => {
+                        const mode = e.target.value;
+                        if (mode === 'agent') {
+                            setUseAgentMode(true);
+                            setUseHybridMode(false);
+                        } else if (mode === 'hybrid') {
+                            setUseAgentMode(false);
+                            setUseHybridMode(true);
+                        } else {
+                            setUseAgentMode(false);
+                            setUseHybridMode(false);
+                        }
+                    }}
+                    className="w-full p-2 border rounded bg-white text-gray-900"
+                    dir="rtl"
+                >
+                    <option value="simple">פשוט - מענה ישיר מהגרף</option>
+                    <option value="hybrid">חכם - מענה משולב עם חוקי מורשת</option>
+                    <option value="agent">מודרני - מענה מתקדם עם בחירת מודל</option>
+                </select>
+            </div>
+
+            {/* AI Query Interface */}
             <AiSpot
                 spotId="dashboard"
                 onQuery={handleQuery}
                 key={assetId + (useAgentMode ? '|agent' : '') + (useHybridMode ? '|hybrid' : '')}
-                exampleQueries={selectedQueries}
-                placeholder="שאל את הבוט על הנכס - קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
-                useHybridMode={useHybridMode}
-                onToggleHybrid={() => setUseHybridMode(!useHybridMode)}
+                exampleQueries={selectedQueries}                placeholder="שאל את הבוט על הנכס - קבלו הסבר על קשרים, ערכים או מושגים המופיעים בגרף..."
             />
-            {/* ⭐ Agent mode toggle button */}
-            <div className="flex gap-2 mt-2">
-                <button
-                    onClick={() => { setUseAgentMode(false); setUseHybridMode(false); }}
-                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${(!useAgentMode && !useHybridMode) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                >
-                    רגיל
-                </button>
-                <button
-                    onClick={() => { setUseHybridMode(!useHybridMode); setUseAgentMode(false); }}
-                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useHybridMode ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                >
-                    🧠 HYBRID
-                </button>
-                <button
-                    onClick={() => { setUseAgentMode(!useAgentMode); setUseHybridMode(false); }}
-                    className={`px-3 py-2 font-bold rounded-lg transition text-sm ${useAgentMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                >
-                    🤖 AGENT
-                </button>
-            </div>
             {/* Graph Display */}
             <div className="min-h-[500px] border rounded mt-2">
                 {assetId === 'all_assets' ? (
