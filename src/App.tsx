@@ -44,6 +44,17 @@ async function askTipsLLM(question: string, tipsList: Array<{ title: string; tex
 
     const result = await response.json();
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+
+    // --- Token counting and cost calculation ---
+    function countTokens(str: string): number {
+        return Math.ceil(str.length / 2.5);
+    }
+    const inputTokens = countTokens(ideasContext + '\n' + prompt);
+    const outputTokens = countTokens(text);
+    const totalTokens = inputTokens + outputTokens;
+    const cost = totalTokens * 0.0000001;
+    console.log(`[Tips LLM] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(6)}`);
+
     return text;
 }
 
@@ -73,6 +84,17 @@ async function askBrainstormLLM(question: string, ideasList: any[]): Promise<str
 
     const result = await response.json();
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+
+    // --- Token counting and cost calculation ---
+    function countTokens(str: string): number {
+        return Math.ceil(str.length / 2.5);
+    }
+    const inputTokens = countTokens(ideasContext + '\n' + prompt);
+    const outputTokens = countTokens(text);
+    const totalTokens = inputTokens + outputTokens;
+    const cost = totalTokens * 0.0000001;
+    console.log(`[Brainstorm LLM] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(6)}`);
+
     return text;
 }
 

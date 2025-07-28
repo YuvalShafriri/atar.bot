@@ -7,7 +7,7 @@ import AllAssetsGraph from './AllAssetsGraph';
 
 // Token counting utility
 const estimateTokensGlobal = (text: string): number => {
-    return Math.ceil(text.length / 4);
+    return Math.ceil(text.length / 2.5);
 };
 
 const fetchChatCompletion = async (
@@ -36,12 +36,12 @@ const fetchChatCompletion = async (
         const outputTokens = estimateTokensGlobal(outputText);
         const totalTokens = inputTokens + outputTokens;
 
-        const inputCost = (inputTokens / 1000) * 0.03;
-        const outputCost = (outputTokens / 1000) * 0.06;
+        const inputCost = inputTokens * 0.0000001;
+        const outputCost = outputTokens * 0.0000001;
         const totalCost = inputCost + outputCost;
 
         // Essential metrics only
-        console.log(`[Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
+        console.log(`[Dashboard LLM] In: ${inputTokens.toLocaleString()} | Out: ${outputTokens.toLocaleString()} | Total: ${totalTokens.toLocaleString()} | Cost: $${totalCost.toFixed(1)} | Time: ${endTime - startTime}ms`);
 
         return result;
     } catch (err) {
@@ -116,8 +116,8 @@ function makeAgentFetchChatCompletion() {
             const outputText = JSON.stringify(result);
             const outputTokens = estimateTokensGlobal(outputText);
             const totalTokens = inputTokens + outputTokens;
-            const inputCost = (inputTokens / 1000) * 0.03;
-            const outputCost = (outputTokens / 1000) * 0.06;
+            const inputCost = inputTokens * 0.0000001;
+            const outputCost = outputTokens * 0.0000001;
             const totalCost = inputCost + outputCost;
             console.log(`[Agent LLM] Model: ${model} | In: ${inputTokens} | Out: ${outputTokens} | Total: ${totalTokens} | Cost: $${totalCost.toFixed(4)} | Time: ${endTime - startTime}ms`);
             return result;
@@ -280,15 +280,15 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     responseCache.set(cacheKey, text);
 
     // --- Token counting and logging ---
+    // Approximate: count tokens by dividing character length by 2.5
     function countTokens(str: string): number {
-        // Approximate: count whitespace-separated words (not exact tokens)
-        return str.split(/\s+/).filter(Boolean).length;
+        return Math.ceil(str.length / 2.5);
     }
     const promptTokens = countTokens(systemPrompt);
     const contextTokens = countTokens(contextData);
     const responseTokens = countTokens(text);
     const totalTokens = promptTokens + contextTokens + responseTokens;
-    console.log(`\uD83D\uDD11 Token counts: prompt=${promptTokens}, context=${contextTokens}, response=${responseTokens}, total=${totalTokens}`);
+    console.log(`🔑 Token counts: prompt=${promptTokens}, context=${contextTokens}, response=${responseTokens}, total=${totalTokens}`);
 
     return text;
 }
@@ -708,8 +708,9 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             const text = rawText.trim().replace(/\s+/g, ' ').replace(/\s+$/, '');
 
             // Token counting for individual graphs
+            // Approximate: count tokens by dividing character length by 2.5
             function countTokens(str: string): number {
-                return str.split(/\s+/).filter(Boolean).length;
+                return Math.ceil(str.length / 2.5);
             }
             const promptTokens = countTokens(systemPrompt);
             const contextTokens = countTokens(contextData);
