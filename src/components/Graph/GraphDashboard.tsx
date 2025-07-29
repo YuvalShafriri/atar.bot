@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
-import { chatGraphModern } from '../../services/modernGraphQueryService';
+//import { chatGraphModern } from '../../services/modernGraphQueryService';
 import { quickHybridChat } from '../../quickHybridSetup';
+import { chatGraphModern } from '../../services/agentService';
 
 import AllAssetsGraph from './AllAssetsGraph';
 import { getTokenLog, printTokenLogStyled, calculateTokenCost } from '../../services/tokenCostService';

@@ -567,14 +567,16 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const DATA = GRAPH_DATA;
-                const container = document.getElementById('mynetwork');
-                const infowindow = document.getElementById('infowindow');
-                const closeInfo = document.getElementById('closeinfo');
-                const tooltip = document.getElementById('custom-tooltip');
 
-                // הגדרות צבעים וקבועים
+    fetch('graphMaster.json')
+        .then(response => response.json())
+        .then(DATA => {
+            // כאן כל הקוד שלך שמטפל ב-DATA במקום GRAPH_DATA
+            const container = document.getElementById('mynetwork');
+            const infowindow = document.getElementById('infowindow');
+            const closeInfo = document.getElementById('closeinfo');
+            const tooltip = document.getElementById('custom-tooltip');
+            // ... המשך קוד ...     // הגדרות צבעים וקבועים
                 const NODE_COLORS = { "HeritageAssetAssessment": { "b": "#FCE7F3", "f": "#DB2777" }, "ערך": { "b": "#FFFBEB", "f": "#FBBF24" }, "תהליך": { "b": "#FEF2F2", "f": "#EF4444" }, "אירוע": { "b": "#FEE2E2", "f": "#DC2626" }, "אידיאולוגיה": { "b": "#EFF6FF", "f": "#3B82F6" }, "תקופה": { "b": "#E5E7EB", "f": "#6B7280" }, "מבנה": { "b": "#E0F2FE", "f": "#0EA5E9" }, "מבנה היסטורי": { "b": "#DBEAFE", "f": "#3B82F6" }, "מבנה תעשייתי": { "b": "#D1D5DB", "f": "#4B5563" }, "מבנה מודרני": { "b": "#E0F2FE", "f": "#0284C7" }, "מערכת הגנה": { "b": "#FDE68A", "f": "#D97706" }, "אתר": { "b": "#F3F4F6", "f": "#4B5563" }, "אתר מורשת": { "b": "#E5E5E5", "f": "#525252" }, "אתר ארכיאולוגי": { "b": "#D6D3D1", "f": "#78716C" }, "סגנון": { "b": "#F5F3FF", "f": "#7C3AED" }, "טכניקה": { "b": "#ECFDF5", "f": "#10B981" }, "טכנולוגיה": { "b": "#D1FAE5", "f": "#059669" }, "חברה": { "b": "#FFF7ED", "f": "#F97316" }, "אישיות": { "b": "#F3F4F6", "f": "#6B7280" }, "אדריכל": { "b": "#E5E7EB", "f": "#4B5563" }, "גוף מדיני": { "b": "#E2E8F0", "f": "#64748B" }, "גוף מייסד": { "b": "#FEF3C7", "f": "#D97706" }, "תשתית": { "b": "#F0F9FF", "f": "#0EA5E9" }, "נוף": { "b": "#F0FDF4", "f": "#22C55E" }, "נוף חקלאי": { "b": "#DCFCE7", "f": "#16A34A" }, "פעילות": { "b": "#ECFDF5", "f": "#10B981" }, "אמנות": { "b": "#FAF5FF", "f": "#9333EA" }, "מוסד תרבות": { "b": "#FEFCE8", "f": "#EAB308" }, "יישוב": { "b": "#E7E5E4", "f": "#57534E" }, "מרחב תרבותי": { "b": "#FCE7F3", "f": "#DB2777" }, "שכונה": { "b": "#E0F2FE", "f": "#0EA5E9" }, "עיר": { "b": "#D1FAE5", "f": "#059669" }, "תפקוד הנדסי": { "b": "#D5DBDB", "f": "#839192" }, "קהילת תפעול": { "b": "#FFF7ED", "f": "#F97316" }, "תפקוד": { "b": "#ECFDF5", "f": "#10B981" }, "תפיסה חינוכית": { "b": "#EBF5FB", "f": "#3498DB" }, "אורח חיים": { "b": "#FEF9E7", "f": "#F1C40F" }, "סביבה": { "b": "#E8F8F5", "f": "#1ABC9C" }, "תכנון": { "b": "#FDFEFE", "f": "#D0D3D4" }, "מבנה מנדטורי": { "b": "#EAF2F8", "f": "#5DADE2" } };
                 const SHOW_ASSESSMENT_NODES = false;
 
@@ -768,12 +770,12 @@
                 network.on('blurNode', function (params) {
                     tooltip.style.display = 'none';
                 });
-
+ 
                 closeInfo.onclick = closeInfoWindow;
-            } catch (err) {
-                alert('שגיאה בעיבוד נתוני הגרף: ' + err.message);
-                console.error(err);
-            }
+            }).catch(err => {
+            alert('שגיאה בטעינת נתוני הגרף: ' + err.message);
+            console.error(err);
+        });
         });
     </script>
 </body>

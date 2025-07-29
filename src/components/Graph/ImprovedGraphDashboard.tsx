@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GraphData, LLMMessage } from '../../services/graphQueryService';
-import { chatGraphModern } from '../../services/modernGraphQueryService';
+//import { chatGraphModern } from '../../services/modernGraphQueryService';
+import { chatGraphModern } from '../../services/agentService';
+
 import AllAssetsGraph from './AllAssetsGraph';
 import { calculateTokenCost, estimateTokens, printTokenLogStyled } from '../../services/tokenCostService';
 
@@ -54,7 +56,9 @@ const fetchChatCompletion = async (
 declare const vis: any;
 
 // LLM Configuration
-const LLM_MODEL = 'gemini-2.5-flash';
+//const LLM_MODEL = 'gemini-2.5-flash';
+const LLM_MODEL = 'gemini-2.5-flash-lite';
+
 
 // שאלות דוגמה מובנות לפי קטגוריות
 const EXAMPLE_QUESTIONS = {
