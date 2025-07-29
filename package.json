@@ -4,9 +4,9 @@
   "description": "ATAR Cultural Heritage AI Assistant",
   "type": "module",
   "scripts": {
-    "dev": "vite --config config/vite.config.ts",
-    "build": "vite build --config config/vite.config.ts",
-    "preview": "vite preview --config config/vite.config.ts",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx",
     "type-check": "tsc --noEmit"
   },
