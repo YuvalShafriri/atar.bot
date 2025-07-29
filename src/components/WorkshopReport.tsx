@@ -1,0 +1,417 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+interface WorkshopReportProps {}
+
+const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab, setActiveTab] = useState('panel-failures');
+  const [geminiInput, setGeminiInput] = useState('בית הכנסת הגדול בחיפה, שנבנה ב-1925 בסגנון אקלקטי, שימש כמרכז קהילתי חשוב עבור עולי הבלקן. כיום המבנה נטוש וסובל מהזנחה.');  const [geminiResults, setGeminiResults] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [accordionOpen, setAccordionOpen] = useState<{[key: number]: boolean}>({});
+  const [selectedInfo, setSelectedInfo] = useState<{type: 'advantage' | 'challenge' | null, key: string | null}>({type: null, key: null});
+
+  const accordionData = [
+    {
+      title: "שלב 1 – ניתוח הקשרים ותיאור הנכס",
+      goal: "יצירת תיאור מקיף של הנכס (לפחות 800 מילים) על בסיס ההקשרים שזוהו.",
+      actions: "עיבוד מידע וזיהוי הקשרים (מבני, היסטורי, חברתי וכו'), כתיבת תיאור מובנה הכולל פתיחה, התפתחות היסטורית וסרגל זמן.",
+      questions: "האם יש פרטים נוספים שכדאי להוסיף לתיאור? האם לדייק את התיאור?"
+    },
+    {
+      title: "שלב 2 – ניתוח משמעות תרבותית (ערכים)",
+      goal: "זיהוי וניתוח הערכים המרכזיים של הנכס, תוך התבססות על הקשרים ועדויות.",
+      actions: "זיהוי ערכים (אסתטי, היסטורי, חברתי), ניתוח אופן ביטויים בנכס, וקישורם להקשרים רחבים.",
+      questions: "האם יש ערכים נוספים? האם יש נרטיבים מתנגשים או ערכים קהילתיים שלא באו לידי ביטוי?"
+    },
+    {
+      title: "שלב 3 – ניתוח אותנטיות ושלמות",
+      goal: "ניתוח מצב השימור, השלמות והאותנטיות של הנכס והשפעתם על ערכיו.",
+      actions: "השוואה בין מצב נוכחי להיסטורי, יישום של Nara Grid לבחינת היבטים כמו צורה, חומרים ושימוש, והערכת מצב ההשתמרות הכללי.",
+      questions: "האם יש פרטים נוספים על מצב השימור? האם התיאור מדויק?"
+    },
+    {
+      title: "שלב 4 – הערכה השוואתית",
+      goal: "ניתוח ייחודיות הנכס בהשוואה לאתרים דומים מבחינה ערכית, תפקודית והיסטורית.",
+      actions: "זיהוי אתרי השוואה, ניתוח מאפיינים עיצוביים ותפקודיים, והדגשת הייחודיות או הנדירות של הנכס.",
+      questions: "האם ידוע לך על אתרים נוספים להשוואה? האם יש נקודות השוואה נוספות להדגיש?"
+    },
+    {
+      title: "שלב 5 – ניסוח הצהרת משמעות תרבותית",
+      goal: "ניסוח נרטיב מגובש, שלם ומבוסס המבליט את משמעותו התרבותית של הנכס.",
+      actions: "כתיבה סינתטית המשלבת את כלל הממצאים, הדגשת תרומת הנכס לערכים, שימוש בשפה מקצועית ונרטיבית.",
+      questions: "האם ההצהרה משקפת את מהות הנכס? האם תרצה להוסיף המלצות לשימור או לבצע ניתוח סמיוטי?"
+    }
+  ];
+
+  // Information for interactive cards
+  const cardInfo = {
+    advantage: {
+      'new-world': 'הכלי חושף אפשרויות ודרכי חשיבה שלא היו זמינות קודם, ומאפשר גישה חדשנית לתהליך ההערכה. במקום להסתמך רק על שיטות מסורתיות, המומחה יכול לגלות זוויות חדשות לניתוח הנכס.',
+      'precision': 'בניגוד לכלי AI כלליים, ניתן לאמן את הבוט על מידע ספציפי, מה שמאפשר לו לספק תוצרים רלוונטיים ומדויקים יותר להקשר. הבוט מבין את הטרמינולוגיה המקצועית ואת עקרונות ההערכה התרבותית.',
+      'perspectives': 'ה-AI יכול לזהות קשרים ותבניות בטקסט שאדם עשוי לפספס, ובכך להציע מסקנות מרעננות ולהרחיב את זוויות המבט על הנכס. הוא מסוגל לעבד כמויות גדולות של מידע ולמצוא קשרים לא צפויים.',
+      'research': 'על ידי ניתוח מהיר של חומרים קיימים, הכלי יכול לזהות פערים במידע, להצביע על כיווני חקירה נדרשים, לאפשר שלב הערכה ראשוני מהיר, ולחסוך זמן יקר. זה מאפשר למומחה להתמקד במשימות המורכבות יותר.'
+    },
+    challenge: {
+      'garbage': 'איכות התוצר תלויה לחלוטין באיכות חומר הגלם. הבוט ישקף במדויק כל הטיה או שגיאה במידע המקורי. אם המידע הבסיסי לא מדויק או חלקי, גם הניתוח לא יהיה אמין.',
+      'hallucinations': 'ביטחון היתר של ה-AI עלול להטעות. הוא יכול "להמציא" עובדות ומקורות ולהציג אותם בצורה משכנעת מאוד. אימות ובדיקה של כל מידע הם שלבים קריטיים שאסור לדלג עליהם.',
+      'black-box': 'המודל עלול לספק תשובות שונות לאותה שאלה, ומתקשה להבין היבטים סובייקטיביים כמו "רוח המקום", תחושות ואווירה. תהליך החשיבה שלו לא תמיד שקוף.',
+      'literacy': 'שימוש נכון דורש מיומנות: לדעת כיצד לנסח שאלות, לאתגר את הכלי, ולזהות את מגבלותיו והטיותיו. זו מיומנות חדשה שצריך לפתח ולטפח.'
+    }
+  };
+
+  // Update info function
+  const updateInfo = (type: 'advantage' | 'challenge', key: string) => {
+    setSelectedInfo({ type, key });
+  };
+
+  // Utility to render bold markdown-like **bold** segments
+  const renderWithBold = (text: string) => {
+    return text.split(/(\*\*[^*]+\*\*)/g).map((part, idx) => {
+      const match = part.match(/^\*\*(.+)\*\*$/);
+      if (match) {
+        return <strong key={idx} className="font-bold">{match[1]}</strong>;
+      }
+      return part;
+    });
+  };
+
+  const callGeminiAPI = async (prompt: string): Promise<string> => {
+    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    if (!proxyUrl) {
+      throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
+    }
+
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: 'gemini-1.5-flash',
+        contents: prompt
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("שגיאה בקבלת תשובה מהבוט");
+    }
+
+    const result = await response.json();
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט";
+  };  const handleAnalyze = async () => {
+    if (!geminiInput.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setGeminiResults('');
+    try {
+      const prompt = `אתה עוזר ניתוח המתמחה בהערכת מורשת. בהתבסס על הטקסט הבא, בצע את המשימות הבאות:
+1. זהה את הערכים התרבותיים המרכזיים (כגון ערך היסטורי, חברתי, אדריכלי).
+2. זהה את הישויות המרכזיות (כגון אנשים, מקומות, אירועים).
+3. הצע 3 שאלות מפתח לחקירה נוספת.
+
+**כללי ברזל:**
+* היצמד אך ורק למידע הקיים בטקסט שסופק.
+* אסור לך להמציא, להוסיף או להסיק מידע חיצוני שאינו מופיע בטקסט.
+* אם מידע מסוים חסר או לא ברור, ציין זאת במפורש.
+* השב תמיד בעברית.
+
+הטקסט לניתוח: "${geminiInput}"`;
+      const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+      if (!proxyUrl) throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gemini-1.5-flash', contents: prompt, stream: true })
+      });
+      if (!response.ok) throw new Error("שגיאה בקבלת תשובה מהבוט");
+      if (!response.body) {
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט";
+        setGeminiResults(text);
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      // Based on logs, the response is a single JSON object, not an SSE stream.
+      // We will read the first chunk and parse it.
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: false }); // stream: false, as it's a single object
+          try {
+            const data = JSON.parse(chunk);
+            const newText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (newText) {
+              setGeminiResults(newText); // Set the full text at once
+            }
+            break; // Exit after processing the first chunk
+          } catch (e) {
+            console.error("Error parsing JSON from chunk:", chunk, e);
+            setGeminiResults('שגיאה בעיבוד התשובה מהשרת.');
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error analyzing text:", error);
+      setGeminiResults('שגיאה בניתוח הטקסט. אנא נסה שוב מאוחר יותר.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const toggleAccordion = (index: number) => {
+    setAccordionOpen(prev => ({
+      ...prev,
+      [index]: !prev[index]//
+    }));
+  };
+
+  const smoothScrollTo = (targetId: string) => {
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }  };
+
+  return (
+    <div className="workshop-report bg-stone-50 text-gray-800 pt-0 mt-0 mb-0 " dir="rtl">
+      {/* Header removed for compactness */}
+      <main className="container mx-auto pt-0 p-2 sm:p-0 lg:p-8 pt-0 mt-0">
+        {/* Introduction - remove top padding, margin, and set tight spacing */}
+        <section id="intro" className="pt-0 mt-0 sm:pt-0 pb-0 text-center">
+          <p className="mt-0 text-lg text-gray-600 max-w-4xl mx-auto font-semibold text-center">
+            חלק זה מדגים אפשרות להציג ניתוח של דיונים כתוכן אינטראקטיבי. התוכן הוא שילוב של ניתוח תמלולי הדיונים עם NotebookLM ואתר.בוט
+            (משלושת המחזורים), ולאחר מכן עיצוב התוצאה כמדיה אינטרנטית באמצעות כלי הCanvas של גימיני.
+          </p>
+        </section>
+
+        {/* Challenge and Response Section - remove top padding, reduce spacing */}
+        <section id="challenge" className="pt-2 pb-8 sm:pb-10">
+          <div className="text-center px-1 pt-0">
+            <h2 className="pt-0 text-2xl font-bold text-blue-900">האתגר והמענה: הערכת מורשת בישראל</h2>
+            <p className="mt-1 text-lg text-gray-600 max-w-3xl mx-auto pt-0">
+              הערכת מורשת ניצבת בפני אתגרים מורכבים. בדיונים ובסיכום בחנו את הכשלים והאתגרים, ואת מקום ה-AI.
+            </p>
+          </div>
+          <div className="mt-6 max-w-6xl mx-auto">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-4 space-x-reverse justify-center" aria-label="Tabs">
+                <button 
+                  onClick={() => setActiveTab('panel-failures')}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-failures' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
+                >
+                  1. כשלים ואתגרים
+                </button>
+                <button 
+                  onClick={() => setActiveTab('panel-solutions')}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-solutions' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
+                >
+                  2. דרכי התמודדות
+                </button>
+                <button 
+                  onClick={() => setActiveTab('panel-ai-role')}
+                  className={`tab whitespace-nowrap py-2 px-1 border-b-2 font-medium text-lg ${activeTab === 'panel-ai-role' ? 'active border-blue-500 bg-white text-blue-800 font-bold' : 'border-transparent'}`}
+                >
+                  3. תפקיד ה-AI
+                </button>
+              </nav>
+            </div>
+            <div className="mt-4">
+              {/* Panel 1: Failures */}
+              {activeTab === 'panel-failures' && (
+                <div className="challenge-panel">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h3 className="font-bold text-xl mb-2 text-red-700 text-right">כשלים מערכתיים ורגולטוריים</h3>
+                      <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                        <li><b>היעדר דרישה:</b> גופים סטטוטוריים אינם דורשים הערכות מורשת.</li>
+                        <li><b>קבלת החלטות מוקדמת:</b> החלטות מתקבלות מלחצים פוליטיים וכלכליים.</li>
+                        <li><b>היעדר אחידות ותקינה:</b> פערים בהנחיות וחוסר בשפה משותפת.</li>
+                        <li><span className="px-2 py-1  "><b>כשל בצד המקבל:</b> גם לגופים הבודקים אין כלים מספקים לנתח את חומר ההערכה.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>תרבות ארגונית:</b> תיעוד והערכה נעשים "רק כדי לסמן וי", מה שמוביל לשחיקה מקצועית.</span></li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl mb-2 text-red-700 text-right">פערים מקצועיים וקוגניטיביים</h3>
+                      <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                        <li><b>היעדר הכשרה:</b> בתי ספר לאדריכלות אינם מלמדים את שלב ההערכה לעומק.</li>
+                        <li><span className="-200 px-2 py-1  "><b>קשיי שפה והמשגה:</b> קושי להבחין בין "ערך", "משמעות" וה"אטריביוט" (תכונה בנכס) שלהם, וקושי לבטא ערך באופן ברור ומנומק.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>מורכבות וסובייקטיביות:</b> נדרשת חשיבה מורכבת וניתוח ערכים, לא רק איסוף נתונים טכני.</span></li>
+                        <li><span className="-200 px-2 py-1  "><b>מגבלות כלים:</b> כלים קיימים (אקסל, GIS) מעדיפים נתונים כמותיים על פני איכותיים.</span></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel 2: Solutions */}
+              {activeTab === 'panel-solutions' && (
+                <div className="challenge-panel">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h3 className="font-bold text-xl mb-2 text-green-700 text-right">פתרונות מערכתיים וארגוניים</h3>
+                      <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                        <li><b>הגדרת סטנדרט:</b> גיבוש "קודקס מנחה" ארצי ועגינת חובת הגשת דוח ערכי בתקנות.</li>
+                        <li><b>שדרוג הכשרה:</b> הוספת קורסים ייעודיים להערכה תרבותית ועבודת צוות רב-תחומית.</li>
+                        <li><b>חיזוק שפה ותקשורת:</b> פיתוח "מדריך לשפה" מוסכם וסדנאות כתיבה.</li>
+                        <li><b>חיזוק אתיקה:</b> יצירת קוד אתי מחייב ומנגנוני בקרה מקצועיים.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl mb-2 text-green-700 text-right">פתרונות אישיים (למתעד)</h3>
+                      <ul className="list-disc list-inside space-y-2 text-gray-700 text-right">
+                        <li><b>ארגז כלים אישי:</b> גיבוש checklist ותבנית אחידה, שגרת רישום תצפיות.</li>
+                        <li><b>עבודה רב-תחומית:</b> גיוס שותפים (היסטוריון, נציג קהילה) גם ללא חובה פורמלית.</li>
+                        <li><b>שילוב "הסיפור":</b> שימוש בסטוריטלינג חזותי, עדויות אישיות וסיפורים.</li>
+                        <li><b>עמידה על אתיקה ושקיפות:</b> תיעוד ניסיונות לחפף תהליכים וחשיפת יזמים לסיפורי קהילות.</li>
+                        <li><span className="-200 px-2 py-1  "><b>גישה יזמית ופרואקטיבית:</b> להיות "אושיית שימור", לצבור מוניטין ולהשתמש בהשוואות ככלי שכנוע.</span></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}              {/* Panel 3: AI Role */}
+              {activeTab === 'panel-ai-role' && (
+                <div className="challenge-panel">
+                  <h3 className="font-bold text-xl mb-8 text-blue-700 text-center">תפקיד ה-AI: מאזן הכוחות בשותפות</h3>
+                  <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                    <div>
+                      <h3 className="text-2xl font-bold text-green-600 text-center mb-4">✅ יתרונות ופוטנציאל</h3>
+                      <div className="space-y-4">
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'new-world')}>
+                          <h4 className="font-bold text-green-800">פתיחת "עולם חדש"</h4>
+                          <p className="text-sm text-gray-600">הכלי פותח אפשרויות חדשות ומסייע לראות את המידע והתהליך באור אחר.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'precision')}>
+                          <h4 className="font-bold text-green-800">דיוק ויכולת כוונון</h4>
+                          <p className="text-sm text-gray-600">ממוקד יותר מכלי AI כלליים, עם יכולת להבין מידע ספציפי שהוזן לו.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'perspectives')}>
+                          <h4 className="font-bold text-green-800">הרחבת נקודות מבט</h4>
+                          <p className="text-sm text-gray-600">מספק תובנות, "מסקנות מרעננות" וזוויות מבט חדשות, גם על טקסטים קיימים.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('advantage', 'research')}>
+                          <h4 className="font-bold text-green-800">סיוע בחקירה והנגשה</h4>
+                          <p className="text-sm text-gray-600">יכול לסייע בחקירה מעמיקה, זיהוי חוסרים במידע וחיסכון בזמן.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-red-600 text-center mb-4">⚠️ אתגרים וסיכונים</h3>
+                      <div className="space-y-4">
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'garbage')}>
+                          <h4 className="font-bold text-red-800">Garbage In, Garbage Out</h4>
+                          <p className="text-sm text-gray-600">איכות התוצר תלויה לחלוטין באיכות חומר הגלם. מידע שגוי יוביל לתוצאה שגויה.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'hallucinations')}>
+                          <h4 className="font-bold text-red-800">"הזיות" ויכולת שכנוע</h4>
+                          <p className="text-sm text-gray-600">הכלי עלול להמציא מידע ולהציגו בצורה משכנעת. חובה קריטית לבדוק מקורות.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'black-box')}>
+                          <h4 className="font-bold text-red-800">"קופסה שחורה"</h4>
+                          <p className="text-sm text-gray-600">אופן הפעולה לא תמיד שקוף, והכלי עלול לספק תשובות שונות לאותה שאלה.</p>
+                        </div>
+                        <div className="card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateInfo('challenge', 'literacy')}>
+                          <h4 className="font-bold text-red-800">הצורך ב"אוריינות AI"</h4>
+                          <p className="text-sm text-gray-600">דורש מיומנות חדשה: לנסח שאלות נכון, להיות ביקורתי ולזהות הטיות.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Info Box */}
+                  <div className="mt-8 max-w-4xl mx-auto">
+                    <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
+                      <p className="font-semibold">
+                        {selectedInfo.type && selectedInfo.key 
+                          ? cardInfo[selectedInfo.type][selectedInfo.key]
+                          : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Summary cards */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-green-300 hover:transform hover:-translate-y-1 transition-all">
+              <h3 className="text-lg font-bold text-gray-800">🛠️ פיגום אנליטי</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                הכלי מספק מסגרת עבודה שיטתית המארגנת, מעמיקה ומרחיבה את תהליך החשיבה, ומאפשר להגיע לתובנות חדשות.
+              </p>
+            </div>
+            <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-blue-300 hover:transform hover:-translate-y-1 transition-all">
+              <h3 className="text-lg font-bold text-gray-800">🧠 עוזר קוגניטיבי</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                אתר.בוט הוא שותף למחשבה. הוא לא מחליף את המומחה, אלא מספק תמיכה אנליטית לתהליך ההערכה המורכב.
+              </p>
+            </div>
+            <div className="card bg-white p-4 rounded-lg shadow-sm border-b-4 border-yellow-300 hover:transform hover:-translate-y-1 transition-all">
+              <h3 className="text-lg font-bold text-gray-800">🧑‍💻 Human-in-the-Loop</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                המומחיות האנושית נשארת במרכז. שאלות עצירה מובנות מבטיחות שהשיפוט המקצועי מנחה את התהליך בכל שלב.
+              </p>
+            </div>
+          </div>
+        </section>
+        {/* חוויות המשתתפים מהשימוש באתר.בוט */}
+        <section className="py-12 sm:py-16 bg-white rounded-xl shadow-lg">
+          <div className="max-w-5xl mx-auto px-4">
+            <h3 className="text-2xl font-bold text-center mb-6">חוויות המשתתפים מהשימוש באתר.בוט</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                <p className="text-3xl">🧭</p>
+                <p className="font-semibold mt-2">גמיש אך ממושמע</p>
+                <p className="text-sm text-gray-600">מפתיע במשמעת שלו אך גם בתובנות חדשות.</p>
+              </div>
+              <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                <p className="text-3xl">📑</p>
+                <p className="font-semibold mt-2">קרקוע (Grounding)</p>
+                <p className="text-sm text-gray-600">מסתמך רק על קבצי המקור שהועלו.</p>
+              </div>
+              <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                <p className="text-3xl">🦉</p>
+                <p className="font-semibold mt-2">ללא הזיות (כמעט)</p>
+                <p className="text-sm text-gray-600">אינו ממציא עובדות, נתונים או מקורות.</p>
+              </div>
+              <div className="card bg-gray-100 p-4 rounded-lg hover:transform hover:-translate-y-1 transition-all">
+                <p className="text-3xl">🧑‍💻</p>
+                <p className="font-semibold mt-2">פיקוח אנושי</p>
+                <p className="text-sm text-gray-600">שאלות עצירה מבטיחות שהמומחה נשאר במרכז.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* Conclusion Section */}
+        <section id="conclusion" className="py-12 sm:py-16">
+          <div className="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+            <h2 className="text-3xl font-bold text-blue-900 text-center mb-8">סיכום: בין ידיעת הלב לידיעת השכל</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div className="border-l-2 border-dashed border-gray-300 pl-8">
+                <div className="italic text-gray-600 text-lg leading-relaxed text-center">
+                  <p>"אָדָם גֵּאָה בְּיִדְעוֹתָיו</p>
+                  <p>וְרָאָה כּוּלָן פֵּרְשׁוּ כַּפָּיו:</p>
+                  <p>אומנויות ומדעים</p>
+                  <p>ועוד אלפי אמצעים;</p>
+                  <p className="mt-4">הרוח הנושב –</p>
+                  <p>אותו בלבד ידע הלב."</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xl text-gray-700 text-right leading-relaxed">
+                  ההתייחסות ל"אתר.בוט" כ'כלי' בלבד היא פישוט יתר. בניגוד לכלי פסיבי וצפוי, GenAI הוא שותף
+                  פעיל, לעיתים מפתיע, בתהליך החשיבה. הוא מציע, יוצר, אך גם עלול לטעות.
+                </p>
+                <p className="mt-4 text-xl text-gray-700 text-right leading-relaxed">
+                  יעילותו ובטיחותו תלויות בפיתוח <strong className="text-blue-800">'אוריינות AI'</strong> – יכולת
+                  ביקורתית מתמדת, אימות מידע, ושיפוט אתי של המומחה האנושי, המשלב את "ידיעת השכל" עם "ידיעת הלב".
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer className="text-center py-6 bg-white border-t mt-12">
+        <p className="text-gray-600">נוצר כמדריך מאוחד לדוח סדנת איקומוס אתר.בוט</p>
+      </footer>
+    </div>
+  );
+};
+
+export { WorkshopReport };

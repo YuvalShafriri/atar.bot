@@ -6,7 +6,8 @@ build/
 .env
 .env.*
 !.env.example
-
+!.env.local.example
+!.env.local
 # Logs
 *.log
 npm-debug.log*
@@ -41,7 +42,7 @@ Desktop.ini
 *.txt
 
 # Unnecessary Folders
-MISCFILES/
+BACKUPS/
 bk/
 "firease version/"
 icomos/
@@ -50,6 +51,13 @@ drafts/
 old/
 atar.bot-v1/
 atar.bot-v1.zip
+rag/
+prompts/
+tests/
+scripts/
+ 
+
+archive/
 
 # Test output
 coverage/
