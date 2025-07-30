@@ -507,7 +507,7 @@ const ImprovedGraphDashboard: React.FC<ImprovedGraphDashboardProps> = ({
         if (assetId === 'all_assets') {
             // טוען את הגרף המאסטר לשאלות כלליות
             try {
-                graphData = await fetch('data/graphMaster.json').then(r => r.json());
+                graphData = await fetch(import.meta.env.BASE_URL + 'data/graphMaster.json').then(r => r.json());
                 if (Array.isArray(graphData.nodes)) {
                     graphData.nodes = graphData.nodes.map((node: any) => ({
                         ...node,
