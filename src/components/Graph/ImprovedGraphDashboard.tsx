@@ -16,6 +16,7 @@ const fetchChatCompletion = async (
     tools?: any[]
 ) => {
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    //VITE_GEMINI_PROXY_URL=https://us-central1-telemyuval.cloudfunctions.net/geminiProxy
     const contents = messages.map(m => ({ text: m.content }));
     const body = { model: LLM_MODEL, contents, tools };
 
