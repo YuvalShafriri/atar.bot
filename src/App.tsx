@@ -279,98 +279,106 @@ const HomePageEn: React.FC = () => {
 const ExperiencePageEn: React.FC = () => {
     const [openIdx, setOpenIdx] = useState<number | null>(0);
 
-    const experienceStepsEn = [
-        {
-            title: "Step 1 – Context Analysis and Asset Description",
-            practical: [
-                "Upload a heritage asset information file.",
-                "Tell the bot: \"Perform step 1 on the information I uploaded\".",
-                "Check that the description includes introduction, historical development, timeline, and key contexts."
-            ],
-            goal: "Create a comprehensive description of the asset (at least 800 words) based on identified contexts.",
-            actions: "Information processing and context identification (structural, historical, social, etc.), writing a structured description including introduction, historical development and timeline.",
-            questions: "Are there additional details worth adding to the description? Should the description be refined?",
-            reflection: [
-                "What worked well in the bot activation process?",
-                "Where was human intervention needed to refine or complete information?"
-            ]
-        },
-        {
-            title: "Step 2 – Cultural Significance Analysis (Values)",
-            practical: [
-                "Request: Continue to step 2",
-                "Ensure the bot properly identifies the key values (aesthetic, historical, social).",
-                "If needed, request completions, refinement and focus of the information."
-            ],
-            goal: "Identification and analysis of the asset's key values, based on contexts and evidence.",
-            actions: "Value identification (aesthetic, historical, social), analysis of how they are expressed in the asset, and linking them to broader contexts.",
-            questions: "Are there additional values? Are there conflicting narratives or community values not expressed?",
-            reflection: [
-                "Did atar.bot succeed in articulating complex values, nuances and unexpected insights?",
-                "What required human reinforcement or additional cultural context?"
-            ]
-        },
-        {
-            title: "Step 3 – Authenticity and Integrity Analysis",
-            practical: [
-                "Request: Continue to step 3",
-                "Ensure the bot examines authenticity according to Nara Grid (form, materials, use).",
-                "If needed, request completions or refinement."
-            ],
-            goal: "Analysis of conservation status, integrity and authenticity of the asset and their impact on its values.",
-            actions: "Comparison between current and historical state, application of Nara Grid to examine aspects like form, materials and use, and assessment of overall preservation condition.",
-            questions: "Are there additional details about conservation status? Is the description accurate?",
-            reflection: [
-                "Did the bot succeed in distinguishing between physical integrity and cultural values?",
-                "Was human clarification or completion needed?"
-            ]
-        },
-        {
-            title: "Step 4 – Comparative Assessment",
-            practical: [
-                "Request: Continue to step 4",
-                "Ensure the bot identifies comparison sites, analyzes design and functional characteristics, and highlights uniqueness or rarity."
-            ],
-            goal: "Analysis of the asset's uniqueness compared to similar sites in terms of value, function and history.",
-            actions: "Identification of comparison sites, analysis of design and functional characteristics, and highlighting the uniqueness or rarity of the asset.",
-            questions: "Do you know of additional sites for comparison? Are there additional comparison points to highlight?",
-            reflection: [
-                "Did the bot succeed in highlighting the asset's uniqueness?",
-                "Was human completion or additional examples needed?"
-            ]
-        },
-        {
-            title: "Step 5 – Cultural Significance Statement Formulation",
-            practical: [
-                "Write: Continue to step 5",
-                "Ensure the significance statement reflects all values and contexts.",
-                "Try to reach an initial draft of the statement in several paragraphs."
-            ],
-            goal: "Formulation of a cohesive, complete and evidence-based narrative highlighting the cultural significance of the asset.",
-            actions: "Synthetic writing integrating all findings, emphasizing the asset's contribution to values, using professional and narrative language.",
-            questions: "Does the statement reflect the essence of the asset? Would you like to add conservation recommendations or perform semiotic analysis?",
-            reflection: [
-                "Does the statement summarize all values and contexts?",
-                "Is there room for further expansion or refinement?"
-            ]
-        }
-    ];
+  const experienceStepsEn = [
+    {
+      icon: '🧭',
+      title: "Step 1 – Context Analysis and Asset Description",
+      practical: [
+        "Upload a heritage asset information file.",
+        "Tell the bot: \"Perform step 1 on the information I uploaded\".",
+        "Check that the description includes introduction, historical development, timeline, and key contexts."
+      ],
+      goal: "Create a comprehensive description of the asset (at least 800 words) based on identified contexts.",
+      actions: "Information processing and context identification (structural, historical, social, etc.), writing a structured description including introduction, historical development and timeline.",
+      questions: "Are there additional details worth adding to the description? Should the description be refined?",
+      reflection: [
+        "What worked well in the bot activation process?",
+        "Where was human intervention needed to refine or complete information?"
+      ]
+    },
+    {
+      icon: '🌟',
+      title: "Step 2 – Cultural Significance Analysis (Values)",
+      practical: [
+        "Request: Continue to step 2",
+        "Ensure the bot properly identifies the key values (aesthetic, historical, social).",
+        "If needed, request completions, refinement and focus of the information."
+      ],
+      goal: "Identification and analysis of the asset's key values, based on contexts and evidence.",
+      actions: "Value identification (aesthetic, historical, social), analysis of how they are expressed in the asset, and linking them to broader contexts.",
+      questions: "Are there additional values? Are there conflicting narratives or community values not expressed?",
+      reflection: [
+        "Did atar.bot succeed in articulating complex values, nuances and unexpected insights?",
+        "What required human reinforcement or additional cultural context?"
+      ]
+    },
+    {
+      icon: '🔎',
+      title: "Step 3 – Authenticity and Integrity Analysis",
+      practical: [
+        "Request: Continue to step 3",
+        "Ensure the bot examines authenticity according to Nara Grid (form, materials, use).",
+        "If needed, request completions or refinement."
+      ],
+      goal: "Analysis of conservation status, integrity and authenticity of the asset and their impact on its values.",
+      actions: "Comparison between current and historical state, application of Nara Grid to examine aspects like form, materials and use, and assessment of overall preservation condition.",
+      questions: "Are there additional details about conservation status? Is the description accurate?",
+      reflection: [
+        "Did the bot succeed in distinguishing between physical integrity and cultural values?",
+        "Was human clarification or completion needed?"
+      ]
+    },
+    {
+      icon: '⚖️',
+      title: "Step 4 – Comparative Assessment",
+      practical: [
+        "Request: Continue to step 4",
+        "Ensure the bot identifies comparison sites, analyzes design and functional characteristics, and highlights uniqueness or rarity."
+      ],
+      goal: "Analysis of the asset's uniqueness compared to similar sites in terms of value, function and history.",
+      actions: "Identification of comparison sites, analysis of design and functional characteristics, and highlighting the uniqueness or rarity of the asset.",
+      questions: "Do you know of additional sites for comparison? Are there additional comparison points to highlight?",
+      reflection: [
+        "Did the bot succeed in highlighting the asset's uniqueness?",
+        "Was human completion or additional examples needed?"
+      ]
+    },
+    {
+      icon: '✍️',
+      title: "Step 5 – Cultural Significance Statement Formulation",
+      practical: [
+        "Write: Continue to step 5",
+        "Ensure the significance statement reflects all values and contexts.",
+        "Try to reach an initial draft of the statement in several paragraphs."
+      ],
+      goal: "Formulation of a cohesive, complete and evidence-based narrative highlighting the cultural significance of the asset.",
+      actions: "Synthetic writing integrating all findings, emphasizing the asset's contribution to values, using professional and narrative language.",
+      questions: "Does the statement reflect the essence of the asset? Would you like to add conservation recommendations or perform semiotic analysis?",
+      reflection: [
+        "Does the statement summarize all values and contexts?",
+        "Is there room for further expansion or refinement?"
+      ]
+    }
+  ];
 
     return (
         <div className="space-y-4">
             <h2 className="text-2xl font-bold mb-4 text-center">Cultural Assessment Steps using CBSA Approach - with atar.bot</h2>
             {experienceStepsEn.map((step, idx) => (
                 <div key={idx} className="border border-gray-200 rounded-lg mb-2">
-                    <button
-                        type="button"
-                        className={`w-full flex items-center justify-between p-5 font-semibold text-left text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors ${openIdx === idx ? 'bg-indigo-50' : ''}`}
-                        onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
-                    >
-                        <span>{step.title}</span>
-                        <svg className={`w-6 h-6 shrink-0 transform transition-transform ${openIdx === idx ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
-                        </svg>
-                    </button>
+          <button
+            type="button"
+            className={`w-full flex items-center justify-between p-5 font-semibold text-left text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors ${openIdx === idx ? 'bg-indigo-50' : ''}`}
+            onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl leading-none" aria-hidden>{step.icon}</span>
+              <span className="text-base">{step.title}</span>
+            </div>
+            <svg className={`w-6 h-6 shrink-0 transform transition-transform ${openIdx === idx ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
+            </svg>
+          </button>
                     <div className={`overflow-hidden transition-all duration-300 ${openIdx === idx ? 'max-h-screen p-5' : 'max-h-0'}`}>
                         {openIdx === idx && (
                             <div className="space-y-4">
