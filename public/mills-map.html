@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watermills of Israel: thematic framwork demo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Leaflet.js Plugins for Heatmap and Clustering -->
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
+
+    <!-- Chart.js for Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        .leaflet-popup-content {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        /* Style for custom SVG icons */
+        .custom-map-icon {
+            background: transparent;
+            border: none;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold leading-tight text-gray-900">Watermills : dashboard from geoJson (Arches api) </h1>
+            <p class="mt-1 text-sm text-gray-500">An interactive exploration of historical water-powered industrial heritage.</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="py-10">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Map Section (takes 2/3 width on large screens) -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Asset Map</h2>
+                    <div id="map" class="h-96 md:h-[600px] rounded-md z-0"></div>
+                </div>
+
+                <!-- Charts Section (takes 1/3 width on large screens) -->
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4">Mill Density per River (Mills/km)</h2>
+                        <canvas id="densityChart"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4">Site Management Status</h2>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Thematic Assessment Section (full width) -->
+                <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Thematic Cultural Assessment Summary</h2>
+                    
+                    <!-- REVISED SECTION with improved styling -->
+                    <div class="mt-6 space-y-8">
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-4">Cultural Significance & Defining Attributes</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <!-- Cultural Values Card -->
+                                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Cultural Values (The 'Why')</h4>
+                                    <p class="text-gray-600 text-sm">
+                                        As a group, these watermills represent significant historical, technological, and social values. Historically, they are tangible evidence of economic activity and settlement patterns from the Roman era through the Ottoman period. Technologically, they showcase the evolution of hydro-engineering adapted to local conditions. Socially, they were vital community hubs, central to the agricultural economy and the sustenance of local populations.
+                                    </p>
+                                </div>
+                                <!-- Character-Defining Attributes Card -->
+                                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Character-Defining Attributes (The 'What')</h4>
+                                    <p class="text-gray-600 text-sm mb-4">These are the tangible, physical features that convey the mills' cultural significance. The integrity of each site is measured by the preservation of these attributes:</p>
+                                    <ul class="space-y-3">
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-blue-500 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 01.5 2.915V13.5a1.5 1.5 0 01-3 0V6.415A1.5 1.5 0 0110 3.5z" /><path d="M4 6.5a3.5 3.5 0 015.531-2.925A3.5 3.5 0 0113.5 10v3.5a3.5 3.5 0 01-7 0V10A3.5 3.5 0 014 6.5z" /></svg>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-700"><strong>Water Management System:</strong> Dams, channels, and pressure systems (penstocks or sluices).</p>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-yellow-500 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clip-rule="evenodd" /></svg>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-700"><strong>Mill Building & Architectural Form:</strong> Use of local stone, massive walls, and vaulted ceilings.</p>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-gray-500 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a4 4 0 100 8 4 4 0 000-8zM3.465 14.535a1 1 0 010-1.414l1.06-1.06a1 1 0 011.415 0l1.061 1.06a1 1 0 010 1.414l-1.06 1.06a1 1 0 01-1.415 0l-1.06-1.06zm9.07-9.07a1 1 0 010-1.414l1.06-1.06a1 1 0 011.415 0l1.06 1.06a1 1 0 010 1.414l-1.06 1.06a1 1 0 01-1.415 0l-1.06-1.06z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 5a1 1 0 112 0v2a1 1 0 11-2 0V5z" clip-rule="evenodd" /></svg>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-700"><strong>Technological Components:</strong> Water wheels, grinding stones, and power transmission mechanisms.</p>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-green-500 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-700"><strong>Site and Setting:</strong> Proximity to water, connection to agriculture, and integration with topography.</p>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statement of Significance Card -->
+                        <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                             <h3 class="text-xl font-semibold text-gray-900 mb-2">Statement of Thematic Significance</h3>
+                             <p class="text-gray-700">The collection of watermills represents a crucial, long-standing theme in the region's history: the <strong>mastery of water for industrial and agricultural sustenance</strong>. From the monumental Roman engineering at Nahal Taninim that supplied water to Caesarea, to the dense network of Ottoman-era mills on Nahal Amud that supported the economy of Safed, these sites are tangible evidence of the deep connection between settlement, technology, and natural resources.</p>
+                             <p class="text-gray-700 mt-2">Their significance lies not just in their function as centers of grain production, but as tangible records of the economic and social life of the communities they served. The integrity of these sites depends on the preservation of their defining attributes—from the dam that captures the water to the millstones that ground the grain—which together tell a cohesive story of human ingenuity and dependence on the natural environment.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Full raw data from the JSON file
+        const millsRawData = [{"name":"טחנת דוק","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[35.11197,32.84835],[35.11204,32.84829],[35.112,32.84824],[35.11207,32.84818],[35.11199,32.8481],[35.11194,32.84813],[35.11185,32.84802],[35.11173,32.8481],[35.11197,32.84835]]],"type":"Polygon"},{"coordinates":[[35.09275,32.91813],[35.098,32.9151],[35.1066,32.91091],[35.10955,32.90939],[35.11021,32.90681],[35.11079,32.90332],[35.11128,32.899],[35.11269,32.89371],[35.11411,32.88981],[35.11477,32.88716],[35.11577,32.88458],[35.11575,32.88008],[35.11789,32.8724],[35.11863,32.87029],[35.12099,32.86731],[35.12282,32.86306],[35.12515,32.85742],[35.12747,32.85296],[35.13053,32.84803],[35.13348,32.84475],[35.13466,32.84251],[35.13886,32.83832],[35.14105,32.83573],[35.14364,32.83478],[35.14623,32.83328],[35.14834,32.83056],[35.15004,32.82831],[35.15368,32.82497],[35.15703,32.82215],[35.15864,32.8205],[35.16002,32.81823],[35.16141,32.81529],[35.16287,32.81067],[35.16326,32.80887],[35.16437,32.80696],[35.16527,32.80647],[35.1677,32.80647],[35.17006,32.80608],[35.17098,32.80498],[35.17144,32.80338],[35.16974,32.80112],[35.16974,32.79921],[35.16979,32.79591],[35.17054,32.79492],[35.17281,32.79368],[35.17447,32.79233],[35.17575,32.79062],[35.17864,32.79022],[35.18266,32.78978],[35.19157,32.78912],[35.19928,32.78907],[35.20132,32.78789],[35.20261,32.78691],[35.20354,32.78475],[35.20517,32.7824],[35.20588,32.78071],[35.2066,32.77896],[35.20835,32.77744],[35.21503,32.77139],[35.22178,32.7649],[35.22475,32.7626],[35.2277,32.76097],[35.23066,32.75945],[35.2368,32.75747],[35.24025,32.75572],[35.24242,32.75456],[35.24472,32.75329],[35.24775,32.7525],[35.2499,32.75272],[35.25392,32.75412],[35.25674,32.75397],[35.26191,32.75249],[35.26561,32.75169],[35.26835,32.75212],[35.27125,32.75308],[35.27393,32.75308],[35.27648,32.75201],[35.27935,32.74973],[35.28177,32.74661],[35.28374,32.74192],[35.28489,32.73916],[35.28501,32.73587],[35.28568,32.73156],[35.28776,32.7274],[35.28983,32.72437],[35.29355,32.72076],[35.29619,32.71956],[35.29837,32.7188],[35.30063,32.71741],[35.30168,32.71532],[35.30304,32.71532],[35.30379,32.71443],[35.30447,32.7119],[35.30575,32.71031],[35.30567,32.70803],[35.30311,32.70562],[35.29897,32.70448]],"type":"LineString"},{"coordinates":[[35.1123,32.84811],[35.11246,32.84798],[35.1126,32.84789],[35.11269,32.84786],[35.11278,32.84787],[35.11296,32.84793],[35.11347,32.84818]],"type":"LineString"},{"coordinates":[[35.11155,32.84831],[35.11335,32.8496],[35.1159,32.85056],[35.11955,32.85245],[35.1239,32.85407],[35.12663,32.85452]],"type":"LineString"}]},"properties":{"שם הנכס":"טחנת דוק","אזור או מכלול הנכס":"עין אפק","הערכה תרבותית 0":"The Crusader flour mill 'Dok' in the Ein Afek reserve is a historic structure with significant cultural values, reflecting the heritage of the area and its rich history over the years. Its location near the Na'aman stream is linked to the area's importance as an agricultural and industrial center for hundreds of years.","סטטוס ניהול":"ניהול שוטף (פעיל)"}},
+          {"name":"טחנת טובי (אל-בוטיטיה) M13 נחל עמוד","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47516,32.96947],"type":"Point"},{"coordinates":[[[35.47512,32.96948],[35.47513,32.96945],[35.4752,32.96946],[35.47519,32.9695],[35.47512,32.96948]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת טובי (אל-בוטיטיה) M13 נחל עמוד","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנות נעמן (טחנות גני רידוואן)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[35.09103,32.91487],[35.09092,32.91481],[35.091,32.91471],[35.0911,32.91478],[35.09103,32.91487]]],"type":"Polygon"},{"coordinates":[[[35.09085,32.91478],[35.0908,32.91468],[35.09066,32.91475],[35.09071,32.91484],[35.09085,32.91478]]],"type":"Polygon"},{"coordinates":[[[35.09065,32.91475],[35.09061,32.91466],[35.09048,32.91471],[35.09052,32.9148],[35.09065,32.91475]]],"type":"Polygon"},{"coordinates":[[[35.0905,32.91477],[35.09038,32.91481],[35.09035,32.91476],[35.09048,32.91471],[35.0905,32.91477]]],"type":"Polygon"},{"coordinates":[[[35.09038,32.91482],[35.09032,32.91484],[35.09033,32.91486],[35.0902,32.91492],[35.09015,32.91484],[35.09035,32.91476],[35.09038,32.91482]]],"type":"Polygon"},{"coordinates":[[[35.09036,32.91493],[35.0905,32.91521],[35.09075,32.91552],[35.09127,32.91602],[35.09144,32.91599],[35.09078,32.91521],[35.09049,32.91483],[35.09036,32.91493]]],"type":"Polygon"},{"coordinates":[[35.09032,32.91487],[35.09047,32.91522],[35.09071,32.91551],[35.09109,32.91592],[35.09125,32.91615]],"type":"LineString"},{"coordinates":[[35.09053,32.91481],[35.09071,32.91505],[35.09101,32.91544],[35.09135,32.91582],[35.09148,32.91604],[35.0915,32.91636]],"type":"LineString"},{"coordinates":[[35.09106,32.91481],[35.0913,32.91501],[35.09161,32.91645]],"type":"LineString"},{"coordinates":[[35.0908,32.9148],[35.09102,32.91511],[35.09096,32.91535],[35.09144,32.91599]],"type":"LineString"},{"coordinates":[[35.08045,32.91217],[35.08217,32.91091],[35.08306,32.91079],[35.08402,32.91206],[35.08512,32.91252],[35.08546,32.91356],[35.08443,32.91356],[35.08601,32.91419],[35.08683,32.91477],[35.08814,32.91483],[35.09049,32.91465],[35.09226,32.91396],[35.09356,32.91344],[35.09446,32.91333],[35.095,32.91419],[35.09521,32.91483],[35.09741,32.91419],[35.09871,32.91275],[35.0996,32.91044],[35.10139,32.90745]],"type":"LineString"},{"coordinates":[[35.0952,32.91484],[35.09192,32.9165],[35.09162,32.91646],[35.09125,32.91615]],"type":"LineString"},{"coordinates":[[35.10275,32.91027],[35.09629,32.91402],[35.0896,32.91752],[35.08503,32.92022],[35.08148,32.92041],[35.07245,32.9218]],"type":"LineString"}]},"properties":{"שם הנכס":"טחנות נעמן (טחנות גני רידוואן)","אזור או מכלול הנכס":"גני רידוואן","הערכה תרבותית 0":"The flour mill complex is unique in its size and state of preservation in Israel. It features 15 pairs of millstones in 5 buildings that operated simultaneously.","סטטוס ניהול":"גורם פרטי"}},
+          {"name":"הטחנות הגדולות - Grands Moulins de Palestine","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[35.00744,32.81055],[35.00744,32.80972],[35.00744,32.80923],[35.00767,32.80862],[35.00819,32.80744],[35.00856,32.80658],[35.00874,32.8061],[35.00874,32.80549],[35.00861,32.80443],[35.00809,32.8032],[35.00767,32.80244]],"type":"LineString"},{"coordinates":[[35.00639,32.81316],[35.00705,32.81187],[35.00759,32.81031],[35.00804,32.80937],[35.00898,32.8088],[35.00916,32.80831],[35.0096,32.80737],[35.01036,32.80663],[35.01109,32.80557],[35.01221,32.80369],[35.01265,32.80246]],"type":"LineString"},{"coordinates":[[35.00744,32.81075],[35.0059,32.80954],[35.00472,32.80864],[35.00224,32.80728],[35.00123,32.80684]],"type":"LineString"},{"coordinates":[[35.00467,32.81325],[35.0054,32.81173],[35.00634,32.81057],[35.00715,32.80948],[35.00838,32.80805],[35.00887,32.80739],[35.00924,32.80658],[35.00911,32.80601],[35.00838,32.80549]],"type":"LineString"},{"coordinates":[[35.00261,32.81318],[35.00347,32.81222],[35.00441,32.81073],[35.00556,32.80891],[35.0071,32.8068],[35.00931,32.80467],[35.01078,32.80323],[35.01174,32.80244]],"type":"LineString"},{"coordinates":[[35.01067,32.81075],[35.00931,32.80904],[35.00856,32.80812],[35.0071,32.80689],[35.00378,32.80487]],"type":"LineString"},{"coordinates":[[34.99169,32.82446],[34.99354,32.8235],[34.99772,32.82169],[34.99961,32.82054],[35.00137,32.81921],[35.00295,32.81766],[35.00388,32.81581],[35.00445,32.81444]],"type":"LineString"},{"coordinates":[[[35.00709,32.80883],[35.00772,32.80806],[35.00728,32.80781],[35.00732,32.80775],[35.00705,32.80762],[35.00625,32.8087],[35.00665,32.80891],[35.00709,32.80883]]],"type":"Polygon"}]},"properties":{"שם הנכס":"הטחנות הגדולות - Grands Moulins de Palestine","אזור או מכלול הנכס":"העיר התחתית ומדרונות ואדי סאליב, חיפה","הערכה תרבותית 0":"The Great Mills are among the first modern mills in Israel. At the time of their construction, they were considered one of the largest and tallest buildings in the country.","סטטוס ניהול":"גורם פרטי"}},
+          {"name":"טאחונת אזעירי","geometry":{"coordinates":[35.27012,32.73675],"type":"Point"},"properties":{"שם הנכס":"טאחונת אזעירי","אזור או מכלול הנכס":"נחל ציפורי","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M21 טחנת שרקרק","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47822,32.95913],"type":"Point"},{"coordinates":[[[35.47819,32.95913],[35.47824,32.95915],[35.47825,32.95912],[35.4782,32.9591],[35.47819,32.95913]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M21 טחנת שרקרק","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת אל-מיר","geometry":{"coordinates":[34.93041,32.10619],"type":"Point"},"properties":{"שם הנכס":"טחנת אל-מיר","אזור או מכלול הנכס":"נחל הירקון -  נהר אלעוג׳א","הערכה תרבותית 0":"This was the first flour mill to operate along the Yarkon River and is likely the oldest. In Arabic, 'Al-Mir' means 'the crossing,' and indeed, the mill's walls served as a bridge to cross the stream.","סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת השקד M5","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.46893,32.97539],"type":"Point"},{"coordinates":[[[35.46892,32.97542],[35.46889,32.97536],[35.46892,32.97535],[35.46895,32.97541],[35.46892,32.97542]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת השקד M5","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M12 טחנת שכווי","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47492,32.97017],"type":"Point"},{"coordinates":[[[35.47487,32.97016],[35.47493,32.9702],[35.47496,32.97016],[35.4749,32.97013],[35.47487,32.97016]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M12 טחנת שכווי","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת אבו רבאח","geometry":{"coordinates":[34.89893,32.12395],"type":"Point"},"properties":{"שם הנכס":"טחנת אבו רבאח","אזור או מכלול הנכס":"נחל הירקון -  נהר אלעוג׳א","הערכה תרבותית 0":"Established near an older, ruined mill. In 1917, after the Turkish retreat and the blowing up of the Yarkon bridges, the mill's value increased as it became the only crossing point over the Yarkon.","סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת מרפוקה - עליל","geometry":{"coordinates":[35.15033,32.76892],"type":"Point"},"properties":{"שם הנכס":"טחנת מרפוקה - עליל","אזור או מכלול הנכס":"נחל ציפורי","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת קנה M6","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.46959,32.97502],"type":"Point"},{"coordinates":[[[35.46958,32.97504],[35.46955,32.97499],[35.46958,32.97497],[35.46962,32.97503],[35.46958,32.97504]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת קנה M6","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת תאנה M8","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47081,32.97414],"type":"Point"},{"coordinates":[[[35.47081,32.97417],[35.47078,32.97412],[35.47082,32.97411],[35.47084,32.97416],[35.47081,32.97417]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת תאנה M8","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"פרוחיה","geometry":{"coordinates":[34.8907,32.12349],"type":"Point"},"properties":{"שם הנכס":"פרוחיה","אזור או מכלול הנכס":"נחל הירקון -  נהר אלעוג׳א","הערכה תרבותית 0":"A flour mill that operated near the village of Fruchia. It was operated by the slaves of the Abu Kishk Bedouin tribe.","סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת הקמח הסחנה (גן השלושה)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.4468,32.50589],"type":"Point"},{"coordinates":[[[35.45245,32.50493],[35.45243,32.50454],[35.45197,32.50394],[35.45133,32.50403],[35.45054,32.50404],[35.45014,32.50397],[35.44986,32.50355],[35.44687,32.50542],[35.44545,32.50588],[35.44506,32.50618],[35.44483,32.50653],[35.44553,32.50737],[35.44765,32.50675],[35.44888,32.50606],[35.44924,32.5062],[35.45016,32.506],[35.45161,32.50592],[35.45175,32.50548],[35.45217,32.50538],[35.45242,32.50522],[35.45245,32.50493]]],"type":"Polygon"},{"coordinates":[35.44864,32.50523],"type":"Point"},{"coordinates":[35.45003,32.50498],"type":"Point"}]},"properties":{"שם הנכס":"טחנת הקמח הסחנה (גן השלושה)","אזור או מכלול הנכס":"גן השלושה","הערכה תרבותית 0":"The cultural assessment of Gan HaShlosha and its historic mill stems from a combination of historical importance, national symbolism, and natural beauty. The site represents several important layers of Israeli and regional culture.","סטטוס ניהול":"רשות הטבע והגנים"}},
+          {"name":"M10 טחנת אלכסנדר (אסכנדריה)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.4719,32.97335],"type":"Point"},{"coordinates":[[[35.47187,32.97335],[35.47191,32.97337],[35.47194,32.97335],[35.4719,32.97332],[35.47187,32.97335]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M10 טחנת אלכסנדר (אסכנדריה)","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M11 טחנת שמאי (א-סמאווי)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47416,32.97099],"type":"Point"},{"coordinates":[[[35.47411,32.97097],[35.47418,32.97103],[35.47423,32.97099],[35.47415,32.97093],[35.47411,32.97097]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M11 טחנת שמאי (א-סמאווי)","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M15 טחנת אגוז (אום-ג'אוזה)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47386,32.97106],"type":"Point"},{"coordinates":[[[35.47382,32.97106],[35.47389,32.97112],[35.47395,32.97106],[35.47387,32.971],[35.47382,32.97106]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M15 טחנת אגוז (אום-ג'אוזה)","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M20 - טחנת צלף","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47779,32.95952],"type":"Point"},{"coordinates":[[[35.47771,32.95949],[35.4778,32.95961],[35.47789,32.95954],[35.4778,32.95943],[35.47771,32.95949]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M20 - טחנת צלף","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנת הנזירים","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[35.17348,32.75392],[35.17087,32.75605],[35.16931,32.75672],[35.16759,32.75732],[35.16548,32.75877],[35.16476,32.75973],[35.16367,32.7603],[35.16224,32.76069],[35.16026,32.76097],[35.1587,32.76157],[35.15503,32.76472]],"type":"LineString"},{"coordinates":[35.15502,32.76473],"type":"Point"},{"coordinates":[[[35.15683,32.76494],[35.15741,32.76496],[35.15742,32.76448],[35.15682,32.76449],[35.15683,32.76494]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת הנזירים","אזור או מכלול הנכס":"נחל ציפורי","הערכה תרבותית 0":"The Monks' Mill on Nahal Tzipori is a double-chimney type flour mill that operated using the power of flowing water. It is one of a set of mills located along the Tzipori stream, being one of the most developed and largest among them.","סטטוס ניהול":"גורם פרטי"}},
+          {"name":"טחנת דולב M7","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47032,32.97428],"type":"Point"},{"coordinates":[[[35.47031,32.97429],[35.4703,32.97425],[35.47033,32.97425],[35.47034,32.97428],[35.47031,32.97429]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנת דולב M7","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M16 טחנת גבל/אל ג'בליה","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47484,32.96999],"type":"Point"},{"coordinates":[[[35.4748,32.96999],[35.47486,32.97003],[35.4749,32.96998],[35.47483,32.96995],[35.4748,32.96999]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M16 טחנת גבל/אל ג'בליה","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M9 טחנת ה'בטאן' - המבטשה","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[35.47132,32.97391],[35.47102,32.97354],[35.47127,32.97338],[35.47159,32.97376],[35.47132,32.97391]]],"type":"Polygon"},{"coordinates":[35.47128,32.97365],"type":"Point"},{"coordinates":[35.47068,32.97409],"type":"Point"},{"coordinates":[[35.44595,32.97894],[35.44774,32.9776],[35.44921,32.97748],[35.4514,32.97836],[35.45249,32.97876],[35.45351,32.97866],[35.45462,32.97815],[35.45646,32.97738],[35.45784,32.97648],[35.45926,32.97625],[35.46192,32.97639],[35.46344,32.9766],[35.46535,32.97615],[35.4661,32.97566],[35.46877,32.97555],[35.46971,32.97518],[35.47061,32.97436],[35.47143,32.97408],[35.47203,32.97397],[35.47235,32.97255],[35.47298,32.97168],[35.47408,32.97101],[35.47557,32.97047],[35.47766,32.97101],[35.47937,32.97176],[35.4813,32.97306],[35.48242,32.97418],[35.48334,32.97567],[35.48439,32.97681],[35.48596,32.97752],[35.48707,32.9776],[35.48849,32.97711],[35.48978,32.9769]],"type":"LineString"},{"coordinates":[35.47218,32.97329],"type":"Point"}]},"properties":{"שם הנכס":"M9 טחנת ה'בטאן' - המבטשה","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":"The fulling mill on Nahal Amud is located at a strategic point between Nahal Meron and Nahal Amud, on the slopes of the Eastern Galilee mountains. Activity in the wool industry in the stream reached its peak in the 16th century.","סטטוס ניהול":"ניהול שוטף (פעיל)"}},
+          {"name":"M18 טחנת תות (אום א-תות)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47716,32.96114],"type":"Point"},{"coordinates":[[[35.47711,32.96116],[35.47711,32.96111],[35.4772,32.96111],[35.47721,32.96115],[35.47711,32.96116]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M18 טחנת תות (אום א-תות)","אזור או מכלול הנכס":"נחל עמוד","הערכה תрבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M17 טחנת חדיד (אום אל חאדיד)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47688,32.96458],"type":"Point"},{"coordinates":[[[35.47683,32.96458],[35.47689,32.96462],[35.47692,32.96457],[35.47686,32.96454],[35.47683,32.96458]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M17 טחנת חדיד (אום אל חאדיד)","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"M14 טחנת גנים","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[35.47328,32.97193],"type":"Point"},{"coordinates":[[[35.47324,32.97192],[35.47328,32.97196],[35.47332,32.97193],[35.47327,32.97189],[35.47324,32.97192]]],"type":"Polygon"}]},"properties":{"שם הנכס":"M14 טחנת גנים","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"טחנות סכר נחל תנינים ","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[34.91557,32.54754],"type":"Point"},{"coordinates":[[35.01947,32.56438],[35.00645,32.55506],[34.95027,32.53629],[34.92473,32.53322],[34.90757,32.53203],[34.90315,32.52966],[34.89652,32.51208]],"type":"LineString"},{"coordinates":[[34.91566,32.54758],[34.91187,32.54543],[34.90822,32.53876],[34.90322,32.52965]],"type":"LineString"},{"coordinates":[[[34.91546,32.54785],[34.91515,32.54841],[34.9151,32.54839],[34.91541,32.54783],[34.91546,32.54785]]],"type":"Polygon"}]},"properties":{"שם הנכס":"טחנות סכר נחל תנינים ","אזור או מכלול הנכס":"נחל תנינים - אמות המים לקיסריה","הערכה תרבותית 0":"The site is living testimony to 1600 years of hydraulic history. It holds scientific and archaeological value, as it constitutes a unique archaeological find in Israel.","סטטוס ניהול":"רשות הטבע והגנים"}},
+          {"name":"טחנת הגפן M4","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[35.46753,32.9755],[35.46741,32.97524],[35.46762,32.97516],[35.46775,32.97543],[35.46753,32.9755]]],"type":"Polygon"},{"coordinates":[35.46757,32.97533],"type":"Point"}]},"properties":{"שם הנכס":"טחנת הגפן M4","אזור או מכלול הנכס":"נחל עמוד","הערכה תרבותית 0":null,"סטטוס ניהול":"לא ידוע"}},
+          {"name":"שבע טחנות - ג'רישה","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[34.80773,32.09651],[34.80809,32.09655],[34.8086,32.09641],[34.80851,32.09609],[34.80845,32.09607],[34.80842,32.09606],[34.80839,32.09602],[34.80833,32.09603],[34.80825,32.09584],[34.80822,32.09586],[34.80816,32.09585],[34.80814,32.09589],[34.80806,32.09586],[34.80799,32.09585],[34.80796,32.09589],[34.80802,32.09613],[34.80764,32.09616],[34.80773,32.09651]]],"type":"Polygon"},{"coordinates":[34.80806,32.09608],"type":"Point"}]},"properties":{"שם הנכס":"שבע טחנות - ג'רישה","אזור או מכלול הנכס":"נחל הירקון -  נהר אלעוג׳א","הערכה תרבותית 0":"The Seven Mills complex includes a series of water-powered flour mills built during the Ottoman period and expanded in the 19th century. The site has great historical value as evidence of the water technology and engineering methods of the Ottoman rule.","סטטוס ניהול":"ניהול שוטף (פעיל)"}},
+          {"name":"עשר טחנות (אל הדאר)","geometry":{"type":"GeometryCollection","geometries":[{"coordinates":[[[34.82684,32.10625],[34.8268,32.10636],[34.82641,32.10623],[34.82662,32.10534],[34.82676,32.10536],[34.82661,32.10615],[34.82684,32.10625]]],"type":"Polygon"},{"coordinates":[[34.82751,32.10554],[34.82708,32.10539],[34.82681,32.10534],[34.8265,32.10529],[34.8255,32.10517],[35.82513,32.10489],[34.82489,32.10466],[34.82459,32.10454],[34.82432,32.10445],[34.824,32.10437],[34.82381,32.10432],[34.82371,32.10423],[34.82297,32.10376]],"type":"LineString"},{"coordinates":[34.82672,32.10629],"type":"Point"}]},"properties":{"שם הנכס":"עשר טחנות (אל הדאר)","אזור או מכלול הנכס":"נחל הירקון -  נהר אלעוג׳א","הערכה תרבותית 0":"The site reflects the historical processes along the Yarkon River, as part of the settlement boom in the area during the Ottoman period (19th century). During that time, the Yarkon was the primary water source in the Land of Israel.","סטטוס ניהול":"אחר"}}
+        ];
+
+        // --- Data Processing and Translation ---
+        function processDataForMap(data) {
+            const nameTranslations = {
+                "טחנת דוק": "Dok Mill", "טחנת טובי (אל-בוטיטיה) M13 נחל עמוד": "Tubi Mill (Al-Butitiya) M13", "טחנות נעמן (טחנות גני רידוואן)": "Na'aman Mills (Ridwan Gardens)", "הטחנות הגדולות - Grands Moulins de Palestine": "The Great Mills - Grands Moulins", "טאחונת אזעירי": "Azeiri Mill", "M21 טחנת שרקרק": "Shrakrak Mill M21", "טחנת אל-מיר": "Al-Mir Mill", "טחנת השקד M5": "Hasked Mill M5", "M12 טחנת שכווי": "Sikhwi Mill M12", "טחנת אבו רבאח": "Abu Rabah Mill", "טחנת מרפוקה - עליל": "Marfuka Mill - Alil", "טחנת קנה M6": "Kaneh Mill M6", "טחנת תאנה M8": "Te'ena Mill M8", "פרוחיה": "Fruchia Mill", "טחנת הקמח הסחנה (גן השלושה)": "Sakhne Flour Mill (Gan HaShlosha)", "M10 טחנת אלכסנדר (אסכנדריה)": "Alexander Mill M10 (Iskandariya)", "M11 טחנת שמאי (א-סמאווי)": "Shamai Mill M11 (A-Samawi)", "M15 טחנת אגוז (אום-ג'אוזה)": "Egoz Mill M15 (Umm al-Jawza)", "M20 - טחנת צלף": "Tzalaf Mill M20", "טחנת הנזירים": "The Monks' Mill", "טחנת דולב M7": "Dolev Mill M7", "M16 טחנת גבל/אל ג'בליה": "Gvul Mill M16 (Al-Jabaliya)", "M9 טחנת ה'בטאן' - המבטשה": "HaBatan Mill M9 - The Fulling Mill", "M18 טחנת תות (אום א-תות)": "Tut Mill M18 (Umm a-Tut)", "M17 טחנת חדיד (אום אל חאדיד)": "Hadid Mill M17 (Umm al-Hadid)", "M14 טחנת גנים": "Ganim Mill M14", "טחנות סכר נחל תנינים ": "Nahal Taninim Dam Mills", "טחנת הגפן M4": "HaGefen Mill M4", "שבע טחנות - ג'רישה": "Seven Mills - Jarisha", "עשר טחנות (אל הדאר)": "Ten Mills (Al-Hadar)"
+            };
+
+            const allFeatures = [];
+            const markerFeatures = [];
+            const heatPoints = [];
+
+            data.forEach(mill => {
+                const assessment = mill.properties["הערכה תרבותית 0"];
+                const hasAssessment = assessment && assessment.trim() !== "" && !assessment.includes("None");
+                
+                const commonProperties = {
+                    ...mill.properties,
+                    english_name: nameTranslations[mill.name] || mill.name,
+                    has_assessment: hasAssessment,
+                    cultural_assessment_summary: hasAssessment ? assessment : "No cultural assessment summary is available for this site.",
+                    river_system: mill.properties["אזור או מכלול הנכס"],
+                    management_status: mill.properties["סטטוס ניהול"]
+                };
+
+                let markerLocation = null;
+                
+                if (mill.geometry && mill.geometry.type === 'GeometryCollection') {
+                    mill.geometry.geometries.forEach(geom => {
+                        if (geom.type === 'LineString' && geom.coordinates.length > 15) { // Filter for rivers
+                            allFeatures.push({ type: "Feature", properties: commonProperties, geometry: geom });
+                        } else if (geom.type === 'Polygon') {
+                            allFeatures.push({ type: "Feature", properties: commonProperties, geometry: geom });
+                            if (!markerLocation) { // Use centroid of first polygon as fallback marker
+                                const coords = geom.coordinates[0];
+                                const centroid = coords.reduce((acc, coord) => [acc[0] + coord[0], acc[1] + coord[1]], [0, 0]);
+                                markerLocation = [centroid[1] / coords.length, centroid[0] / coords.length]; // lat, lng
+                            }
+                        } else if (geom.type === 'Point') {
+                            markerLocation = [geom.coordinates[1], geom.coordinates[0]]; // lat, lng
+                        }
+                    });
+                } else if (mill.geometry && mill.geometry.type === 'Point') {
+                     markerLocation = [mill.geometry.coordinates[1], mill.geometry.coordinates[0]];
+                }
+
+                if (markerLocation) {
+                    markerFeatures.push({
+                        type: "Feature",
+                        properties: commonProperties,
+                        geometry: { type: "Point", coordinates: [markerLocation[1], markerLocation[0]] }
+                    });
+                    heatPoints.push([markerLocation[0], markerLocation[1], 1]);
+                }
+            });
+
+            return { allFeatures, markerFeatures, heatPoints };
+        }
+
+        const { allFeatures, markerFeatures, heatPoints } = processDataForMap(millsRawData);
+
+        // --- Custom Icons ---
+        const assessedIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8" style="color: #2563EB; stroke: white; stroke-width: 1.5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 005.169-4.418 16.573 16.573 0 002.542-7.486C20.028 6.08 17.58 2.5 14.08 2.5 11.1 2.5 8.966 4.436 8.132 7.028a16.573 16.573 0 00-2.542 7.486 16.975 16.975 0 005.17 4.418zM12 10a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" clip-rule="evenodd" /></svg>`;
+        const unassessedIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8" style="color: #6B7280; stroke: white; stroke-width: 1.5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 005.169-4.418 16.573 16.573 0 002.542-7.486C20.028 6.08 17.58 2.5 14.08 2.5 11.1 2.5 8.966 4.436 8.132 7.028a16.573 16.573 0 00-2.542 7.486 16.975 16.975 0 005.17 4.418zM12 10a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" clip-rule="evenodd" /></svg>`;
+
+        const assessedIcon = L.divIcon({ html: assessedIconSVG, className: 'custom-map-icon', iconSize: [32, 32], iconAnchor: [16, 32] });
+        const unassessedIcon = L.divIcon({ html: unassessedIconSVG, className: 'custom-map-icon', iconSize: [32, 32], iconAnchor: [16, 32] });
+
+        // --- Popup Summary Function ---
+        function createSummary(assessmentText) {
+            if (!assessmentText || assessmentText.toLowerCase().includes('no assessment available')) {
+                return "No cultural assessment summary is available for this site.";
+            }
+            const textOnly = assessmentText.replace(/<[^>]+>/g, '');
+            const sentences = textOnly.match(/[^.!?]+[.!?]+/g) || [textOnly];
+            return sentences.slice(0, 2).join(' ').trim();
+        }
+        
+        // --- Map Initialization ---
+        const map = L.map('map').setView([32.5, 35.0], 9);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Layer for Polygons and Rivers
+        const shapesLayer = L.geoJSON(allFeatures, {
+            style: function(feature) {
+                switch (feature.geometry.type) {
+                    case 'LineString': return { color: "#3B82F6", weight: 3, opacity: 0.7 };
+                    case 'Polygon': return { color: "#78350F", weight: 2, fillOpacity: 0.3 };
+                }
+            },
+             onEachFeature: function(feature, layer) {
+                const summary = createSummary(feature.properties.cultural_assessment_summary);
+                const popupContent = `
+                    <div class="p-1 max-w-xs">
+                        <h3 class="font-bold text-md mb-1">${feature.properties.english_name}</h3>
+                        <p class="text-sm text-gray-600">${summary}</p>
+                    </div>`;
+                layer.bindPopup(popupContent);
+            }
+        })//.addTo(map);
+
+        // Layer for Markers
+        const markerClusterGroup = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 60
+        });
+
+        markerFeatures.forEach(feature => {
+            const icon = feature.properties.has_assessment ? assessedIcon : unassessedIcon;
+            const summary = createSummary(feature.properties.cultural_assessment_summary);
+            const marker = L.marker([feature.geometry.coordinates[1], feature.geometry.coordinates[0]], { icon: icon });
+             marker.bindPopup(`
+                <div class="p-1 max-w-xs">
+                    <h3 class="font-bold text-md mb-1">${feature.properties.english_name}</h3>
+                    <p class="text-sm text-gray-600">${summary}</p>
+                </div>
+            `);
+            markerClusterGroup.addLayer(marker);
+        });
+        map.addLayer(markerClusterGroup);
+        
+        const heatLayer = L.heatLayer(heatPoints, { radius: 20, blur: 15, maxZoom: 12 });
+        
+        const baseLayers = {};
+        const overlayLayers = {
+            "Assets": markerClusterGroup,
+            // "Geometries": shapesLayer,
+            "Heatmap": heatLayer
+        };
+
+        L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
+        
+        // --- Chart 1: Mill Density ---
+        const riverData = { "נחל עמוד": { count: 0, length: 20 }, "נחל ציפורי": { count: 0, length: 32 }, "נחל תנינים - אמות המים לקיסריה": { count: 0, length: 25 }, "נחל הירקון -  נהר אלעוג׳א": { count: 0, length: 27 }, "עין אפק": { count: 0, length: 10 }, "גני רידוואן": { count: 0, length: 10 } };
+        markerFeatures.forEach(feature => {
+            if (riverData[feature.properties.river_system]) {
+                riverData[feature.properties.river_system].count++;
+            }
+        });
+        
+        const densityLabels = ["Nahal Amud", "Nahal Tzipori", "Nahal Taninim", "Nahal Yarkon", "Ein Afek/Na'aman"];
+        const densityValues = [
+            riverData["נחל עמוד"].count / riverData["נחל עמוד"].length,
+            riverData["נחל ציפורי"].count / riverData["נחל ציפורי"].length,
+            riverData["נחל תנינים - אמות המים לקיסריה"].count / riverData["נחל תנינים - אמות המים לקיסריה"].length,
+            riverData["נחל הירקון -  נהר אלעוג׳א"].count / riverData["נחל הירקון -  נהר אלעוג׳א"].length,
+            (riverData["עין אפק"].count + riverData["גני רידוואן"].count) / riverData["עין אפק"].length
+        ];
+
+        const densityCtx = document.getElementById('densityChart').getContext('2d');
+        new Chart(densityCtx, {
+            type: 'bar',
+            data: {
+                labels: densityLabels,
+                datasets: [{
+                    label: 'Mills per km',
+                    data: densityValues.map(v => v.toFixed(2)),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                scales: { x: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // --- Chart 2: Management Status ---
+        const statusCounts = {};
+        markerFeatures.forEach(feature => {
+            const status = feature.properties.management_status || 'Unknown';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+
+        const statusTranslations = {
+            "ניהול שוטף (פעיל)": "Active Management", "גורם פרטי": "Private Entity", "ניהול מזדמן": "Occasional Management", "רשות הטבע והגנים": "Parks Authority", "אחר": "Other", "לא ידוע": "Unknown"
+        };
+        
+        const translatedStatusCounts = {};
+        for (const [key, value] of Object.entries(statusCounts)) {
+            const translatedKey = statusTranslations[key] || key;
+            translatedStatusCounts[translatedKey] = (translatedStatusCounts[translatedKey] || 0) + value;
+        }
+
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(translatedStatusCounts),
+                datasets: [{
+                    data: Object.values(translatedStatusCounts),
+                    backgroundColor: [ 'rgba(75, 192, 192, 0.6)', 'rgba(255, 159, 64, 0.6)', 'rgba(255, 205, 86, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(201, 203, 207, 0.6)', 'rgba(255, 99, 132, 0.6)' ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+
+    </script>
+</body>
+</html>
