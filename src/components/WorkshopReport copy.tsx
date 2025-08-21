@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { prependLangInstruction } from '../utils/language';
 
 interface WorkshopReportProps {}
 
@@ -6,7 +7,9 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
   const [geminiInput, setGeminiInput] = useState('בית הכנסת הגדול בחיפה, שנבנה ב-1925 בסגנון אקלקטי, שימש כמרכז קהילתי חשוב עבור עולי הבלקן. כיום המבנה נטוש וסובל מהזנחה.');  const [geminiResults, setGeminiResults] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState<{[key: number]: boolean}>({});
-  const [selectedInfo, setSelectedInfo] = useState<{type: 'advantage' | 'challenge' | null, key: string | null}>({type: null, key: null});
+  type AdvKeys = 'new-world' | 'precision' | 'perspectives' | 'research';
+  type ChallengeKeys = 'garbage' | 'hallucinations' | 'black-box' | 'literacy';
+  const [selectedInfo, setSelectedInfo] = useState<{type: 'advantage' | 'challenge' | null, key: AdvKeys | ChallengeKeys | null}>({type: null, key: null});
 
   const accordionData = [
     {
@@ -58,7 +61,7 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
   };
 
   // Update info function
-  const updateInfo = (type: 'advantage' | 'challenge', key: string) => {
+  const updateInfo = (type: 'advantage' | 'challenge', key: AdvKeys | ChallengeKeys) => {
     setSelectedInfo({ type, key });
   };
 
@@ -73,33 +76,13 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
     });
   };
 
-  const callGeminiAPI = async (prompt: string): Promise<string> => {
-    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
-    if (!proxyUrl) {
-      throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
-    }
-
-    const response = await fetch(proxyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: 'gemini-1.5-flash',
-        contents: prompt
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("שגיאה בקבלת תשובה מהבוט");
-    }
-
-    const result = await response.json();
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט";
-  };  const handleAnalyze = async () => {
+  // (removed) callGeminiAPI helper — inline fetch is used in handleAnalyze
+  const handleAnalyze = async () => {
     if (!geminiInput.trim() || isAnalyzing) return;
     setIsAnalyzing(true);
     setGeminiResults('');
     try {
-      const prompt = `אתה עוזר ניתוח המתמחה בהערכת מורשת. בהתבסס על הטקסט הבא, בצע את המשימות הבאות:
+  const promptBase = `אתה עוזר ניתוח המתמחה בהערכת מורשת. בהתבסס על הטקסט הבא, בצע את המשימות הבאות:
 1. זהה את הערכים התרבותיים המרכזיים (כגון ערך היסטורי, חברתי, אדריכלי).
 2. זהה את הישויות המרכזיות (כגון אנשים, מקומות, אירועים).
 3. הצע 3 שאלות מפתח לחקירה נוספת.
@@ -108,9 +91,9 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
 * היצמד אך ורק למידע הקיים בטקסט שסופק.
 * אסור לך להמציא, להוסיף או להסיק מידע חיצוני שאינו מופיע בטקסט.
 * אם מידע מסוים חסר או לא ברור, ציין זאת במפורש.
-* השב תמיד בעברית.
+`;
 
-הטקסט לניתוח: "${geminiInput}"`;
+  const prompt = prependLangInstruction(promptBase, geminiInput);
       const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
       if (!proxyUrl) throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
       const response = await fetch(proxyUrl, {
@@ -344,10 +327,13 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                   <div className="mt-8 max-w-4xl mx-auto">
                     <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
                       <p className="font-semibold">
-                        {selectedInfo.type && selectedInfo.key 
-                          ? cardInfo[selectedInfo.type][selectedInfo.key]
-                          : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
-                        }
+                        {selectedInfo.type && selectedInfo.key ? (
+                          (selectedInfo.type === 'advantage')
+                            ? cardInfo.advantage[selectedInfo.key as AdvKeys]
+                            : cardInfo.challenge[selectedInfo.key as ChallengeKeys]
+                        ) : (
+                          'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
+                        )}
                       </p>
                     </div>
                   </div>

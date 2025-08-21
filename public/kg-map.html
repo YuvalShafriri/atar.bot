@@ -17,8 +17,8 @@
   header{grid-column:1/-1;padding:8px 10px;border-bottom:1px solid #eee;background:#fafafa;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   header .group{display:flex;gap:8px;align-items:center}
     header label{font-size:12px}
-    #map{height:90%; overflow:hidden;z-index: 0;}
-    #kg{height:90%;border-left:1px solid #eee; overflow:hidden; position:relative;}
+    #map{height:100%; overflow:hidden;z-index: 0;}
+    #kg{height:100%;border-left:1px solid #eee; overflow:hidden; position:relative;}
     .pane{position:relative; overflow:hidden;}
     .legend{position:absolute;top:10px;left:10px;background:var(--panel);border:1px solid #ddd;padding:6px 8px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);font-size:12px;z-index:500}
     .legend-row{display:flex;align-items:center;gap:8px;margin:2px 0}
@@ -351,6 +351,19 @@
       font: { align: 'middle', size: 8, color: '#555', background: 'white' }
     }));
 
+    // Helper maps for filtering and analytic heuristics
+    const nodeTypeById = new Map(KNOWLEDGE_GRAPH.nodes.map(n => [n.id, n.type]));
+    // degree (how many Places reference a given Cultural Value) - used to avoid adding overly-common value nodes
+    const valueDegree = new Map();
+    for (const e of KNOWLEDGE_GRAPH.edges) {
+      const fromType = nodeTypeById.get(e.from);
+      const toType = nodeTypeById.get(e.to);
+      if (fromType === 'Cultural Value' && toType === 'Place') valueDegree.set(e.from, (valueDegree.get(e.from) || 0) + 1);
+      if (toType === 'Cultural Value' && fromType === 'Place') valueDegree.set(e.to, (valueDegree.get(e.to) || 0) + 1);
+    }
+  // Threshold used for shared-value detection: ignore values connected to too many places
+  const SHARED_VALUE_DEGREE_THRESHOLD = 6;
+
     // Start the visualization with Places only to reduce initial clutter
     const placeIds = new Set(PLACES.map(p => p.id));
     const nodes = new vis.DataSet(nodesRaw.filter(n => placeIds.has(n.id)));
@@ -384,6 +397,8 @@
       }
       
       // Add all edges connected to this node (both incoming and outgoing)
+      // When expanding, avoid adding edges to extremely common value nodes to reduce visual uniformity
+      const VALUE_DEGREE_THRESHOLD = 6; // if a value node is connected to more than this many places, skip adding its edges on expansion
       for(const e of edgesRaw){ 
         if(e.from===nodeId || e.to===nodeId){ 
           if(!edges.get(e.id)){
@@ -391,8 +406,16 @@
             const fromExists = nodes.get(e.from) || addNodes.find(n=>n.id===e.from);
             const toExists = nodes.get(e.to) || addNodes.find(n=>n.id===e.to);
             if(fromExists && toExists){
-              // give short length to newly-added edges so single-link nodes stay visually close
-              const copy = Object.assign({}, e, {length: 80}); 
+              // Skip edges that would pull in very high-degree value nodes (avoid everyone connecting to same values)
+              const other = (e.from===nodeId) ? e.to : e.from;
+              const otherType = nodeTypeById.get(other);
+              if(otherType === 'Cultural Value' && (valueDegree.get(other) || 0) > VALUE_DEGREE_THRESHOLD){
+                // instead of adding the value node, add a lightweight summary edge (no visual node) - skip entirely for now
+                continue;
+              }
+              // give short length to newly-added edges so single-link nodes stay visually close; longer for cross-cluster links
+              const preferredLength = (nodeTypeById.get(e.from) === 'Place' && nodeTypeById.get(e.to) === 'Place') ? 120 : 180;
+              const copy = Object.assign({}, e, {length: preferredLength}); 
               addEdges.push(copy);
             }
           }
@@ -417,11 +440,11 @@
         solver:'forceAtlas2Based',         // solver that provides organic movement
         // forceAtlas2Based options (tweak these to control "liveliness")
         forceAtlas2Based: {
-          gravitationalConstant: -12,      // negative => nodes repel; lower magnitude = less violent repulsion
-          centralGravity: 0.001,           // pulls nodes gently toward center; small value avoids collapse
+          gravitationalConstant: -22,      // negative => nodes repel; lower magnitude = less violent repulsion
+          centralGravity: 0.002,           // pulls nodes gently toward center; small value avoids collapse
           springLength: 200,               // preferred edge length; smaller pulls connected nodes closer
           springConstant: 0.05,            // stiffness of springs; lower = softer connections (less snap)
-          damping: 0.92,                   // high damping reduces oscillation and speeds stabilization
+          damping: 0.32,                   // high damping reduces oscillation and speeds stabilization
           avoidOverlap: 0.2                // small positive value reduces node overlap modestly
         },
         maxVelocity: 0.5,                 // cap node speed to keep motion subtle
@@ -433,21 +456,24 @@
 
     // After initial stabilization, tone physics down further so movement remains very subtle
     network.once('stabilizationIterationsDone', ()=> {
+      // After initial layout, greatly reduce physics activity and eventually disable it to stop motion
       network.setOptions({
         physics: {
-          enabled: true,                  // keep enabled to allow gentle adjustments when nodes are added
+          enabled: true,
           forceAtlas2Based: {
-            gravitationalConstant: -6,    // reduce repulsion so clusters sit closer
-            centralGravity: 0.0008,       // minimal centering
+            gravitationalConstant: -4,
+            centralGravity: 0.0005,
             springLength: 200,
-            springConstant: 0.02,         // very soft springs
-            damping: 0.96,                // strong damping for very low jitter
-            avoidOverlap: 0.25
+            springConstant: 0.015,
+            damping: 0.98,
+            avoidOverlap: 0.3
           },
-          maxVelocity: 0.2,              // very low max speed
-          minVelocity: 0.01
+          maxVelocity: 0.08,
+          minVelocity: 0.001
         }
       });
+      // stop physics after a short delay to freeze layout
+      setTimeout(()=>{ try{ network.setOptions({physics:{enabled:false}}); }catch(e){} }, 600);
     });
 
     /* ---------------------- Helpers ---------------------- */
@@ -460,6 +486,48 @@
     const neighbors=new Map();
     function addEdgePair(a,b){ if(!neighbors.has(a)) neighbors.set(a,[]); neighbors.get(a).push(b); }
     EDGES.forEach(e=>{ addEdgePair(e.from,e.to); addEdgePair(e.to,e.from); });
+
+    // Helper: find places that share at least one Cultural Value with the given place
+    function getSharedValuePlaces(placeId){
+      const valueSet = new Set();
+      for(const e of EDGES){
+        // collect values connected to this place
+        if(e.from===placeId && nodeTypeById.get(e.to)==='Cultural Value') valueSet.add(e.to);
+        if(e.to===placeId && nodeTypeById.get(e.from)==='Cultural Value') valueSet.add(e.from);
+      }
+      if(valueSet.size===0) return new Set();
+      // remove very-common values to avoid broad linking (they don't provide useful differentiation)
+      for(const v of [...valueSet]){
+        if((valueDegree.get(v) || 0) > SHARED_VALUE_DEGREE_THRESHOLD) valueSet.delete(v);
+      }
+      if(valueSet.size===0) return new Set();
+      const places = new Set();
+      for(const e of EDGES){
+        // if this edge links a value in valueSet to another Place, include that place
+        if(valueSet.has(e.from) && nodeTypeById.get(e.to)==='Place' && e.to!==placeId) places.add(e.to);
+        if(valueSet.has(e.to) && nodeTypeById.get(e.from)==='Place' && e.from!==placeId) places.add(e.from);
+      }
+      return places;
+    }
+
+    // Draw links between selected place and places that share values (visual cue for shared-value connections)
+    function drawSharedValueLinks(selectedPlaceId, sharedPlaceSet){
+      selectionLinksLayer.clearLayers();
+      if(!selectedPlaceId || !sharedPlaceSet || sharedPlaceSet.size===0) return;
+      const mCenter = markerByPlaceId.get(selectedPlaceId); if(!mCenter) return;
+      const fromLL = mCenter.getLatLng();
+      // use a distinct style for shared-value connections
+      for(const pid of sharedPlaceSet){
+        const m2 = markerByPlaceId.get(pid); if(!m2) continue;
+        const toLL = m2.getLatLng();
+        const core = L.polyline([fromLL, toLL], {color:'#0b66c2', weight:1.6, opacity:0.95}).addTo(selectionLinksLayer);
+        const overlay = L.polyline([fromLL, toLL], {color:'#8fc7ff', weight:0.6, opacity:0.8}).addTo(selectionLinksLayer);
+        if(core.bringToFront) core.bringToFront();
+        if(overlay.bringToFront) overlay.bringToFront();
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length){ selectionLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
 
     function getDepth(){ const v=document.querySelector('input[name="depth"]:checked').value; return parseInt(v,10); }
 
@@ -575,10 +643,16 @@
       if(typeById.get(id)==='Place'){
         // 1) popup on map at the place
         const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
-        // 2) strong selection lines only for direct links from this place
-        drawSelectionPlaceLinks(id);
-        // 3) keep base lines faint (for context)
-        highlightBaseLinesFaint();
+    // 2) highlight only places that share Cultural Values with this place
+    const shared = getSharedValuePlaces(id);
+    // markers: highlight shared-value places (and the selected place)
+    const sharedMarkerSet = new Set(shared);
+    sharedMarkerSet.add(id);
+    highlightMarkers(sharedMarkerSet,{pan});
+    // draw links to shared places (visual cue for shared-value connections)
+    drawSharedValueLinks(id, shared);
+    // 3) keep base lines faint for geographic context
+    highlightBaseLinesFaint();
       } else {
         // Non-place: only highlight markers, no lines; show tooltip on KG
         selectionLinksLayer.clearLayers();

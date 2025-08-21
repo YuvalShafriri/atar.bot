@@ -14,19 +14,19 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
 
     const config = {
         tips: {
-            title: 'שאל את הבוט על טיפים נוספים',
-            description: 'רוצה טיפ ספציפי? בקש מהבוט להרחיב על נושא מסוים או לספק טיפ חדש.',
-            placeholder: 'לדוגמה: תן לי טיפ על ניסוח פרומפט...'
+            title: 'Ask the bot for more tips',
+            description: 'Want a specific tip? Ask the bot to expand on a topic or provide a new tip.',
+            placeholder: 'Example: Give me a tip on writing prompts...'
         },
         ideas: {
-            title: 'בקש מהבוט רעיונות נוספים',
-            description: 'צריך השראה? בקש מהבוט רעיון חדש שמתבסס על הרעיונות הקיימים.',
-            placeholder: 'לדוגמה: הצע רעיון המשלב מפה וציר זמן...'
+            title: 'Ask the bot for more ideas',
+            description: 'Need inspiration? Ask the bot for a new idea based on existing ones.',
+            placeholder: 'Example: Suggest an idea combining maps and timeline...'
         },
         dashboard: {
             title: '',
             description: '',
-            placeholder: 'שאל את הבוט על הנכס – קבל הסבר על קשרים וערכים…'
+            placeholder: 'Ask the bot about the asset – get explanations on connections and values…'
         }
     }[spotId] ?? {
         title: '',
@@ -38,13 +38,13 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
         const q = typeof customInput === 'string' ? customInput : input;
         if (!q.trim() || isLoading) return;
         setIsLoading(true);
-        setOutput('שולח שאילתה ל-Gemini...');
+        setOutput('Sending query to Gemini...');
         try {
             const answer = await onQuery(q);
             setOutput(answer);
         } catch (error) {
             console.error("AI Query Error:", error);
-            setOutput('שגיאה בקבלת תשובה מהבוט.');
+            setOutput('Error getting response from bot.');
         } finally {
             setIsLoading(false);
         }
@@ -62,32 +62,36 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
                 <h4 className="font-bold text-lg text-blue-800">{config.title}</h4>
                 <p className="text-sm text-gray-600">{config.description}</p>
             </div>
-            <div className="flex flex-col gap-1 mt-1">
-                <div className="flex gap-2">
+            <div className="flex flex-col gap-3 mt-2">
+                <div className="flex gap-3">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={config.placeholder}
-                        className="flex-grow p-2 border rounded bg-white text-gray-900 placeholder:text-gray-500"
+                        className="flex-grow p-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                         disabled={isLoading}
                     />
                     <button
                         onClick={() => handleAsk()}
-                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed disabled:shadow-none min-w-[80px]"
                         disabled={isLoading || !input.trim()}
                     >
-                        {isLoading ? 'חושב...' : 'שאל'}
+                        {isLoading ? '⏳ Loading...' : '🚀 Ask'}
                     </button>
                 </div>
+                <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <span>💡 Tip:</span>
+                    <span>Press Enter to submit your question quickly</span>
+                </div>
                 {exampleQueries && exampleQueries.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        <span className="text-xs text-gray-600 self-center">Quick examples:</span>
                         {exampleQueries.map((q, i) => (
                             <button
                                 key={i}
-                                className="px-2 py-1 rounded border text-xs bg-gray-100 border-gray-300 hover:bg-blue-100"
-                                style={{ fontSize: '0.85em' }}
+                                className="px-3 py-1.5 rounded-full border text-xs bg-gray-50 border-gray-300 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
                                 onClick={() => handleAsk(q)}
                                 disabled={isLoading}
                             >
@@ -98,7 +102,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, exampleQueries }) => {
                 )}
             </div>
             {output && (
-                <div className="p-3 mt-2 bg-white rounded border border-gray-200 min-h-[60px] whitespace-pre-wrap">
+                <div className="p-4 mt-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200 min-h-[60px] whitespace-pre-wrap shadow-sm">
                     {output}
                 </div>
             )}

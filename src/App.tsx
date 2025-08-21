@@ -5,6 +5,7 @@ import './styles/globals.css';
 import ImprovedGraphDashboard from './components/Graph/ImprovedGraphDashboard';
 import { WorkshopReport } from './components/WorkshopReport';
 import KGMapPage from './components/KGMapPage';
+import { prependLangInstruction } from './utils/language';
 
 const LLM_MODEL = 'gemini-2.5-flash-lite';
 
@@ -28,30 +29,31 @@ const ai = {
 
 // LLM Functions for Tips and Ideas pages
 async function askTipsLLM(question: string, tipsList: Array<{ title: string; text: string }>): Promise<string> {
-    if (!ai) return "שגיאה: מפתח ה-API אינו מוגדר.";
-    let ideasContext = 'הרעיונות הקיימים הם:\n';
+    if (!ai) return "Error: API key not configured.";
+    let ideasContext = 'Existing ideas:\n';
     tipsList.forEach(idea => { ideasContext += `- ${idea.title}: ${idea.text}\n`; });
-    const prompt = `${question} (ענה בקצרה מאוד. אל תחזור על טיפים שכבר מוצגים למעלה)`;
+  const promptBase = `${question} (Answer very briefly. Do not repeat tips already shown above.)`;
+  const prompt = prependLangInstruction(promptBase, question);
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
         console.error("Error: VITE_GEMINI_PROXY_URL is not defined. Please check your .env.local file in the project root.");
-        return "שגיאה בהגדרות השרת.";
+        return "Server configuration error.";
     }
     const response = await fetch(proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            model: LLM_MODEL,
-            contents: ideasContext + '\n' + prompt
-        })
+      body: JSON.stringify({
+        model: LLM_MODEL,
+        contents: prependLangInstruction(ideasContext + '\n' + prompt, question)
+      })
     });
 
     if (!response.ok) {
-        return "שגיאה בקבלת תשובה מהבוט.";
+        return "Error getting response from bot.";
     }
 
     const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "No response received from bot.";
 
     // --- Token counting and cost calculation ---
     function countTokens(str: string): number {
@@ -67,31 +69,32 @@ async function askTipsLLM(question: string, tipsList: Array<{ title: string; tex
 }
 
 async function askBrainstormLLM(question: string, ideasList: any[]): Promise<string> {
-    if (!ai) return "שגיאה: מפתח ה-API אינו מוגדר.";
+    if (!ai) return "Error: API key not configured.";
     if (!question.trim()) return '';
-    let ideasContext = 'הרעיונות הקיימים הם:\n';
+    let ideasContext = 'Existing ideas:\n';
     ideasList.forEach(idea => { ideasContext += `- ${idea.title}: ${idea.text}\n`; });
-    const prompt = `${question} (ענה בקצרה מאוד. אל תחזור על רעיונות שכבר מוצגים למעלה)`;
+  const promptBase = `${question} (Answer very briefly. Do not repeat ideas already presented above.)`;
+  const prompt = prependLangInstruction(promptBase, question);
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
         console.error("Error: VITE_GEMINI_PROXY_URL is not defined. Please check your .env.local file in the project root.");
-        return "שגיאה בהגדרות השרת.";
+        return "Server configuration error.";
     }
     const response = await fetch(proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            model: LLM_MODEL,
-            contents: ideasContext + '\n' + prompt
-        })
+    body: JSON.stringify({
+      model: LLM_MODEL,
+      contents: prependLangInstruction(ideasContext + '\n' + prompt, question)
+    })
     });
 
     if (!response.ok) {
-        return "שגיאה בקבלת תשובה מהבוט.";
+        return "Error getting response from bot.";
     }
 
     const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבלה תשובה מהבוט.";
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "No response received from bot.";
 
     // --- Token counting and cost calculation ---
     function countTokens(str: string): number {
@@ -281,7 +284,24 @@ const ExperiencePageEn: React.FC = () => {
 
   const experienceStepsEn = [
     {
-      icon: '🧭',
+      icon: '✅',
+      title: "Stage 0 – Pre‑check & Data‑Gap Scan",
+      practical: [
+        "Upload the heritage asset information file.",
+        "Run the Pre‑check to verify: Location & Setting; Original function & Dates; Evolution / Phases; Contexts; Physical description; Finds / Artefacts.",
+        "Confirm and record any missing or ambiguous items before proceeding to Stage 1."
+      ],
+      goal: "Run an ultra‑light health‑check and produce a concise gaps list so Stage 1 can proceed reliably.",
+      actions: "Validate required fields per Steps.md, produce Summary and Gaps table, apply the Timeline Rule and flag uncertainties.",
+      questions: "Content check: does the material explicitly contain Location, Original function/dates, Evolution phases, Contexts, Physical description and Finds? If not, which items are missing or ambiguous (cite file/paragraph where possible)?",
+      reflection: [
+        "Which critical facts are missing and where can they be obtained?",
+        "Were any timeline or phase statements ambiguous or contradictory?"
+      ]
+    },
+    {
+      // Step 1 icon changed to represent web / knowledge graph
+      icon: '🕸️',
       title: "Step 1 – Context Analysis and Asset Description",
       practical: [
         "Upload a heritage asset information file.",
@@ -290,14 +310,15 @@ const ExperiencePageEn: React.FC = () => {
       ],
       goal: "Create a comprehensive description of the asset (at least 800 words) based on identified contexts.",
       actions: "Information processing and context identification (structural, historical, social, etc.), writing a structured description including introduction, historical development and timeline.",
-      questions: "Are there additional details worth adding to the description? Should the description be refined?",
+      questions: "Content‑based checks: which passages support Location, founding date(s), and at least two development phases? Are the key contexts (social, historical, urban, landscape) explicitly evidenced?",
       reflection: [
         "What worked well in the bot activation process?",
         "Where was human intervention needed to refine or complete information?"
       ]
     },
     {
-      icon: '🌟',
+      // Step 2 icon changed to resemble values
+      icon: '💎',
       title: "Step 2 – Cultural Significance Analysis (Values)",
       practical: [
         "Request: Continue to step 2",
@@ -306,14 +327,15 @@ const ExperiencePageEn: React.FC = () => {
       ],
       goal: "Identification and analysis of the asset's key values, based on contexts and evidence.",
       actions: "Value identification (aesthetic, historical, social), analysis of how they are expressed in the asset, and linking them to broader contexts.",
-      questions: "Are there additional values? Are there conflicting narratives or community values not expressed?",
+      questions: "Content‑based checks: for each proposed value, point to the exact attribute or quote that supports it (file/paragraph). Are there missing community or documentary evidences for any value?",
       reflection: [
         "Did atar.bot succeed in articulating complex values, nuances and unexpected insights?",
         "What required human reinforcement or additional cultural context?"
       ]
     },
     {
-      icon: '🔎',
+      // Step 3 icon changed to resemble antiques / heritage objects
+      icon: '🏺',
       title: "Step 3 – Authenticity and Integrity Analysis",
       practical: [
         "Request: Continue to step 3",
@@ -322,7 +344,7 @@ const ExperiencePageEn: React.FC = () => {
       ],
       goal: "Analysis of conservation status, integrity and authenticity of the asset and their impact on its values.",
       actions: "Comparison between current and historical state, application of Nara Grid to examine aspects like form, materials and use, and assessment of overall preservation condition.",
-      questions: "Are there additional details about conservation status? Is the description accurate?",
+      questions: "Content‑based checks: which physical attributes (materials, workmanship, alterations) are cited as evidence for authenticity or loss? Cite file/paragraphs for each attribute.",
       reflection: [
         "Did the bot succeed in distinguishing between physical integrity and cultural values?",
         "Was human clarification or completion needed?"
@@ -337,7 +359,7 @@ const ExperiencePageEn: React.FC = () => {
       ],
       goal: "Analysis of the asset's uniqueness compared to similar sites in terms of value, function and history.",
       actions: "Identification of comparison sites, analysis of design and functional characteristics, and highlighting the uniqueness or rarity of the asset.",
-      questions: "Do you know of additional sites for comparison? Are there additional comparison points to highlight?",
+      questions: "Content‑based checks: list at least two comparanda and the exact criteria (Period, Rarity, Documentation, Ensemble, Condition) used for each comparison (cite sources).",
       reflection: [
         "Did the bot succeed in highlighting the asset's uniqueness?",
         "Was human completion or additional examples needed?"
@@ -353,7 +375,7 @@ const ExperiencePageEn: React.FC = () => {
       ],
       goal: "Formulation of a cohesive, complete and evidence-based narrative highlighting the cultural significance of the asset.",
       actions: "Synthetic writing integrating all findings, emphasizing the asset's contribution to values, using professional and narrative language.",
-      questions: "Does the statement reflect the essence of the asset? Would you like to add conservation recommendations or perform semiotic analysis?",
+      questions: "Content‑based checks: which Stage 1–4 elements must appear in the opening paragraph (timeline entries; key values; Nara aspects; comparatives)? List exact citations to include.",
       reflection: [
         "Does the statement summarize all values and contexts?",
         "Is there room for further expansion or refinement?"
@@ -472,21 +494,172 @@ const HandsOn2Page: React.FC = () => {
   );
 };
 
-const DiscussionPage: React.FC = () => (
-  <div className="space-y-4 py-6">
-    <h2 className="text-2xl font-bold text-center">Discussion</h2>
-    <div className="bg-white p-6 rounded shadow">Content coming soon...</div>
-  </div>
-);
+const DiscussionPage: React.FC = () => {
+  const [feedback, setFeedback] = useState({
+    step1: '',
+    step2: '',
+    step3: ''
+  });
+
+  const handleInputChange = (step: string, value: string) => {
+    setFeedback(prev => ({ ...prev, [step]: value }));
+  };
+
+  return (
+    <div id="discussion" className="space-y-6 py-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Research Feedback — Bot usage & experience</h2>
+        <p className="text-lg text-gray-600">Share concise, evidence-based observations to support research, analysis, and demo preparation.</p>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
+        {/* Instructions Header */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
+          <h3 className="text-xl font-bold text-blue-800 mb-3">📝 How to contribute</h3>
+          <p className="text-gray-700 mb-3">We are collecting expert feedback for research and bot analysis. Please provide clear, factual examples where possible. Use the three fields below to keep responses focused and comparable.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">1</span>
+              <span><strong>Useful behavior</strong> — Describe what the bot did well, with the context of the task or prompt.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">2</span>
+              <span><strong>Limitations / failures</strong> — Note where the bot underperformed, produced errors, or gave misleading outputs.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">3</span>
+              <span><strong>Analytic notes</strong> — Suggestions for investigation, reproducible prompts, edge cases, or ideas for demos.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Feedback Form */}
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="space-y-8">
+            
+            {/* Step 1 */}
+            <div className="border-l-4 border-blue-500 pl-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</span>
+                <h3 className="text-xl font-semibold text-gray-800">Useful behavior</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Describe specific outputs, prompts, or interactions that were helpful. If possible, include the prompt, input, or short excerpt that produced the behavior.</p>
+              <textarea
+                value={feedback.step1}
+                onChange={(e) => handleInputChange('step1', e.target.value)}
+                placeholder="Example: Prompt: 'Summarize the site's historical phases' — The bot produced a concise, source-aligned phase list with dates and uncertainty notes."
+                className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
+              />
+            </div>
+
+            {/* Step 2 */}
+            <div className="border-l-4 border-green-500 pl-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</span>
+                <h3 className="text-xl font-semibold text-gray-800">Limitations or failures</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Record cases where the bot failed, hallucinated, or returned irrelevant information. Include steps to reproduce if available.</p>
+              <textarea
+                value={feedback.step2}
+                onChange={(e) => handleInputChange('step2', e.target.value)}
+                placeholder="Example: The bot asserted a construction date without sources. Repro: use prompt X with the site name Y..."
+                className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200 resize-none"
+              />
+            </div>
+
+            {/* Step 3 */}
+            <div className="border-l-4 border-purple-500 pl-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</span>
+                <h3 className="text-xl font-semibold text-gray-800">Analytic notes & demo ideas</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Share ideas for analysis, metrics to collect, or small demo scenarios that illustrate strengths/weaknesses.</p>
+              <textarea
+                value={feedback.step3}
+                onChange={(e) => handleInputChange('step3', e.target.value)}
+                placeholder="Example: Track 'source citation accuracy' across 50 prompts, or demo: compare bot summaries vs. curated timeline for 3 case studies..."
+                className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200 resize-none"
+              />
+            </div>
+
+          </div>
+
+          {/* Thank you message */}
+          <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">🙏</span>
+              <h4 className="text-lg font-semibold text-gray-800">Thank you — your expertise helps our research</h4>
+            </div>
+            <p className="text-gray-700">
+              We collect this feedback to improve model behavior, guide analysis, and prepare reproducible demos. Responses are intended for research and product analysis, not marketing.
+            </p>
+            <div className="mt-4 text-sm text-gray-600">
+              <p><strong>Note:</strong> This form is a preview for collecting structured input; responses are treated confidentially and used to inform future model improvements and demonstrations.</p>
+            </div>
+          </div>
+
+          {/* Preview of current feedback */}
+          {(feedback.step1 || feedback.step2 || feedback.step3) && (
+            <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">📋 Feedback preview</h4>
+              <div className="space-y-4 text-sm">
+                {feedback.step1 && (
+                  <div>
+                    <span className="font-semibold text-blue-600">1. Useful behavior:</span>
+                    <p className="text-gray-700 mt-1">{feedback.step1}</p>
+                  </div>
+                )}
+                {feedback.step2 && (
+                  <div>
+                    <span className="font-semibold text-green-600">2. Limitations / failures:</span>
+                    <p className="text-gray-700 mt-1">{feedback.step2}</p>
+                  </div>
+                )}
+                {feedback.step3 && (
+                  <div>
+                    <span className="font-semibold text-purple-600">3. Analytic notes:</span>
+                    <p className="text-gray-700 mt-1">{feedback.step3}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const TipsPage: React.FC = () => {
   const tipsList = [
     { title: 'Define persona', text: 'Start prompts with a clear persona to focus responses.' },
-    { title: 'Provide context', text: 'Include relevant report/excerpt for deeper analysis.' }
+    { title: 'Provide context', text: 'Include relevant report/excerpt for deeper analysis.' },
+    { title: 'SMART Goals (Specific, Measurable, Achievable, Relevant, Time-bound)', text: 'Structure heritage assessment requests with specific criteria, measurable outcomes, achievable scope, relevant context, and clear timeframes.' },
+    { title: 'PEACE Process (Prepare, Engage, Account, Closure, Evaluate)', text: 'Prepare your heritage data, Engage with the bot systematically, Account for all findings, Close with clear conclusions, Evaluate the assessment quality.' },
+    { title: 'VALUE Framework (Vision, Assets, Legacy, Understanding, Expression)', text: 'Define your Vision for the heritage site, identify key Assets, consider the Legacy impact, ensure deep Understanding of context, and plan clear Expression of significance.' },
+    { title: 'CORE Analysis (Context, Objects, Relationships, Evolution)', text: 'Examine the historical Context, identify significant Objects/features, map Relationships between elements, and trace Evolution over time.' },
+    { title: 'CLEAR Communication (Concise, Logical, Engaging, Actionable, Respectful)', text: 'Keep prompts Concise and focused, use Logical structure, make requests Engaging, ensure outputs are Actionable, and maintain Respectful tone throughout.' }
   ];
   return (
     <div id="tips" className="py-6">
       <h2 className="text-3xl font-bold mb-6">Tips for working with the bot</h2>
+      
+      {/* Mnemonics Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
+        <h3 className="text-xl font-bold text-blue-800 mb-4">🧠 Memory Aids: Common Mnemonics for Heritage Assessment</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p><strong>SMART:</strong> Specific, Measurable, Achievable, Relevant, Time-bound</p>
+            <p><strong>PEACE:</strong> Prepare, Engage, Account, Closure, Evaluate</p>
+            <p><strong>VALUE:</strong> Vision, Assets, Legacy, Understanding, Expression</p>
+          </div>
+          <div>
+            <p><strong>CORE:</strong> Context, Objects, Relationships, Evolution</p>
+            <p><strong>CLEAR:</strong> Concise, Logical, Engaging, Actionable, Respectful</p>
+          </div>
+        </div>
+      </div>
+
       <div className="card-grid mb-4">
         {tipsList.map(t => (
           <div key={t.title} className="bg-white p-4 rounded shadow">
@@ -503,7 +676,11 @@ const TipsPage: React.FC = () => {
 const IdeasPage: React.FC = () => {
   const ideasList = [
     { title: 'Interactive timeline', text: 'Show assets on a time axis with filters.' },
-    { title: 'Spatial value mapping', text: 'Interactive heatmap of values across sites.' }
+    { title: 'Spatial value mapping', text: 'Interactive heatmap of values across sites.' },
+    { title: 'Social media sentiment analysis', text: 'Ask the bot to search the web for posts about your heritage place and analyze sentiments, emotional connections, and sense of place expressions from visitors and locals.' },
+    { title: 'Visual significance analysis', text: 'Upload photos and ask the bot to identify visual significances, symbolic elements, and semiotic meanings derived from architectural details, spatial relationships, and material expressions.' },
+    { title: 'Context-effect visualization', text: 'Generate dynamic diagrams showing how values arise from contexts and how the asset reinforces or reframes those contexts — the core CBSA principle.' },
+    { title: 'Comparative assessment matrix', text: 'Create structured comparison tables using CBSA criteria (Period, Rarity, Documentation, Ensemble, Condition) to systematically evaluate your asset against similar heritage sites.' }
   ];
   return (
     <div id="ideas" className="py-6">
@@ -567,6 +744,28 @@ const App: React.FC = () => {
     }
   }, [page, displayedPage]);
 
+  // Sync page with URL hash so links like #tips or #ideas work
+  useEffect(() => {
+    const fromHash = (window.location.hash || '').replace(/^#/, '');
+    if (fromHash && navItems.some(n => n.id === fromHash)) {
+      setPage(fromHash);
+    }
+
+    const onHash = () => {
+      const h = (window.location.hash || '').replace(/^#/, '');
+      if (h && navItems.some(n => n.id === h)) setPage(h);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  // Update URL hash when page changes
+  useEffect(() => {
+    if (page && window.location.hash.replace(/^#/, '') !== page) {
+      try { history.replaceState(null, '', `#${page}`); } catch (e) { window.location.hash = page; }
+    }
+  }, [page]);
+
   const pageProps = { allGraphData: data.allGraphData, allGrapheCleanData: data.allGrapheCleanData, thematicGraphData: data.thematicGraphData, nodeColors: data.nodeColors };
 
   const renderPage = () => {
@@ -607,7 +806,7 @@ const App: React.FC = () => {
       <div dir="ltr">
         <nav className="bg-white shadow-md px-4 py-2 flex justify-center gap-2 sticky top-0 z-50 overflow-x-auto">
           {navItems.filter(i => i.visible !== false).map(i => (
-            <button key={i.id} onClick={() => setPage(i.id)} className={`nav-button ${page === i.id ? 'active' : ''}`}>{i.label}</button>
+            <a key={i.id} href={`#${i.id}`} onClick={(e) => { e.preventDefault(); setPage(i.id); }} className={`nav-button ${page === i.id ? 'active' : ''}`}>{i.label}</a>
           ))}
         </nav>
 

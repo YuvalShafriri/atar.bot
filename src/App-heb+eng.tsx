@@ -17,6 +17,7 @@ const navItems = [
     //{ id: 'workshop-report-new', label: 'סיכום סדנה (חדש)', visible: false },
 ];
 import React, { useState, useEffect } from 'react';
+import { prependLangInstruction } from './utils/language';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { geminiService } from './services/gemini';
 import { UI_MESSAGES } from './utils/constants';
@@ -53,7 +54,7 @@ async function askTipsLLM(question: string, tipsList: Array<{ title: string; tex
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             model: LLM_MODEL,
-            contents: ideasContext + '\n' + prompt
+            contents: prependLangInstruction(ideasContext + '\n' + prompt, question)
         })
     });
 
@@ -93,7 +94,7 @@ async function askBrainstormLLM(question: string, ideasList: any[]): Promise<str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             model: LLM_MODEL,
-            contents: ideasContext + '\n' + prompt
+            contents: prependLangInstruction(ideasContext + '\n' + prompt, question)
         })
     });
 

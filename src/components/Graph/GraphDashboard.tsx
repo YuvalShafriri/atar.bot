@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { prependLangInstruction } from '../../utils/language';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
 //import { chatGraphModern } from '../../services/modernGraphQueryService';
 import { quickHybridChat } from '../../quickHybridSetup';
@@ -181,7 +182,7 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     // הנחיות לתשובה:
     // 1. התשובה חייבת להיות קצרה ותמציתית (מקסימום 3 משפטים).
     // 2. התבסס רק על הנתונים המסופקים.
-    // 3. ענה בעברית.
+    // 3. 답변 언어: מראה את שפת הקלט של המשתמש (תמונה בלבד בהערה)
     // 4. השתמש במילים פשוטות וברורות.
     // 5. **אל תסביר מגבלות או תוסיף הערות על היכולות הטכניות שלך**.
     // 6. **התמקד במה שיש, לא במה שחסר**.
@@ -203,10 +204,10 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     1. היה תמציתי - לא צריך הסברים מפורטים
     2. אם אין קשר בגרף - אמר שאין קשר
     3. התבסס רק על הנתונים המסופקים
-    4. ענה בעברית פשוטה וברורה
+    4. התשובה תינתן במנעד השפה של הקלט (ענה באותה שפה כמו השאלה)
 `;
     // 4. התמקד בנקודה המרכזית ביותר.
-    const fullPrompt = `
+    const fullPromptBase = `
     ${systemPrompt}
 
     --- נתוני ההקשר (JSON Data) ---
@@ -216,6 +217,7 @@ export async function askLLM(question: string, data: Record<string, any>): Promi
     בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
     שאלה: ${question}
     `;
+    const fullPrompt = prependLangInstruction(fullPromptBase, question);
 
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
@@ -297,7 +299,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId, onQuery, placeholder, exampleQu
             }
         } catch (error) {
             console.error("AI Query Error:", error);
-            setOutput('שגיאה בקבלת תשובה מהבוט.');
+            setOutput('Error getting response from bot.');
         } finally {
             setIsLoading(false);
         }
@@ -580,7 +582,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             //     1. היה תמציתי - לא צריך הסברים מפורטים
             //     2. אם אין קשר בגרף - אמר שאין קשר
             //     3. התבסס רק על הנתונים המסופקים
-            //     4. ענה בעברית פשוטה וברורה
+            //     4. תשובה: השתמש בשפה הנבחרת על ידי המשתמש
             //     `;
             const systemPrompt = `
             אתה עוזר מומחה לניתוח נכסי מורשת תרבותית. תפקידך הוא לספק תשובות תמציתיות ומדויקות על בסיס הגרף בלבד.
@@ -599,10 +601,9 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
             1. היה תמציתי - לא צריך הסברים מפורטים
             2. אם אין קשר בגרף - אמר שאין קשר
             3. התבסס רק על הנתונים המסופקים
-            4. ענה בעברית פשוטה וברורה
+            4. התשובה תינתן במנעד השפה של הקלט (ענה באותה שפה כמו השאלה)
         `;
-
-            const fullPrompt = `
+            const fullPromptBase = `
                 ${systemPrompt}
 
                 --- נתוני ההקשר (JSON Data) ---
@@ -612,6 +613,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                 בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
                 שאלה: ${question}
                 `;
+            const fullPrompt = prependLangInstruction(fullPromptBase, question);
 
             const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
             if (!proxyUrl) {
