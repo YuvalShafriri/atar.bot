@@ -55,8 +55,8 @@ rag/
 prompts/
 tests/
 scripts/
- 
-
+prompts/ 
+misc-html/
 archive/
 
 # Test output

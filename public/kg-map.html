@@ -25,10 +25,13 @@
     .marker{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:400;border-radius:50%;background:rgba(255,255,255,0.95);border:2px solid currentColor;box-shadow:0 2px 8px rgba(0,0,0,.25);line-height:1}
     .marker--purple{color:var(--purple)}.marker--blue{color:var(--blue)}.marker--gray{color:var(--gray)}
     .legend .marker{width:16px;height:16px;font-size:11px;box-shadow:none}
-    .marker-active{ /* UX-TUNE: marker ring */
+    .marker-active{ /* UX-TUNE: marker active - red bolder border */
       transform:scale(1.03);
-      box-shadow:0 0 0 2px rgba(220,53,69,.70), 0 2px 6px rgba(0,0,0,.24);
+      box-shadow:0 2px 6px rgba(0,0,0,.18);
+      border-radius:50%;
     }
+    /* ensure inner marker shows red border when parent is active */
+    .marker-active .marker{ border:3px solid #d32f2f !important; box-shadow:0 2px 10px rgba(211,47,47,0.18) !important; }
     .marker-dim{opacity:.28;transform:scale(.9)}
     .popup h3{margin:0 0 2px;font-size:13px}
     .popup p{margin:0 0 3px;font-size:12px;line-height:1.25}
@@ -54,11 +57,12 @@
         <label><input type="checkbox" id="f_jsna" checked/> Not assessed</label>
         <label><input type="checkbox" id="f_other" checked/> Other</label>
       </div>
-      <div class="group"><strong style="font-size:12px">Search:</strong>
+  <div class="group"><strong style="font-size:12px">Search:</strong>
         <input id="search" placeholder="Find place or value…" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;min-width:200px;font-size:12px"/>
         <button id="btnClear" class="pill">Clear</button>
         <button id="btnTests" class="pill" title="Run built-in tests">Run tests</button>
       </div>
+  <div class="group"><label style="font-size:12px"><input type="checkbox" id="toggleAllNodes"/> Show all KG nodes</label></div>
       <div class="group" id="counts" style="margin-left:auto;font-size:12px"></div>
     </header>
 
@@ -193,12 +197,13 @@
         { from:'p_kursi', to:'c_gospels', type:'documented_in', label:'documented_in' },
         { from:'p_kursi', to:'c_ministry', type:'associated_with', label:'associated_with' },
 
-        { from:'p_hippos', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
-        { from:'p_hippos', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        
+      
         { from:'p_hippos', to:'v_hist', type:'expresses_value', label:'expresses' },
         { from:'p_hippos', to:'v_science', type:'expresses_value', label:'expresses' },
         { from:'p_hippos', to:'v_land', type:'expresses_value', label:'expresses' },
         { from:'p_hippos', to:'v_symbol', type:'expresses_value', label:'expresses' },
+
         { from:'p_hippos', to:'c_gospels', type:'documented_in', label:'documented_in' },
         { from:'p_hippos', to:'c_ministry', type:'associated_with', label:'associated_with' },
 
@@ -290,9 +295,10 @@
     const allLayers = L.featureGroup([selectionLinksLayer, placeLinksLayer, layerAssessed,layerJSNA,layerOther]).addTo(map);
 
     (function(){
-      const pts = PLACES.map(p=> L.latLng(p.lat,p.lng));
-      const b = L.latLngBounds(pts);
-      map.fitBounds(b.pad(0.2));
+  const pts = PLACES.map(p=> L.latLng(p.lat,p.lng));
+  const b = L.latLngBounds(pts);
+  // Slightly closer zoom on load — reduce pad from 0.2 to 0.005
+  map.fitBounds(b.pad(0.01));
       buildPlaceLinks();
     })();
 
@@ -364,14 +370,16 @@
   // Threshold used for shared-value detection: ignore values connected to too many places
   const SHARED_VALUE_DEGREE_THRESHOLD = 6;
 
-    // Start the visualization with Places only to reduce initial clutter
-    const placeIds = new Set(PLACES.map(p => p.id));
-    const nodes = new vis.DataSet(nodesRaw.filter(n => placeIds.has(n.id)));
-    const edges = new vis.DataSet(edgesRaw.filter(e => placeIds.has(e.from) && placeIds.has(e.to)));
+  // Start the visualization with Places only to reduce initial clutter
+  const placeIds = new Set(PLACES.map(p => p.id));
+  const nodes = new vis.DataSet(nodesRaw.filter(n => placeIds.has(n.id)));
+  const edges = new vis.DataSet(edgesRaw.filter(e => placeIds.has(e.from) && placeIds.has(e.to)));
 
     // Fast lookup maps for dynamic expansion
     const nodesById = new Map(nodesRaw.map(n => [n.id, n]));
     const edgesById = new Map(edgesRaw.map(e => [e.id, e]));
+
+    
 
     function neighborIds(id) {
       const s = new Set();
@@ -380,6 +388,36 @@
         if (e.to === id) s.add(e.from);
       }
       return [...s];
+    }
+
+    // Function to temporarily re-enable smooth physics when showing new relations
+    function animateNewRelations(){
+      try{
+        // Re-enable physics with smooth settings for animation
+        network.setOptions({
+          physics: {
+            enabled: true,
+            forceAtlas2Based: {
+              gravitationalConstant: -8,
+              centralGravity: 0.001,
+              springLength: 180,
+              springConstant: 0.03,
+              damping: 0.85,
+              avoidOverlap: 0.25
+            },
+            maxVelocity: 0.3,
+            minVelocity: 0.005
+          }
+        });
+        // Run stabilization for smooth animation
+        network.stabilize(50);
+        // Disable physics again after animation
+        setTimeout(()=>{ 
+          try{ network.setOptions({physics:{enabled:false}}); }catch(e){} 
+        }, 800);
+      } catch(e){
+        console.warn('Animation failed:', e);
+      }
     }
 
     // Expand node persistently: add neighbor nodes and connecting edges (no collapse)
@@ -424,7 +462,12 @@
       
       if(addNodes.length) nodes.add(addNodes);
       if(addEdges.length) edges.add(addEdges);
-      try{ network.stabilize(100); }catch(e){}
+      if(addNodes.length || addEdges.length){
+        // Trigger smooth animation when new nodes/edges are added
+        animateNewRelations();
+      } else {
+        try{ network.stabilize(100); }catch(e){}
+      }
     }
     const kgContainer=document.getElementById('kg');
     const kgTooltip=document.getElementById('kgTooltip');
@@ -511,13 +554,15 @@
     }
 
     // Draw links between selected place and places that share values (visual cue for shared-value connections)
-    function drawSharedValueLinks(selectedPlaceId, sharedPlaceSet){
-      selectionLinksLayer.clearLayers();
+    function drawSharedValueLinks(selectedPlaceId, sharedPlaceSet, options){
+      // options.clear (default true) controls whether to clear existing selection lines
+      const clear = !(options && options.clear === false);
+      if(clear) selectionLinksLayer.clearLayers();
       if(!selectedPlaceId || !sharedPlaceSet || sharedPlaceSet.size===0) return;
       const mCenter = markerByPlaceId.get(selectedPlaceId); if(!mCenter) return;
       const fromLL = mCenter.getLatLng();
       // use a distinct style for shared-value connections
-      for(const pid of sharedPlaceSet){
+  for(const pid of sharedPlaceSet){
         const m2 = markerByPlaceId.get(pid); if(!m2) continue;
         const toLL = m2.getLatLng();
         const core = L.polyline([fromLL, toLL], {color:'#0b66c2', weight:1.6, opacity:0.95}).addTo(selectionLinksLayer);
@@ -527,6 +572,52 @@
       }
       if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length){ selectionLinksLayer.addTo(map); }
       if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    // Get set of Place IDs that are connected to a given KG node (value/context)
+    function getPlacesForNode(nodeId){
+      const places = new Set();
+      for(const e of EDGES){
+        if(e.from === nodeId && nodeTypeById.get(e.to) === 'Place') places.add(e.to);
+        if(e.to === nodeId && nodeTypeById.get(e.from) === 'Place') places.add(e.from);
+      }
+      return places;
+    }
+
+    // Draw pairwise lines between all places in the set (with safety limit)
+    function drawPlacePairLinks(placeSet){
+      selectionLinksLayer.clearLayers();
+      if(!placeSet || placeSet.size < 2) return;
+      const ids = [...placeSet];
+      const MAX_PAIRS = 20; // safety: if too many places, avoid O(n^2) lines
+      if(ids.length > MAX_PAIRS){
+        // fallback: connect each place to centroid instead of pairwise lines
+        const latlngs = ids.map(id => markerByPlaceId.get(id)).filter(Boolean).map(m=>m.getLatLng());
+        if(latlngs.length<2) return;
+        const avgLat = latlngs.reduce((s,l)=>s+l.lat,0)/latlngs.length;
+        const avgLng = latlngs.reduce((s,l)=>s+l.lng,0)/latlngs.length;
+        const center = L.latLng(avgLat, avgLng);
+        for(const id of ids){
+          const m = markerByPlaceId.get(id); if(!m) continue;
+          const core = L.polyline([m.getLatLng(), center], {color:'#444', weight:1.2, opacity:0.9}).addTo(selectionLinksLayer);
+          if(core.bringToFront) core.bringToFront();
+        }
+        if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length) selectionLinksLayer.addTo(map);
+        if(selectionLinksLayer._map) selectionLinksLayer.bringToFront();
+        return;
+      }
+
+      // draw pairwise lines
+      for(let i=0;i<ids.length;i++){
+        for(let j=i+1;j<ids.length;j++){
+          const a = markerByPlaceId.get(ids[i]); const b = markerByPlaceId.get(ids[j]);
+          if(!a||!b) continue;
+          const line = L.polyline([a.getLatLng(), b.getLatLng()], {color:'#444', weight:1.2, opacity:0.9}).addTo(selectionLinksLayer);
+          if(line.bringToFront) line.bringToFront();
+        }
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length) selectionLinksLayer.addTo(map);
+      if(selectionLinksLayer._map) selectionLinksLayer.bringToFront();
     }
 
     function getDepth(){ const v=document.querySelector('input[name="depth"]:checked').value; return parseInt(v,10); }
@@ -567,8 +658,10 @@
     function highlightMarkers(placeIdSet,{pan=false}={}){
       const any = placeIdSet && placeIdSet.size>0;
       markerByPlaceId.forEach((m,id)=>{
-        const el=m.getElement(); if(!el) return; el.classList.remove('marker-active','marker-dim');
-        if(any){ if(placeIdSet.has(id)) el.classList.add('marker-active'); else el.classList.add('marker-dim'); }
+        const el=m.getElement(); if(!el) return; 
+        el.classList.remove('marker-active','marker-dim');
+        // Only add red border to places that should be highlighted - no dimming
+        if(any && placeIdSet.has(id)) el.classList.add('marker-active');
       });
       if(any && pan){
         const key=keyForSet(placeIdSet);
@@ -610,19 +703,54 @@
 
     function resetKGStyles(){ nodesRaw.forEach(n=>{ nodes.update({id:n.id,color:n.color}); }); }
 
-    // KG tooltip (non-Place)
-    function showKgTooltipAt(x,y,nodeId){
+    // KG tooltip (non-Place) - position near node using network canvas->DOM conversion
+    function showKgTooltipAt(nodeId, pointerDOM){
       const meta=metaById.get(nodeId)||{};
       kgttTitle.textContent=meta.name||nodeId;
       kgttType.textContent=meta.type?`Type: ${meta.type}`:'';
       kgttMeaning.textContent=meta.meaning?meta.meaning:'';
-      kgTooltip.style.left = `${x+8}px`;
-      kgTooltip.style.top = `${y+8}px`;
+
+      try{
+        // Try to compute DOM coordinates from the node position in the network canvas
+        let left=8, top=8;
+        const rect = kgContainer.getBoundingClientRect();
+        
+        // First try to use network node position
+        if(nodeId && typeof network.getPositions === 'function'){
+          const posMap = network.getPositions([nodeId]);
+          const pos = posMap && posMap[nodeId];
+          if(pos && typeof network.canvasToDOM === 'function'){
+            const dom = network.canvasToDOM(pos);
+            left = Math.round(dom.x + 15); // offset to avoid overlapping node
+            top  = Math.round(dom.y - 10);
+          } 
+        }
+        
+        // If network positioning failed, use pointer position as fallback
+        if((left === 8 && top === 8) && pointerDOM && pointerDOM.x != null && pointerDOM.y != null){
+          left = Math.round(pointerDOM.x - rect.left + 15);
+          top  = Math.round(pointerDOM.y - rect.top - 10);
+        }
+
+        // clamp to container bounds so tooltip stays visible
+        const tooltipWidth = 280; // max-width from CSS
+        const tooltipHeight = 100; // estimated height
+        left = Math.max(5, Math.min(left, rect.width - tooltipWidth - 5));
+        top = Math.max(5, Math.min(top, rect.height - tooltipHeight - 5));
+        
+        kgTooltip.style.left = left + 'px';
+        kgTooltip.style.top = top + 'px';
+      } catch(e){
+        console.warn('Tooltip positioning failed:', e);
+        // last-resort: place near top-left of KG area
+        kgTooltip.style.left = `8px`;
+        kgTooltip.style.top = `8px`;
+      }
       kgTooltip.style.display='block';
     }
     function hideKgTooltip(){ kgTooltip.style.display='none'; }
 
-  function activateFromNode(id,{pan=false, pointer=null}={}){
+  function activateFromNode(id,{pan=false, pointer=null, fromMap=false}={}){
       hideKgTooltip();
       const depth=getDepth();
       const places=bfsPlaces(id,depth);
@@ -630,37 +758,73 @@
       const q=[{id,d:0}];
       while(q.length){ const {id:cur,d}=q.shift(); if(d===depth) continue; const ns=neighbors.get(cur)||[]; for(const nb of ns){ if(seen.has(nb)) continue; seen.add(nb); q.push({id:nb,d:d+1}); } }
 
-      // include selected Place itself in the active set for map highlighting
-      const placeSet = new Set(places);
-      if(typeById.get(id)==='Place'){ placeSet.add(id); }
+      // Compute places to highlight with red border
+      let placesToHighlight = new Set();
+      
+      if(typeById.get(id) === 'Place'){
+        // For Place clicks coming from the MAP (user clicked a marker):
+        // - only highlight the twin Place node on the KG (red border)
+        // - do not add borders to other places or draw selection lines
+        if(fromMap){
+          placesToHighlight = new Set([id]);
+          // Open popup for place clicks from the map
+          const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
+          // clear any existing selection lines
+          selectionLinksLayer.clearLayers();
+        } else {
+          // For Place clicks coming from the KG or search: show clicked place AND other places that share values
+          placesToHighlight.add(id); // Always highlight the clicked place itself
+          const sharedValuePlaces = getSharedValuePlaces(id);
+          for(const sharedPlace of sharedValuePlaces) {
+            placesToHighlight.add(sharedPlace);
+          }
+          // Always show popup for place clicks
+          const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
+          // Draw direct place-to-place lines 
+          drawSelectionPlaceLinks(id);
+        }
 
-      // markers
-      highlightMarkers(placeSet,{pan});
-      // KG dim/highlight
-      highlightKG(seen);
-
-      // Map: per spec
-      if(typeById.get(id)==='Place'){
-        // 1) popup on map at the place
-        const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
-    // 2) highlight only places that share Cultural Values with this place
-    const shared = getSharedValuePlaces(id);
-    // markers: highlight shared-value places (and the selected place)
-    const sharedMarkerSet = new Set(shared);
-    sharedMarkerSet.add(id);
-    highlightMarkers(sharedMarkerSet,{pan});
-    // draw links to shared places (visual cue for shared-value connections)
-    drawSharedValueLinks(id, shared);
-    // 3) keep base lines faint for geographic context
-    highlightBaseLinesFaint();
       } else {
-        // Non-place: only highlight markers, no lines; show tooltip on KG
+        // For Value/Context clicks: show all places connected to this node
+        placesToHighlight = getPlacesForNode(id);
+        // Clear any existing lines - no lines between places for value clicks
         selectionLinksLayer.clearLayers();
-        highlightBaseLinesFaint();
-        if(pointer){ const rect = kgContainer.getBoundingClientRect(); showKgTooltipAt(pointer.x - rect.left, pointer.y - rect.top, id); }
       }
 
-      requestAnimationFrame(()=> network.selectNodes([id], true));
+      // Highlight places with red border (no dimming)
+      highlightMarkers(placesToHighlight, {pan});
+      
+      // Highlight in KG
+      // If activation came from the map (marker click), only highlight the twin node
+      let kgHighlightSet;
+      if(fromMap){
+        kgHighlightSet = new Set([id]);
+      } else {
+        kgHighlightSet = new Set(seen);
+        kgHighlightSet.add(id); // include the clicked node
+      }
+      highlightKG(kgHighlightSet);
+
+      // Show tooltip for non-place nodes
+      if(typeById.get(id) !== 'Place'){ 
+        showKgTooltipAt(id, pointer); 
+      }
+
+      // Keep base lines faint if no selection lines drawn
+      if(!selectionLinksLayer.getLayers().length) highlightBaseLinesFaint();
+
+      // Select the node in KG and animate smooth physics for new relations
+      requestAnimationFrame(()=> {
+        if(!fromMap){
+          // For non-map activations, use vis selection to focus the node
+          try{ network.selectNodes([id], true); }catch(e){}
+        } else {
+          // For map marker clicks avoid changing vis selection (prevents blue selection ring)
+          try{ network.unselectAll(); }catch(e){}
+        }
+        // Trigger smooth animation when showing new relations
+        animateNewRelations();
+      });
     }
 
     // Show selected place name in counts area (overrides counts while a place is selected)
@@ -674,18 +838,40 @@
 
     // Dim KG except active set
     let kgReq=null;
+    // Track which nodes we last styled so we can restore them when needed
+    let lastKgActiveIds = new Set();
     function highlightKG(activeNodeIds){
-      const active=new Set(activeNodeIds);
+      const active = new Set(activeNodeIds || []);
       if(kgReq) cancelAnimationFrame(kgReq);
       kgReq = requestAnimationFrame(()=>{
-        nodesRaw.forEach(n=>{
-          const base=COLOR_BY_TYPE[n.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
-          const bg = (n.color && n.color.background) ? n.color.background : base.bg;
-          const dimBg = bg.startsWith('rgba(')
-            ? bg.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},0.12)`) 
-            : bg.replace(/rgb\(([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b)=>`rgba(${r},${g},${b},0.12)`);
-          nodes.update({id:n.id,color: active.has(n.id) ? n.color : {background:dimBg,border:base.border}});
-        });
+        // Restore previously-active nodes that are no longer active
+        for(const prevId of lastKgActiveIds){
+          if(!active.has(prevId)){
+            const orig = nodesById.get(prevId);
+            if(orig && nodes.get(prevId)){
+              const base = COLOR_BY_TYPE[orig.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
+              const bg = (orig.color && orig.color.background) ? orig.color.background : base.bg;
+              nodes.update({ id: prevId, color: { background: bg, border: base.border }, font: {align:'center', size:8, color:'#333', multi:true, vadjust:4}, borderWidth: 0, size: (orig.size || 12) });
+            }
+          }
+        }
+
+        // Apply styling only to currently-active nodes; do not dim or touch other nodes
+        for(const id of active){
+          const n = nodesById.get(id);
+          if(!n || !nodes.get(id)) continue;
+          const base = COLOR_BY_TYPE[n.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
+          let bg = (n.color && n.color.background) ? n.color.background : base.bg;
+          if(bg.startsWith('rgba(')){
+            bg = bg.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},1)`);
+          }
+          const activeColor = { background: bg, border: '#d32f2f' };
+          const newSize = (n.size || 12) + 6;
+          nodes.update({ id, color: activeColor, font: {align:'center', size:12, color:'#222', multi:true, vadjust:4}, borderWidth: 2, size: newSize });
+        }
+
+        // Update tracker
+        lastKgActiveIds = active;
       });
     }
 
@@ -730,7 +916,7 @@
 
     // Map marker ↔ KG selection
     markerByPlaceId.forEach((m,id)=>{
-      m.on('click', ()=>{ activateFromNode(id,{pan:true}); });
+      m.on('click', ()=>{ activateFromNode(id,{pan:true, fromMap:true}); });
       m.on('mouseover', ()=>{
         const depth=getDepth(); const places=bfsPlaces(id,depth); highlightMarkers(places,{pan:false}); // do not change lines on hover
       });

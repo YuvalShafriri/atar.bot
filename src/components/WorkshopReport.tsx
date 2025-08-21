@@ -320,8 +320,8 @@ Text to analyze: "${geminiInput}"`;
                     <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
                       <p className="font-semibold">
                         {selectedInfo.type && selectedInfo.key 
-                          ? cardInfo[selectedInfo.type][selectedInfo.key]
-                          : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
+                        //   ? cardInfo[selectedInfo.type][selectedInfo.key]
+                        //   : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
                         }
                       </p>
                     </div>
