@@ -129,25 +129,60 @@ main.container {
     margin-top: 1.5rem;
 }
 
-/* Custom List Styles */
+/* Custom List Styles (LTR, icons on left) */
 .custom-list {
     list-style: none;
-    padding-right: 0;
+    padding-left: 0; /* we'll control padding per item */
+    direction: ltr; /* force LTR for lists */
 }
 
 .custom-list li {
     position: relative;
-    padding-right: 1.5rem;
+    padding-left: 1.8rem; /* space for icon on left */
     margin-bottom: 0.5rem;
 }
 
 .custom-list li::before {
-    content: "•";
+    content: var(--list-icon, "•");
     color: var(--primary-blue);
     font-weight: bold;
     position: absolute;
-    right: 0;
+    left: 0; /* icon on the left */
 }
+
+/* allow items to override the icon by setting --list-icon */
+.custom-list li.icon-dot::before { content: "•"; }
+.custom-list li.icon-check::before { content: "✔"; }
+.custom-list li.icon-star::before { content: "★"; }
+.custom-list li.icon-gear::before { content: "⚙"; }
+
+/* Semantic icons for links */
+.custom-list li.icon-link::before { content: "🔗"; }
+.custom-list li.icon-file::before { content: "📄"; }
+.custom-list li.icon-graph::before { content: "📊"; }
+.custom-list li.icon-info::before { content: "ℹ️"; }
+.custom-list li.icon-video::before { content: "🎥"; }
+
+/* color tweak optional: keep icons visually consistent */
+.custom-list li::before { font-size: 1rem; line-height: 1; }
+
+/* Drive / Share icon (uses inline SVG so no external asset needed) */
+.custom-list li.icon-drive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  /* Google Drive tri-color logo (inline SVG: green, yellow, blue) */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path fill='%230F9D58' d='M9 39L24 9 17 6 2 36z'/><path fill='%23F4B400' d='M24 9L33 15 17 36 9 39z'/><path fill='%234285F4' d='M39 39L24 9 33 15 47 36z'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* Brain / Bot icon for the 'Brain' file link */
+.custom-list li.icon-bot::before{ content: "🤖"; left:0; position:absolute; top:50%; transform:translateY(-50%); font-size:18px; }
 
 /* Footer */
 .site-footer {
@@ -361,4 +396,89 @@ main.container {
 .workshop-report .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+}
+
+/* Full-viewport image container: height = viewport minus nav+footer. Adjust --nav-footer-height if needed. */
+.full-viewport-image {
+  /* default offset for nav + footer; tweak if your layout uses different sizes */
+  --nav-footer-height: 160px;
+  height: calc(100vh - var(--nav-footer-height));
+  display: flex;
+  align-items: stretch; /* ensure child fills the container vertically */
+  justify-content: center;
+  overflow: hidden;
+}
+
+.full-viewport-image img {
+  width: 95%;
+  height: 90%;
+  object-fit: contain; /* keeps entire image visible, scaled to container height */
+  display: block;
+}
+
+/* Schedule fixed card: stays between nav and footer and fills available height */
+.schedule-fixed {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: var(--nav-height, 48px); /* defaults if not set inline */
+  bottom: var(--footer-height, 48px);
+  width: min(100%, 960px);
+  padding: 0 1rem;
+  z-index: 45; /* below nav (z-50) but above most content */
+  pointer-events: none; /* allow clicks to pass through except for inner elements */
+}
+
+.schedule-fixed .schedule-card {
+  pointer-events: auto; /* enable interactions inside the card */
+  height: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.07);
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ensure the full-viewport-image fills the fixed card height */
+.schedule-fixed .full-viewport-image {
+  height: 100%;
+}
+
+/* small responsive tweak: narrow screens use full width and less horizontal padding */
+@media (max-width: 640px) {
+  .schedule-fixed {
+    width: 100%;
+    left: 0;
+    transform: none;
+    padding: 0 0.5rem;
+  }
+}
+
+/* KG Map full-height container */
+.kg-map-page {
+  /* match nav + footer combined height used elsewhere (96px) */
+  height: calc(100vh - 96px);
+  min-height: calc(100vh - 96px);
+  display: block;
+  overflow: hidden;
+  width: 100%;
+}
+
+.kg-map-page > div {
+  /* the injected HTML sits here; make it fill and scroll internally */
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+/* If the injected content includes elements with full-height classes, ensure they stretch */
+.kg-map-page .full-height, .kg-map-page .map, .kg-map-page #map {
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+/* Ensure body-level styles inside injected HTML don't collapse the container */
+.kg-map-page body {
+  height: 100% !important;
 }

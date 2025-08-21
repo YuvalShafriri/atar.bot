@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northern Galilee - Map + Knowledge Graph (Synced)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root{ --purple:#6A1B9A; --blue:#1565C0; --gray:#555; --gold:#FFC107; --panel:#ffffff; --ink:#333; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Calibri,system-ui,sans-serif;color:var(--ink)}
+    .app{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:0;height:100%}
+    header{grid-column:1/-1;padding:8px 10px;border-bottom:1px solid #eee;background:#fafafa;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    header .group{display:flex;gap:8px;align-items:center}
+    header label{font-size:12px}
+    #map{height:100%; overflow:hidden;}
+    #kg{height:100%;border-left:1px solid #eee; overflow:hidden; position:relative;}
+    .pane{position:relative; overflow:hidden;}
+    .legend{position:absolute;top:10px;left:10px;background:var(--panel);border:1px solid #ddd;padding:6px 8px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);font-size:12px;z-index:500}
+    .legend-row{display:flex;align-items:center;gap:8px;margin:2px 0}
+    .marker{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:400;border-radius:50%;background:rgba(255,255,255,0.95);border:2px solid currentColor;box-shadow:0 2px 8px rgba(0,0,0,.25);line-height:1}
+    .marker--purple{color:var(--purple)}.marker--blue{color:var(--blue)}.marker--gray{color:var(--gray)}
+    .legend .marker{width:16px;height:16px;font-size:11px;box-shadow:none}
+    .marker-active{ /* UX-TUNE: marker ring */
+      transform:scale(1.03);
+      box-shadow:0 0 0 2px rgba(220,53,69,.70), 0 2px 6px rgba(0,0,0,.24);
+    }
+    .marker-dim{opacity:.28;transform:scale(.9)}
+    .popup h3{margin:0 0 2px;font-size:13px}
+    .popup p{margin:0 0 3px;font-size:12px;line-height:1.25}
+    .pill{display:inline-block;padding:2px 6px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:12px}
+    .vis-network{background:#fff}
+    /* KG click tooltip for non-Place entities */
+    #kgTooltip{position:absolute;display:none;min-width:180px;max-width:280px;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px 10px;font-size:12px;z-index:10}
+    #kgTooltip h4{margin:0 0 4px;font-size:13px}
+    #kgTooltip p{margin:0 0 3px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="group"><strong style="font-size:12px">Context depth:</strong>
+        <label><input type="radio" name="depth" value="1"/> 1 hop</label>
+        <label><input type="radio" name="depth" value="2" checked/> 2 hops</label>
+      </div>
+      <div class="group"><strong style="font-size:12px">Filter:</strong>
+        <label><input type="checkbox" id="f_assessed" checked/> Assessed</label>
+        <label><input type="checkbox" id="f_jsna" checked/> Jesus-story (not assessed)</label>
+        <label><input type="checkbox" id="f_other" checked/> Other</label>
+      </div>
+      <div class="group"><strong style="font-size:12px">Search:</strong>
+        <input id="search" placeholder="Find place or value…" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;min-width:200px;font-size:12px"/>
+        <button id="btnClear" class="pill">Clear</button>
+        <button id="btnTests" class="pill" title="Run built-in tests">Run tests</button>
+      </div>
+      <div class="group" id="counts" style="margin-left:auto;font-size:12px"></div>
+    </header>
+
+    <div class="pane" id="mapPane">
+      <div id="map"></div>
+      <div class="legend" id="legend">
+        <div class="legend-row"><span class="marker marker--purple">&#10013;</span> Assessed assets (cross - purple)</div>
+        <div class="legend-row"><span class="marker marker--blue">&#10010;</span> Jesus-story - not assessed (cross - blue)</div>
+        <div class="legend-row"><span class="marker marker--gray">&#9670;</span> Other / mentioned (diamond - gray)</div>
+      </div>
+    </div>
+
+    <div class="pane" id="kgPane">
+      <div id="kg"></div>
+      <div id="kgTooltip"><h4 id="kgttTitle"></h4><p id="kgttType"></p><p id="kgttMeaning"></p></div>
+    </div>
+  </div>
+
+  <script>
+    /* UX-TUNE QUICK TWEAKS: search for the following markers to adjust later:
+       - UX-TUNE: labels (node label font size/offset/halo color & width)
+       - UX-TUNE: edge width & colors (KG edges default/hover/selection widths)
+       - UX-TUNE: base lines (map faint place-to-place lines)
+       - UX-TUNE: selection lines (map black core + thin red overlay)
+       - UX-TUNE: marker ring (active marker highlight ring)
+    */
+
+    /* ---------------------- DATA ---------------------- */
+    const PLACES = [
+      { id:'p_nazareth', name:'Nazareth', lat:32.6996, lng:35.3035, category:'assessed', desc:'Annunciation focus; layered remains.', significance:'High pilgrimage value; rich stratigraphy linking village to monumental basilica.', place_type:'jesus story assessed' },
+      { id:'p_cana', name:'Kafr Kanna (Cana)', lat:32.7450, lng:35.3394, category:'assessed', desc:'Wedding at Cana tradition.', significance:'Key ritual renewal site; continuity of local tradition.', place_type:'jesus story assessed' },
+      { id:'p_magdala', name:'Magdala', lat:32.8333, lng:35.5167, category:'assessed', desc:"Mary Magdalene's town; synagogue remains.", significance:'Exceptional early synagogue; unique female apostolic association.', place_type:'jesus story assessed' },
+      { id:'p_tabgha', name:'Tabgha (Heptapegon)', lat:32.8708, lng:35.5556, category:'assessed', desc:'Loaves and fishes mosaic.', significance:'Outstanding mosaic artistry; long-standing liturgical commemoration.', place_type:'jesus story assessed' },
+      { id:'p_beatitudes', name:'Mount of Beatitudes', lat:32.8804, lng:35.5550, category:'assessed', desc:'Sermon on the Mount site.', significance:'Scenic and symbolic prominence; continuous devotional use.', place_type:'jesus story assessed' },
+      { id:'p_capernaum', name:'Capernaum', lat:32.8803, lng:35.5733, category:'assessed', desc:'Base of ministry; House of Peter.', significance:'High integrity of synagogue-house complex; major gospel locus.', place_type:'jesus story assessed' },
+
+      { id:'p_tabor', name:'Mount Tabor', lat:32.6870, lng:35.3930, category:'js-not', desc:'Transfiguration tradition.', significance:'Not assessed', place_type:'jesus story not' },
+      { id:'p_kursi', name:'Kursi (Gergesa)', lat:32.8090, lng:35.6490, category:'js-not', desc:'Miracle of the swine tradition.', significance:'Not assessed', place_type:'jesus story not' },
+      { id:'p_hippos', name:'Hippos (Susita)', lat:32.7770, lng:35.6670, category:'js-not', desc:'Decapolis city; basilicas.', significance:'Not assessed', place_type:'jesus story not' },
+      { id:'p_bethsaida', name:'Bethsaida', lat:32.9080, lng:35.5990, category:'js-not', desc:'Apostolic town remains.', significance:'Not assessed', place_type:'jesus story not' },
+      { id:'p_chorazin', name:'Chorazin', lat:32.9190, lng:35.5710, category:'js-not', desc:'Basalt synagogue; scriptural town.', significance:'Not assessed', place_type:'jesus story not' },
+
+      { id:'p_zippori', name:'Sepphoris (Zippori)', lat:32.7450, lng:35.2780, category:'other', desc:'Roman-Byzantine civitas.', significance:'Not assessed', place_type:'places mentioned' },
+      { id:'p_arbel', name:'Mount Arbel', lat:32.8420, lng:35.4986, category:'other', desc:'Dominant landmark; fortress history.', significance:'Not assessed', place_type:'places mentioned' },
+      { id:'p_kinneret', name:'Sea of Galilee (Kinneret)', lat:32.8200, lng:35.5800, category:'other', desc:'Central lake setting.', significance:'Not assessed', place_type:'places mentioned' }
+    ];
+
+    const VALUES = [
+      { id:'v_sacredgeo', name:'Sacred Geography', type:'Cultural Value', value_type:'Spiritual', meaning:'Revelation tied to specific landscapes and places' },
+      { id:'v_pilgrimage', name:'Pilgrimage Continuity', type:'Cultural Value', value_type:'Social', meaning:'Living practices linking believers and holy sites' },
+      { id:'v_hist', name:'Historical Testimony', type:'Cultural Value', value_type:'Historical', meaning:'Witness to early Christianity contexts and narratives' },
+      { id:'v_science', name:'Archaeological Record', type:'Cultural Value', value_type:'Scientific', meaning:'Material remains enabling rigorous historical study' },
+      { id:'v_land', name:'Landscape Cohesion', type:'Cultural Value', value_type:'Landscape', meaning:'Hills, lake, routes preserve legible setting' },
+      { id:'v_symbol', name:'Symbolic Identity', type:'Cultural Value', value_type:'Symbolic', meaning:'Emblem of Christian origins and ideals' }
+    ];
+
+    const CONTEXTS = [
+      { id:'c_sea', name:'Sea of Galilee', type:'Natural Phenomenon', meaning:'Central lake shaping landscapes and routes' },
+      { id:'c_gospels', name:'Gospel Narratives', type:'Story / Narrative', meaning:'Texts situating events in specific places' },
+      { id:'c_pilgrimtrad', name:'Pilgrimage Traditions', type:'Tradition / Custom', meaning:'Continuous veneration since Byzantine era' },
+      { id:'c_ministry', name:'Ministry of Jesus (Galilee)', type:'Event', meaning:'Teachings, healings, journeys across Galilee' }
+    ];
+
+    // Graph edges
+    const EDGES = [];
+    for (const p of PLACES) {
+      if (p.category === 'assessed' || p.category === 'js-not') {
+        ['v_sacredgeo','v_pilgrimage','v_hist','v_science','v_land','v_symbol'].forEach(v=>{
+          EDGES.push({from:p.id,to:v,type:'expresses_value',label:'expresses_value'});
+        });
+        EDGES.push({from:p.id,to:'c_gospels',type:'documented_in',label:'documented_in'});
+        EDGES.push({from:p.id,to:'c_ministry',type:'associated_with',label:'associated_with'});
+      }
+    }
+    EDGES.push({from:'c_sea',to:'v_land',type:'influences',label:'influences'});
+    EDGES.push({from:'c_pilgrimtrad',to:'v_pilgrimage',type:'expresses',label:'expresses'});
+    EDGES.push({from:'c_ministry',to:'c_gospels',type:'documented_in',label:'documented_in'});
+
+    // Direct place-to-place relations (will also appear on the map)
+    const DIRECT_PLACE_LINKS = [
+      {from:'p_capernaum', to:'p_tabgha', type:'related_place', label:'nearby / ministerial route'},
+      {from:'p_capernaum', to:'p_chorazin', type:'related_place', label:'Gospel triangle'},
+      {from:'p_capernaum', to:'p_bethsaida', type:'related_place', label:'Gospel triangle'}
+    ];
+    DIRECT_PLACE_LINKS.forEach(e=>EDGES.push(e));
+
+    // Build a fast lookup for direct place-to-place links (both directions)
+    const DIRECT_SET = new Set();
+    for(const e of DIRECT_PLACE_LINKS){ DIRECT_SET.add(e.from+'|'+e.to); DIRECT_SET.add(e.to+'|'+e.from); }
+
+    /* ---------------------- Map ---------------------- */
+    const map = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+    const iconPurple = () => L.divIcon({ html:'<span class="marker marker--purple">&#10013;</span>', iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+    const iconBlue   = () => L.divIcon({ html:'<span class="marker marker--blue">&#10010;</span>',   iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+    const iconGray   = () => L.divIcon({ html:'<span class="marker marker--gray">&#9670;</span>',    iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+
+    const layerAssessed=L.featureGroup(), layerJSNA=L.featureGroup(), layerOther=L.featureGroup();
+    const placeLinksLayer=L.featureGroup(); // faint base lines
+    const selectionLinksLayer=L.featureGroup(); // strong lines for current selection
+    const markerByPlaceId = new Map();
+
+    function markerFor(p){
+      const icon = p.category==='assessed'?iconPurple():p.category==='js-not'?iconBlue():iconGray();
+      const html = `<div class="popup"><h3>${p.name}</h3>
+        <p>${p.desc}</p>
+        <p><strong>Significance (eval):</strong> ${p.significance}</p>
+        <p><strong>Type:</strong> ${p.place_type}</p></div>`;
+      const m=L.marker([p.lat,p.lng],{icon}).bindPopup(html);
+      if(p.category==='assessed') m.addTo(layerAssessed); else if(p.category==='js-not') m.addTo(layerJSNA); else m.addTo(layerOther);
+      markerByPlaceId.set(p.id,m);return m;
+    }
+
+    PLACES.map(markerFor);
+
+    // Base direct links (faint) + keep refs
+    const mapLinks = [];
+    function buildPlaceLinks(){
+      placeLinksLayer.clearLayers(); mapLinks.length=0;
+      for(const e of DIRECT_PLACE_LINKS){
+        const m1 = markerByPlaceId.get(e.from); const m2 = markerByPlaceId.get(e.to);
+        if(!m1||!m2) continue;
+        const line = L.polyline([m1.getLatLng(), m2.getLatLng()], {color:'#888', weight:1.4, opacity:0.25, dashArray:'4,6'}).addTo(placeLinksLayer);
+        mapLinks.push({edge:e, line});
+      }
+    }
+
+    const allLayers = L.featureGroup([selectionLinksLayer, placeLinksLayer, layerAssessed,layerJSNA,layerOther]).addTo(map);
+
+    (function(){
+      const pts = PLACES.map(p=> L.latLng(p.lat,p.lng));
+      const b = L.latLngBounds(pts);
+      map.fitBounds(b.pad(0.2));
+      buildPlaceLinks();
+    })();
+
+    function applyFilters(){
+      const fa=document.getElementById('f_assessed').checked;
+      const fj=document.getElementById('f_jsna').checked;
+      const fo=document.getElementById('f_other').checked;
+      if(fa){map.addLayer(layerAssessed);}else{map.removeLayer(layerAssessed);} 
+      if(fj){map.addLayer(layerJSNA);}else{map.removeLayer(layerJSNA);} 
+      if(fo){map.addLayer(layerOther);}else{map.removeLayer(layerOther);} 
+    }
+    document.getElementById('f_assessed').onchange=applyFilters;
+    document.getElementById('f_jsna').onchange=applyFilters;
+    document.getElementById('f_other').onchange=applyFilters;
+
+    const countsEl=document.getElementById('counts');
+    function updateCounts(){
+      const a=PLACES.filter(p=>p.category==='assessed').length;
+      const j=PLACES.filter(p=>p.category==='js-not').length;
+      const o=PLACES.filter(p=>p.category==='other').length;
+      countsEl.textContent=`Counts - Assessed: ${a} | Jesus-story (not assessed): ${j} | Other: ${o}`;
+    }
+    updateCounts();
+
+    /* ---------------------- KG ---------------------- */
+    const COLOR_BY_TYPE={
+      'Natural Phenomenon':{bg:'rgba(30,144,255,0.7)',border:'#1E90FF'},
+      'Story / Narrative':{bg:'rgba(255,228,181,0.7)',border:'#FFE4B5'},
+      'Tradition / Custom':{bg:'rgba(139,69,19,0.7)',border:'#8B4513'},
+      'Event':{bg:'rgba(255,160,122,0.7)',border:'#FFA07A'},
+      'Cultural Value':{bg:'rgba(255,193,7,0.7)',border:'#FFC107'},
+      'Place':{bg:'rgba(100,149,237,0.7)',border:'#6495ED'}
+    };
+
+    const nodesRaw=[
+      ...PLACES.map(p=>({id:p.id,name:p.name,type:'Place',label:p.name,color:{background:COLOR_BY_TYPE['Place'].bg,border:COLOR_BY_TYPE['Place'].border},shape:'dot',size:8, title:`${p.name}`})),
+  ...VALUES.map(v=>({id:v.id,name:v.name,type:'Cultural Value', label:`${v.name}\n[${v.value_type}]`,color:{background:COLOR_BY_TYPE['Cultural Value'].bg,border:COLOR_BY_TYPE['Cultural Value'].border},shape:'dot',size:8, title:`${v.name}`})),
+      ...CONTEXTS.map(c=>({id:c.id,name:c.name,type:c.type,label:c.name,color:{background:COLOR_BY_TYPE[c.type].bg,border:COLOR_BY_TYPE[c.type].border},shape:'dot',size:8, title:`${c.name}`}))
+    ];
+
+    const edgesRaw=EDGES.map(e=>({id:`${e.from}->${e.to}` ,from:e.from,to:e.to,dataLabel:e.label,arrows:{to:{enabled:true,scaleFactor:.4}},font:{align:'middle',size:8,color:'#555',background:'white'}}));
+
+    const nodes=new vis.DataSet(nodesRaw);
+    const edges=new vis.DataSet(edgesRaw);
+    const kgContainer=document.getElementById('kg');
+    const kgTooltip=document.getElementById('kgTooltip');
+    const kgttTitle=document.getElementById('kgttTitle');
+    const kgttType=document.getElementById('kgttType');
+    const kgttMeaning=document.getElementById('kgttMeaning');
+
+    const network=new vis.Network(kgContainer,{nodes,edges},{
+      nodes:{ /* UX-TUNE: labels */ font:{align:'center',size:8,color:'#333',vadjust:4,strokeWidth:0,strokeColor:'#000',background:'white'}, borderWidth:0},
+      edges:{ /* UX-TUNE: edge width & colors */ width:1, selectionWidth:1.4, hoverWidth:1.1, smooth:{type:'cubicBezier',forceDirection:'horizontal',roundness:.45}, color:{color:'#888',highlight:'#333',hover:'#555',inherit:false}},
+      physics:{enabled:true,solver:'repulsion',repulsion:{nodeDistance:200,centralGravity:0.05,springLength:20,springConstant:0.005,damping:0.1},stabilization:{iterations:900,fit:true}},
+      interaction:{hover:true,tooltipDelay:300}
+    });
+
+    network.once('stabilizationIterationsDone', ()=> network.setOptions({physics:false}));
+
+    /* ---------------------- Helpers ---------------------- */
+    const typeById=new Map(nodesRaw.map(n=>[n.id,n.type]));
+    const metaById=new Map();
+    PLACES.forEach(p=> metaById.set(p.id,{name:p.name,type:'Place',meaning:p.desc}));
+    VALUES.forEach(v=> metaById.set(v.id,{name:v.name,type:`${v.type} [${v.value_type}]`,meaning:v.meaning}));
+    CONTEXTS.forEach(c=> metaById.set(c.id,{name:c.name,type:c.type,meaning:c.meaning}));
+
+    const neighbors=new Map();
+    function addEdgePair(a,b){ if(!neighbors.has(a)) neighbors.set(a,[]); neighbors.get(a).push(b); }
+    EDGES.forEach(e=>{ addEdgePair(e.from,e.to); addEdgePair(e.to,e.from); });
+
+    function getDepth(){ const v=document.querySelector('input[name="depth"]:checked').value; return parseInt(v,10); }
+
+    function bfsPlaces(startId, depth){
+      const seen=new Set([startId]); const q=[{id:startId,d:0}]; const places=new Set();
+      while(q.length){ const {id,d}=q.shift(); if(d===depth) continue; const ns=neighbors.get(id)||[]; for(const nb of ns){ if(seen.has(nb)) continue; seen.add(nb); q.push({id:nb,d:d+1}); if(typeById.get(nb)==='Place') places.add(nb); } }
+      return places;
+    }
+
+    function clearMapHighlights(){
+      markerByPlaceId.forEach(m=>{ const el=m.getElement(); if(el){ el.classList.remove('marker-active','marker-dim'); } });
+      selectionLinksLayer.clearLayers();
+      highlightBaseLinesFaint();
+    }
+
+    function keyForSet(set){ return [...set].sort().join('|'); }
+
+    let lastKey=null; let fitReq=null;
+    function gentleFitLatLngs(latlngs){
+      if(!latlngs || !latlngs.length) return;
+      if(fitReq) cancelAnimationFrame(fitReq);
+      fitReq = requestAnimationFrame(()=>{
+        try {
+          const targetBounds = L.latLngBounds(latlngs).pad(0.05);
+          const cur = map.getBounds();
+          if(cur && cur.contains && cur.contains(targetBounds)) return;
+          const maxZoom = Math.min(map.getZoom ? map.getZoom()+1 : 12, 12);
+          if(map.flyToBounds){
+            map.flyToBounds(targetBounds,{padding:[20,20], maxZoom, duration:0.5});
+          } else {
+            map.fitBounds(targetBounds, {maxZoom});
+          }
+        } catch(e){ console.warn('gentle fit skipped:', e); }
+      });
+    }
+
+    function highlightMarkers(placeIdSet,{pan=false}={}){
+      const any = placeIdSet && placeIdSet.size>0;
+      markerByPlaceId.forEach((m,id)=>{
+        const el=m.getElement(); if(!el) return; el.classList.remove('marker-active','marker-dim');
+        if(any){ if(placeIdSet.has(id)) el.classList.add('marker-active'); else el.classList.add('marker-dim'); }
+      });
+      if(any && pan){
+        const key=keyForSet(placeIdSet);
+        if(key!==lastKey){
+          lastKey=key;
+          const latlngs=[...placeIdSet].map(pid=> markerByPlaceId.get(pid)).filter(Boolean).map(m=>m.getLatLng());
+          gentleFitLatLngs(latlngs);
+        }
+      }
+    }
+
+    // --- Base lines faint
+    function highlightBaseLinesFaint(){
+      for(const it of mapLinks){ it.line.setStyle({opacity:0.25, weight:1.4, color:'#888', dashArray:'4,6'}); } // UX-TUNE: base lines
+      if(!placeLinksLayer._map && mapLinks.length){ placeLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    // --- Draw strong selection lines ONLY for direct Place↔Place edges from selected place
+    function drawSelectionPlaceLinks(selectedPlaceId){
+      selectionLinksLayer.clearLayers();
+      if(!selectedPlaceId) return;
+      const mCenter = markerByPlaceId.get(selectedPlaceId); if(!mCenter) return;
+      const fromLL = mCenter.getLatLng();
+      // UX-TUNE: selection lines (black core + thin red overlay)
+      for(const pid of markerByPlaceId.keys()){
+        if(pid===selectedPlaceId) continue;
+        if(!DIRECT_SET.has(selectedPlaceId+'|'+pid)) continue;
+        const m2 = markerByPlaceId.get(pid); if(!m2) continue;
+        const toLL = m2.getLatLng();
+        const core = L.polyline([fromLL, toLL], {color:'#111', weight:2.6, opacity:0.95}).addTo(selectionLinksLayer);
+        const overlay = L.polyline([fromLL, toLL], {color:'#d3162c', weight:1.4, opacity:0.9}).addTo(selectionLinksLayer);
+        if(core.bringToFront) core.bringToFront();
+        if(overlay.bringToFront) overlay.bringToFront();
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length){ selectionLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    function resetKGStyles(){ nodesRaw.forEach(n=>{ nodes.update({id:n.id,color:n.color}); }); }
+
+    // KG tooltip (non-Place)
+    function showKgTooltipAt(x,y,nodeId){
+      const meta=metaById.get(nodeId)||{};
+      kgttTitle.textContent=meta.name||nodeId;
+      kgttType.textContent=meta.type?`Type: ${meta.type}`:'';
+      kgttMeaning.textContent=meta.meaning?meta.meaning:'';
+      kgTooltip.style.left = `${x+8}px`;
+      kgTooltip.style.top = `${y+8}px`;
+      kgTooltip.style.display='block';
+    }
+    function hideKgTooltip(){ kgTooltip.style.display='none'; }
+
+    function activateFromNode(id,{pan=false, pointer=null}={}){
+      hideKgTooltip();
+      const depth=getDepth();
+      const places=bfsPlaces(id,depth);
+      const seen=new Set([id]);
+      const q=[{id,d:0}];
+      while(q.length){ const {id:cur,d}=q.shift(); if(d===depth) continue; const ns=neighbors.get(cur)||[]; for(const nb of ns){ if(seen.has(nb)) continue; seen.add(nb); q.push({id:nb,d:d+1}); } }
+
+      // include selected Place itself in the active set for map highlighting
+      const placeSet = new Set(places);
+      if(typeById.get(id)==='Place'){ placeSet.add(id); }
+
+      // markers
+      highlightMarkers(placeSet,{pan});
+      // KG dim/highlight
+      highlightKG(seen);
+
+      // Map: per spec
+      if(typeById.get(id)==='Place'){
+        // 1) popup on map at the place
+        const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
+        // 2) strong selection lines only for direct links from this place
+        drawSelectionPlaceLinks(id);
+        // 3) keep base lines faint (for context)
+        highlightBaseLinesFaint();
+      } else {
+        // Non-place: only highlight markers, no lines; show tooltip on KG
+        selectionLinksLayer.clearLayers();
+        highlightBaseLinesFaint();
+        if(pointer){ const rect = kgContainer.getBoundingClientRect(); showKgTooltipAt(pointer.x - rect.left, pointer.y - rect.top, id); }
+      }
+
+      requestAnimationFrame(()=> network.selectNodes([id], true));
+    }
+
+    // Dim KG except active set
+    let kgReq=null;
+    function highlightKG(activeNodeIds){
+      const active=new Set(activeNodeIds);
+      if(kgReq) cancelAnimationFrame(kgReq);
+      kgReq = requestAnimationFrame(()=>{
+        nodesRaw.forEach(n=>{
+          const base=COLOR_BY_TYPE[n.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
+          const bg = (n.color && n.color.background) ? n.color.background : base.bg;
+          const dimBg = bg.startsWith('rgba(')
+            ? bg.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},0.12)`) 
+            : bg.replace(/rgb\(([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b)=>`rgba(${r},${g},${b},0.12)`);
+          nodes.update({id:n.id,color: active.has(n.id) ? n.color : {background:dimBg,border:base.border}});
+        });
+      });
+    }
+
+    /* ---------------------- Edge labels only on click ---------------------- */
+    let lastLabeledEdgeId=null;
+    function showEdgeLabel(edgeId){
+      if(lastLabeledEdgeId && edges.get(lastLabeledEdgeId)){
+        edges.update({id:lastLabeledEdgeId, label: undefined});
+      }
+      if(edgeId && edges.get(edgeId)){
+        const e = edges.get(edgeId);
+        edges.update({id:edgeId, label: e.dataLabel});
+        lastLabeledEdgeId=edgeId;
+      } else {
+        lastLabeledEdgeId=null;
+      }
+    }
+
+    /* ---------------------- Wiring ---------------------- */
+    function onNetworkClick(params){
+      // Node click takes precedence
+      if(params && params.nodes && params.nodes.length){
+        const id=params.nodes[0];
+        activateFromNode(id,{pan:true,pointer:params.pointer && params.pointer.DOM});
+        return;
+      }
+      if(params && params.edges && params.edges.length){
+        showEdgeLabel(params.edges[0]);
+        return;
+      }
+      hideKgTooltip();
+      clearMapHighlights();
+      resetKGStyles();
+      showEdgeLabel(null);
+    }
+    network.on('click', onNetworkClick);
+
+    // Map marker ↔ KG selection
+    markerByPlaceId.forEach((m,id)=>{
+      m.on('click', ()=>{ activateFromNode(id,{pan:true}); });
+      m.on('mouseover', ()=>{
+        const depth=getDepth(); const places=bfsPlaces(id,depth); highlightMarkers(places,{pan:false}); // do not change lines on hover
+      });
+    });
+
+    document.querySelectorAll('input[name="depth"]').forEach(r=> r.addEventListener('change', ()=>{
+      const sel=network.getSelectedNodes(); if(sel.length){ activateFromNode(sel[0],{pan:false}); }
+    }));
+
+    const searchEl=document.getElementById('search');
+    const btnClear=document.getElementById('btnClear');
+    function doSearch(){
+      const q=searchEl.value.trim().toLowerCase();
+      if(!q){ return; }
+      const match = nodesRaw.find(n=> (n.name||'').toLowerCase().includes(q) || (n.label||'').toLowerCase().includes(q));
+      if(match){ network.focus(match.id,{scale:1.0,animation:{duration:500}}); activateFromNode(match.id,{pan:true}); if(typeById.get(match.id)==='Place'){ const m=markerByPlaceId.get(match.id); if(m){m.openPopup();} } }
+    }
+    searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); });
+    btnClear.addEventListener('click', ()=>{ searchEl.value=''; hideKgTooltip(); clearMapHighlights(); resetKGStyles(); network.unselectAll(); showEdgeLabel(null); });
+
+    // Initial filters apply
+    applyFilters();
+
+    // Resize handling (throttled)
+    let resizeTimer=null;
+    window.addEventListener('resize', ()=>{
+      if(resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(()=>{ try{ map.invalidateSize(); network.redraw(); }catch(e){} }, 120);
+    }, {passive:true});
+
+    window.addEventListener('error', (e)=>{
+      if(e && e.message && e.message.includes('ResizeObserver loop')){ e.preventDefault(); }
+    });
+
+    /* ---------------------- Tests ---------------------- */
+    function runTests(){
+      const results=[]; const log=(n,c)=>results.push({name:n,pass:!!c});
+      try{
+        const valId='v_pilgrimage';
+        activateFromNode(valId,{pan:false});
+        const places=bfsPlaces(valId, getDepth());
+        log('T1: value to places (>=1)', places.size>=1);
+
+        const placeId='p_capernaum';
+        activateFromNode(placeId,{pan:false});
+        log('T2: place selection exists', network.getSelectedNodes().includes(placeId));
+
+        const d2Places=bfsPlaces('v_hist',2);
+        const d1Places=bfsPlaces('v_hist',1);
+        log('T3: 1-hop <= 2-hop', d1Places.size<=d2Places.size);
+
+        log('T4: direct place links drawn (base)', mapLinks.length>=1);
+
+        activateFromNode('v_hist',{pan:false});
+        log('T4b: selecting Value draws 0 selection lines', selectionLinksLayer.getLayers().length===0);
+
+        activateFromNode('p_capernaum',{pan:false});
+        log('T4c: selecting Place draws >=1 selection lines', selectionLinksLayer.getLayers().length>=1);
+        const capMarker = markerByPlaceId.get('p_capernaum');
+        log('T4d: popup opens for selected Place', !!capMarker && capMarker.isPopupOpen && capMarker.isPopupOpen());
+
+        const anyLabeledInitially = edges.get().some(e=> !!e.label);
+        log('T5: no edge labels initially', !anyLabeledInitially);
+        const firstEdgeId = edges.getIds()[0];
+        showEdgeLabel(firstEdgeId);
+        const labeledNow = !!edges.get(firstEdgeId).label;
+        log('T6: edge label appears after showEdgeLabel()', labeledNow);
+        showEdgeLabel(null);
+        const clearedAgain = !edges.get().some(e=> !!e.label);
+        log('T7: edge label cleared after showEdgeLabel(null)', clearedAgain);
+
+        activateFromNode('v_hist',{pan:false, pointer:{x:100, y:100}});
+        log('T8: tooltip shown for non-Place selection', document.getElementById('kgTooltip').style.display==='block');
+        activateFromNode('p_capernaum',{pan:false});
+        log('T9: tooltip hidden for Place selection', document.getElementById('kgTooltip').style.display==='none');
+
+        onNetworkClick({nodes:['p_capernaum'], edges:['p_capernaum->v_sacredgeo'], pointer:{DOM:{x:120,y:80}}});
+        log('T10: node click opens popup and draws lines even if edge under cursor',
+            selectionLinksLayer.getLayers().length>=1 && markerByPlaceId.get('p_capernaum').isPopupOpen && markerByPlaceId.get('p_capernaum').isPopupOpen());
+
+        const zBefore = map.getZoom();
+        activateFromNode('p_capernaum',{pan:true});
+        setTimeout(()=>{
+          results.push({name:'T11: pan zoom limited to +1', pass: map.getZoom() <= zBefore + 1.01});
+
+          // New: ensure overlay count equals 2x direct links for selected place
+          const expectedDirect = DIRECT_PLACE_LINKS.filter(e=> e.from==='p_capernaum' || e.to==='p_capernaum').length;
+          const layersCount = selectionLinksLayer.getLayers().length;
+          results.push({name:'T12: selection draws black+red overlays (2x links)', pass: layersCount === expectedDirect*2});
+
+          const txt = results.map(r=>`${r.pass?'✅':'❌'} ${r.name}`).join('  |  ');
+          console.log('%cMap+KG tests:', 'font-weight:bold', txt);
+          alert('Map+KG tests finished. Check console for details.\n' + txt);
+        }, 400);
+        return;
+      } catch(e){
+        console.error('Test error', e);
+        results.push({name:'EXCEPTION',pass:false});
+      }
+      const txt = results.map(r=>`${r.pass?'✅':'❌'} ${r.name}`).join('  |  ');
+      console.log('%cMap+KG tests:', 'font-weight:bold', txt);
+      alert('Map+KG tests finished. Check console for details.\n' + txt);
+    }
+    document.getElementById('btnTests').addEventListener('click', runTests);
+  </script>
+</body>
+</html>

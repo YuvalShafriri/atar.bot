@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Knowledge Graph (Embedded)</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body,
+        #mynetwork,
+        #infowindow {
+            font-family: Calibri, system-ui, sans-serif;
+        }
+
+        #mynetwork {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+
+        #infowindow {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
+            text-align: left;
+            max-width: 260px;
+            z-index: 10;
+        }
+
+        #closeinfo {
+            float: right;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="mynetwork"></div>
+
+    <div id="infowindow">
+        <span id="closeinfo">✖</span>
+        <h3 id="info_name"></h3>
+        <p><strong>Type:</strong> <span id="info_type"></span></p>
+        <p><strong>Meaning:</strong> <span id="info_meaning"></span></p>
+    </div>
+
+    <script>
+        /* ---------- Provide DATA here ---------- */
+        const DATA = {
+            "nodes": [
+                { "id": "place_complex", "name": "Northern Galilee Christianity Sites", "type": "Place", "meaning": "Serial ensemble of core Galilee sacred places" },
+                { "id": "sea", "name": "Sea of Galilee", "type": "Natural Phenomenon", "meaning": "Central lake shaping sacred landscapes and routes" },
+                { "id": "event_ministry", "name": "Ministry of Jesus (Galilee)", "type": "Event", "meaning": "Teachings, healings, journeys across Galilee settings" },
+                { "id": "story_gospels", "name": "Gospel Narratives", "type": "Story / Narrative", "meaning": "Texts situating events in specific Galilee places" },
+                { "id": "trad_pilgrimage", "name": "Pilgrimage Traditions", "type": "Tradition / Custom", "meaning": "Continuous veneration from Byzantine era to present" },
+                { "id": "group_global", "name": "Christian Communities Worldwide", "type": "Social Group", "meaning": "Global faithful engaging sites through memory and travel" },
+
+                { "id": "val_sacredgeo", "name": "Sacred Geography", "type": "Cultural Value", "value_type": "Spiritual", "meaning": "Revelation tied to specific landscapes and places" },
+                { "id": "val_pilgrimage", "name": "Pilgrimage Continuity", "type": "Cultural Value", "value_type": "Social", "meaning": "Living practices linking believers and holy sites" },
+                { "id": "val_histtest", "name": "Historical Testimony", "type": "Cultural Value", "value_type": "Historical", "meaning": "Exceptional witness to early Christianity’s contexts" },
+                { "id": "val_science", "name": "Archaeological Record", "type": "Cultural Value", "value_type": "Scientific", "meaning": "Material remains enabling rigorous historical study" },
+                { "id": "val_landscape", "name": "Landscape Cohesion", "type": "Cultural Value", "value_type": "Landscape", "meaning": "Hills, lake, routes preserve legible setting" },
+                { "id": "val_symbolic", "name": "Symbolic Identity", "type": "Cultural Value", "value_type": "Symbolic", "meaning": "Emblematic locus of Christian origins and ideals" }
+            ],
+            "edges": [
+                { "from": "place_complex", "to": "val_sacredgeo", "label": "expresses_value" },
+                { "from": "place_complex", "to": "val_pilgrimage", "label": "expresses_value" },
+                { "from": "place_complex", "to": "val_histtest", "label": "expresses_value" },
+                { "from": "place_complex", "to": "val_science", "label": "expresses_value" },
+                { "from": "place_complex", "to": "val_landscape", "label": "expresses_value" },
+                { "from": "place_complex", "to": "val_symbolic", "label": "expresses_value" },
+
+                { "from": "sea", "to": "place_complex", "label": "located_in" },
+                { "from": "sea", "to": "val_sacredgeo", "label": "influences" },
+                { "from": "sea", "to": "val_landscape", "label": "influences" },
+
+                { "from": "event_ministry", "to": "val_histtest", "label": "associated_with" },
+                { "from": "event_ministry", "to": "val_sacredgeo", "label": "associated_with" },
+                { "from": "event_ministry", "to": "story_gospels", "label": "documented_in" },
+
+                { "from": "story_gospels", "to": "val_symbolic", "label": "influences" },
+                { "from": "story_gospels", "to": "val_histtest", "label": "supports" },
+                { "from": "story_gospels", "to": "val_sacredgeo", "label": "reinforces" },
+
+                { "from": "trad_pilgrimage", "to": "val_pilgrimage", "label": "expresses" },
+                { "from": "trad_pilgrimage", "to": "val_symbolic", "label": "reinforces" },
+                { "from": "trad_pilgrimage", "to": "event_ministry", "label": "commemorates" },
+
+                { "from": "group_global", "to": "val_pilgrimage", "label": "used_by" },
+                { "from": "group_global", "to": "val_symbolic", "label": "associated_with" },
+
+                { "from": "val_histtest", "to": "val_science", "label": "supported_by" },
+                { "from": "val_sacredgeo", "to": "val_landscape", "label": "influenced_by" }
+            ]
+        };
+
+        /* ---------- Color palette (EN) ---------- */
+        const COLOR_BY_TYPE = {
+            'Natural Phenomenon': { background: 'rgba(30,144,255,0.7)', border: '#1E90FF' },
+            'Structure / Building': { background: 'rgba(178,34,34,0.7)', border: '#B22222' },
+            'Architectural Element': { background: 'rgba(129,199,132,0.7)', border: '#81C784' },
+            'Person': { background: 'rgba(255,105,180,0.7)', border: '#FF69B4' },
+            'Event': { background: 'rgba(255,160,122,0.7)', border: '#FFA07A' },
+            'Story / Narrative': { background: 'rgba(255,228,181,0.7)', border: '#FFE4B5' },
+            'Social Group': { background: 'rgba(255,215,0,0.7)', border: '#FFD700' },
+            'Cultural Value': { background: 'rgba(255,193,7,0.7)', border: '#FFC107' },
+            'Value': { background: 'rgba(255,193,7,0.7)', border: '#FFC107' },
+            'Place': { background: 'rgba(100,149,237,0.7)', border: '#6495ED' },
+            'Artwork / Artefact': { background: 'rgba(128,0,128,0.7)', border: '#800080' },
+            'Tradition / Custom': { background: 'rgba(139,69,19,0.7)', border: '#8B4513' },
+            'Historical Period': { background: 'rgba(0,180,180,0.7)', border: '#00B4B4' },
+            'Religion / Belief': { background: 'rgba(218,112,214,0.7)', border: '#DA70D6' },
+            'Collective Memory': { background: 'rgba(75,0,130,0.7)', border: '#4B0082' }
+        };
+        const FALLBACK_COLOR = { background: 'rgba(200,200,200,0.6)', border: '#666666' };
+
+        /* ---------- Normalize node + build label ---------- */
+        const normalizeType = t => {
+            if (!t) return 'General';
+            const s = String(t).trim();
+            return (s.toLowerCase() === 'value' || s.toLowerCase() === 'cultural value') ? 'Cultural Value' : s;
+        };
+
+        DATA.nodes.forEach(n => {
+            n.type = normalizeType(n.type);
+            // Label rule: Value nodes use "Value: <name> [<value_type>]"
+            if (n.type === 'Cultural Value') {
+                const vt = n.value_type ? String(n.value_type) : '—';
+                n.label = `Value: ${n.name} [${vt}]`;
+            } else {
+                n.label = n.name || '';
+            }
+            const col = COLOR_BY_TYPE[n.type] || FALLBACK_COLOR;
+            n.color = n.color || { background: col.background, border: col.border };
+            n.shape = 'box';
+        });
+
+        /* ---------- Build vis datasets ---------- */
+        const nodes = new vis.DataSet(DATA.nodes);
+        const edges = new vis.DataSet(DATA.edges);
+        const container = document.getElementById('mynetwork');
+
+        const options = {
+            nodes: {
+                font: { align: 'center', size: 14, color: '#333' },
+                borderWidth: 1,
+                margin: { top: 8, right: 10, bottom: 8, left: 10 },
+                widthConstraint: { maximum: 180 }
+            },
+            edges: {
+                arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+                font: { align: 'middle', size: 11, color: '#555', background: 'white' },
+                smooth: { type: 'cubicBezier', forceDirection: 'vertical' }
+            },
+            physics: {
+                stabilization: {
+                    enabled: true,
+                    iterations: 1000,
+                    updateInterval: 10
+                },
+                barnesHut: {
+                    gravitationalConstant: -8000,  // stronger repulsion
+                    centralGravity: 0.3,          // pull nodes outward
+                    springLength: 400,             // increase ideal distance
+                    springConstant: 0.04,          // stiffness of the spring
+                    damping: 0.09,                  // damping factor
+                    avoidOverlap: 3                // prevent overlap
+                },
+                repulsion: {
+                    nodeDistance: 200             // minimum spacing between nodes
+                }
+            },
+            layout: { improvedLayout: true },
+          //  randomSeed: 42 // for consistent, spread layout
+
+        };
+
+        const network = new vis.Network(container, { nodes, edges }, options);
+        network.stabilize();
+        network.on('stabilizationIterationsDone', () => {
+            network.setOptions({ physics: false });
+        });
+        // network.setOptions({ physics: false })
+        // Info window behavior
+        const info = document.getElementById('infowindow');
+        const infoName = document.getElementById('info_name');
+        const infoType = document.getElementById('info_type');
+        const infoMeaning = document.getElementById('info_meaning');
+        const closeBtn = document.getElementById('closeinfo');
+        closeBtn.onclick = () => info.style.display = 'none';
+
+        network.on('click', params => {
+            if (params.nodes.length) {
+                const n = nodes.get(params.nodes[0]);
+                infoName.textContent = n.label || n.name;
+                infoType.textContent = n.type;
+                infoMeaning.textContent = n.meaning || '';
+                info.style.display = 'block';
+                const pos = params.pointer.DOM;
+                info.style.left = (pos.x + 10) + 'px';
+                info.style.top = (pos.y + 10) + 'px';
+            } else {
+                info.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

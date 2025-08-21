@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Knowledge Graph — נקודות ושמות מתחת</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root { --panel:#f7f7f7 }
+    html,body{height:100%}
+    body{margin:0;font-family:Calibri,system-ui,sans-serif}
+    #toolbar{position:sticky;top:0;z-index:5;display:flex;gap:.5rem;align-items:center;justify-content:flex-end;padding:.6rem .8rem;background:var(--panel);border-bottom:1px solid #e3e3e3}
+    #toolbar button,#toolbar label{font-size:.95rem}
+    #toolbar button{padding:.45rem .7rem;border:1px solid #d0d0d0;background:#fff;border-radius:.5rem;cursor:pointer}
+    #wrap{position:relative;height:calc(100vh - 54px)}
+    #mynetwork{width:100%;height:100%;border:1px solid #ddd}
+    #infowindow{display:none;position:absolute;right:10px;top:10px;background:#fff;border:1px solid #ccc;padding:10px;box-shadow:2px 2px 10px rgba(0,0,0,.15);text-align:right;max-width:300px;z-index:10}
+    #closeinfo{float:left;cursor:pointer;font-weight:bold}
+    #testlog{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem;padding:.4rem .6rem}
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <label><input type="checkbox" id="chkHier" /> פריסה היררכית</label>
+    <button id="btnFit" title="התאם למסך">התאם</button>
+    <button id="btnFreeze" title="כבה פיזיקה (נעל פריסה)">הקפא</button>
+    <button id="btnUnfreeze" title="הפעל פיזיקה">הפעל</button>
+    <button id="btnStabilize" title="ייצב מחדש">ייצוב</button>
+    <button id="btnRunTests" title="הרץ בדיקות">בדיקות</button>
+    <span id="teststatus" aria-live="polite" style="margin-inline-start:.6rem"></span>
+  </div>
+
+  <div id="wrap">
+    <div id="mynetwork"></div>
+    <div id="infowindow">
+      <span id="closeinfo">✖</span>
+      <h3 id="info_name"></h3>
+      <p><strong>סוג:</strong> <span id="info_type"></span></p>
+      <p><strong>משמעות:</strong> <span id="info_meaning"></span></p>
+    </div>
+  </div>
+
+  <div id="testlog" hidden></div>
+
+  <script>
+    // ===== צבעים בעלי ניגודיות גבוהה (מותאם) =====
+    const COLOR_BY_TYPE = {
+      'Natural Phenomenon': { background: 'rgba(52,152,219,0.9)', border: '#1f6aa5' },
+      'Event': { background: 'rgba(241,148,138,0.92)', border: '#a93226' },
+      'Story / Narrative': { background: 'rgba(253,203,110,0.92)', border: '#b9770e' },
+      'Social Group': { background: 'rgba(247,220,111,0.92)', border: '#9a7d0a' },
+      'Cultural Value': { background: 'rgba(255,214,102,0.96)', border: '#b8860b' },
+      'Place': { background: 'rgba(120,165,245,0.92)', border: '#3f6ed8' },
+      'Tradition / Custom': { background: 'rgba(205,133,63,0.92)', border: '#6e3b0c' },
+      'General': { background: 'rgba(200,200,200,0.9)', border: '#666666' }
+    };
+
+    // ===== DATA =====
+    const DATA = {
+      nodes: [
+        { id: 'place_complex', name: 'Northern Galilee Christianity Sites', type: 'Place', meaning: 'Serial ensemble of core Galilee sacred places' },
+        { id: 'sea', name: 'Sea of Galilee', type: 'Natural Phenomenon', meaning: 'Central lake shaping sacred landscapes and routes' },
+        { id: 'event_ministry', name: 'Ministry of Jesus (Galilee)', type: 'Event', meaning: 'Teachings, healings, journeys across Galilee settings' },
+        { id: 'story_gospels', name: 'Gospel Narratives', type: 'Story / Narrative', meaning: 'Texts situating events in specific Galilee places' },
+        { id: 'trad_pilgrimage', name: 'Pilgrimage Traditions', type: 'Tradition / Custom', meaning: 'Continuous veneration from Byzantine era to present' },
+        { id: 'group_global', name: 'Christian Communities Worldwide', type: 'Social Group', meaning: 'Global faithful engaging sites through memory and travel' },
+
+        { id: 'val_sacredgeo', name: 'Sacred Geography', type: 'Cultural Value', meaning: 'Revelation tied to specific landscapes and places' },
+        { id: 'val_pilgrimage', name: 'Pilgrimage Continuity', type: 'Cultural Value', meaning: 'Living practices linking believers and holy sites' },
+        { id: 'val_histtest', name: 'Historical Testimony', type: 'Cultural Value', meaning: 'Exceptional witness to early Christianity’s contexts' },
+        { id: 'val_science', name: 'Archaeological Record', type: 'Cultural Value', meaning: 'Material remains enabling rigorous historical study' },
+        { id: 'val_landscape', name: 'Landscape Cohesion', type: 'Cultural Value', meaning: 'Hills, lake, routes preserve legible setting' },
+        { id: 'val_symbolic', name: 'Symbolic Identity', type: 'Cultural Value', meaning: 'Emblematic locus of Christian origins and ideals' }
+      ],
+      edges: [
+        { from: 'place_complex', to: 'val_sacredgeo', label: 'expresses_value' },
+        { from: 'place_complex', to: 'val_pilgrimage', label: 'expresses_value' },
+        { from: 'place_complex', to: 'val_histtest', label: 'expresses_value' },
+        { from: 'place_complex', to: 'val_science', label: 'expresses_value' },
+        { from: 'place_complex', to: 'val_landscape', label: 'expresses_value' },
+        { from: 'place_complex', to: 'val_symbolic', label: 'expresses_value' },
+
+        { from: 'sea', to: 'place_complex', label: 'located_in' },
+        { from: 'sea', to: 'val_sacredgeo', label: 'influences' },
+        { from: 'sea', to: 'val_landscape', label: 'influences' },
+
+        { from: 'event_ministry', to: 'val_histtest', label: 'associated_with' },
+        { from: 'event_ministry', to: 'val_sacredgeo', label: 'associated_with' },
+        { from: 'event_ministry', to: 'story_gospels', label: 'documented_in' },
+
+        { from: 'story_gospels', to: 'val_symbolic', label: 'influences' },
+        { from: 'story_gospels', to: 'val_histtest', label: 'supports' },
+        { from: 'story_gospels', to: 'val_sacredgeo', label: 'reinforces' },
+
+        { from: 'trad_pilgrimage', to: 'val_pilgrimage', label: 'expresses' },
+        { from: 'trad_pilgrimage', to: 'val_symbolic', label: 'reinforces' },
+        { from: 'trad_pilgrimage', to: 'event_ministry', label: 'commemorates' },
+
+        { from: 'group_global', to: 'val_pilgrimage', label: 'used_by' },
+        { from: 'group_global', to: 'val_symbolic', label: 'associated_with' },
+
+        { from: 'val_histtest', to: 'val_science', label: 'supported_by' },
+        { from: 'val_sacredgeo', to: 'val_landscape', label: 'influenced_by' }
+      ]
+    };
+
+    // ===== helpers =====
+    function normalizeType(t){ if(!t) return 'General'; const s=String(t).trim(); return (s.toLowerCase()==='value'||s.toLowerCase()==='cultural value')?'Cultural Value':s; }
+
+    // validate structure
+    if (!DATA || !Array.isArray(DATA.nodes) || !Array.isArray(DATA.edges)) {
+      console.warn('⚠️ DATA malformed; initializing empty graph');
+      window.DATA = { nodes: [], edges: [] };
+    }
+
+    // nodes: small dots + label underneath
+    DATA.nodes.forEach(n=>{
+  n.type = normalizeType(n.type);
+  const col = COLOR_BY_TYPE[n.type] || COLOR_BY_TYPE['General'];
+  n.label = n.name;                 // שם בלבד
+  n.shape = 'dot';                  // נקודה
+  n.size = 8;                       // קטן
+  n.font = { size: 9, color: '#222', vadjust: 10, face: 'Calibri, system-ui, sans-serif', strokeWidth: 0, stroke: null };
+  n.color = { background: col.background, border: col.border };
+    });
+
+    const nodes = new vis.DataSet(DATA.nodes);
+    const edges = new vis.DataSet(DATA.edges);
+
+    const container = document.getElementById('mynetwork');
+    const options = {
+      nodes: { borderWidth: 1 },
+      edges: {
+        arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+        smooth: { enabled: true, type: 'dynamic' },
+        font: { align: 'top', size: 11, color: '#555', background: 'white' }
+      },
+      physics: {
+        enabled: true,
+        stabilization: { enabled: true, iterations: 1000, fit: true },
+        barnesHut: { gravitationalConstant: -6500, centralGravity: 0.12, springLength: 230, springConstant: 0.035, damping: 0.2, avoidOverlap: 1 }
+      },
+      layout: { improvedLayout: true, randomSeed: 42 }
+    };
+
+    const network = new vis.Network(container, { nodes, edges }, options);
+
+    network.once('stabilizationIterationsDone', () => {
+      network.stopSimulation();
+      network.setOptions({ physics: { enabled: false } });
+    });
+
+    // info window
+    const wrap = document.getElementById('wrap');
+    const info = document.getElementById('infowindow');
+    const infoName = document.getElementById('info_name');
+    const infoType = document.getElementById('info_type');
+    const infoMeaning = document.getElementById('info_meaning');
+    document.getElementById('closeinfo').onclick = () => info.style.display='none';
+
+    network.on('click', params => {
+      if (params.nodes && params.nodes.length) {
+        const n = nodes.get(params.nodes[0]);
+        infoName.textContent = n.name || '';
+        infoType.textContent = n.type || '';
+        infoMeaning.textContent = n.meaning || '';
+        info.style.display = 'block';
+        const rect = wrap.getBoundingClientRect();
+        const p = params.pointer.DOM;
+        info.style.right = Math.min(Math.max(rect.right - p.x + 10, 10), rect.width - 300) + 'px';
+        info.style.top  = Math.min(Math.max(p.y - rect.top  + 10, 10), rect.height - 160) + 'px';
+      } else { info.style.display='none'; }
+    });
+
+    // controls
+    const $ = id => document.getElementById(id);
+    $('btnFit').onclick = () => network.fit({ animation: true });
+    $('btnFreeze').onclick = () => network.setOptions({ physics: { enabled: false } });
+    $('btnUnfreeze').onclick = () => network.setOptions({ physics: { enabled: true } });
+    $('btnStabilize').onclick = () => { network.setOptions({ physics:{ enabled:true } }); network.stabilize(); };
+
+    $('chkHier').onchange = (e) => {
+      if (e.target.checked) {
+        network.setOptions({
+          layout: { hierarchical: { enabled: true, direction: 'UD', nodeSpacing: 180, levelSeparation: 200, sortMethod: 'directed' }, randomSeed: 42 },
+          physics: { enabled: false },
+          edges: { smooth: { enabled: true, type: 'cubicBezier' } }
+        });
+      } else {
+        network.setOptions({
+          layout: { hierarchical: { enabled: false }, improvedLayout: true, randomSeed: 42 },
+          physics: options.physics,
+          edges: { smooth: { enabled: true, type: 'dynamic' } }
+        });
+        network.stabilize();
+      }
+    };
+
+    // tests
+    function runTests(){
+      const log=[]; const add=(ok,msg)=>log.push(`${ok?'✅':'❌'} ${msg}`);
+      add(!!DATA && Array.isArray(DATA.nodes) && Array.isArray(DATA.edges),'DATA shape ok');
+      add(DATA.nodes.length>0,'nodes not empty');
+      add(DATA.edges.length>0,'edges not empty');
+      DATA.nodes.forEach((n,i)=>{
+        add(n.shape==='dot',`Node[${i}] shape is dot`);
+        add(n.size===8,`Node[${i}] small size`);
+        add(n.font && typeof n.font.vadjust==='number',`Node[${i}] label has vadjust`);
+      });
+      const out = log.join('\n');
+      const testlog = document.getElementById('testlog');
+      testlog.hidden = false; testlog.textContent = out;
+      document.getElementById('teststatus').textContent = `Tests: ${log.filter(l=>l.startsWith('✅')).length}/${log.length} passed`;
+      console.info('[KG tests]\n' + out);
+    }
+    document.getElementById('btnRunTests').onclick = runTests;
+  </script>
+</body>
+</html>

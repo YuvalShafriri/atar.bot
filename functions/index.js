@@ -48,7 +48,7 @@ exports.geminiProxy = onRequest((req, res) => {
       }
 
       const model = genAI.getGenerativeModel({
-        model: modelName || "gemini-1.5-flash",
+        model: modelName || "gemini-2.5-flash-lite",
       });
 
       logger.info(

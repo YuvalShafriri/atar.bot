@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { prependLangInstruction } from '../../utils/language';
 import { GraphData, LLMMessage } from '../../services/graphQueryService';
 //import { chatGraphModern } from '../../services/modernGraphQueryService';
 import { chatGraphModern } from '../../services/agentService';
@@ -16,6 +17,7 @@ const fetchChatCompletion = async (
     tools?: any[]
 ) => {
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    //VITE_GEMINI_PROXY_URL=https://us-central1-telemyuval.cloudfunctions.net/geminiProxy
     const contents = messages.map(m => ({ text: m.content }));
     const body = { model: LLM_MODEL, contents, tools };
 
@@ -199,7 +201,7 @@ const AiSpot: React.FC<AiSpotProps> = ({ spotId: _spotId, onQuery, placeholder }
             }
         } catch (error) {
             console.error("AI Query Error:", error);
-            setOutput('שגיאה בקבלת תשובה מהבוט.');
+            setOutput('Error getting response from bot.');
         } finally {
             setIsLoading(false);
         }
@@ -401,10 +403,10 @@ async function askLLMSimple(question: string, graphData: any): Promise<string> {
     1. היה תמציתי - לא צריך הסברים מפורטים
     2. אם אין קשר בגרף - אמר שאין קשר
     3. התבסס רק על הנתונים המסופקים
-    4. ענה בעברית פשוטה וברורה
+    4. התשובה תיתן במנעד השפה של הקלט (ענה באותה שפה כמו השאלה)
     `;
 
-    const fullPrompt = `
+    const fullPromptBase = `
         ${systemPrompt}
 
         --- נתוני ההקשר (JSON Data) ---
@@ -414,6 +416,7 @@ async function askLLMSimple(question: string, graphData: any): Promise<string> {
         בהתבסס על ההנחיות ועל נתוני ההקשר בלבד, ענה על השאלה הבאה:
         שאלה: ${question}
         `;
+    const fullPrompt = prependLangInstruction(fullPromptBase, question);
 
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {

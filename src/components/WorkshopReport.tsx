@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { prependLangInstruction } from '../utils/language';
 
 interface WorkshopReportProps {}
 
@@ -76,7 +77,7 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
   const callGeminiAPI = async (prompt: string): Promise<string> => {
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
-      throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
+      throw new Error("Server configuration error - GEMINI_PROXY_URL not found");
     }
 
     const response = await fetch(proxyUrl, {
@@ -89,7 +90,7 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
     });
 
     if (!response.ok) {
-      throw new Error("שגיאה בקבלת תשובה מהבוט");
+      throw new Error("Error getting response from bot");
     }
 
     const result = await response.json();
@@ -99,24 +100,25 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
     setIsAnalyzing(true);
     setGeminiResults('');
     try {
-      const prompt = `אתה עוזר ניתוח המתמחה בהערכת מורשת. בהתבסס על הטקסט הבא, בצע את המשימות הבאות:
-1. זהה את הערכים התרבותיים המרכזיים (כגון ערך היסטורי, חברתי, אדריכלי).
-2. זהה את הישויות המרכזיות (כגון אנשים, מקומות, אירועים).
-3. הצע 3 שאלות מפתח לחקירה נוספת.
+  const promptBase = `You are an analysis assistant specialized in heritage assessment. Based on the text below, perform the following tasks:
+1. Identify the main cultural values (e.g., historical, social, architectural).
+2. Identify the main entities (people, places, events).
+3. Propose 3 key follow-up research questions.
 
-**כללי ברזל:**
-* היצמד אך ורק למידע הקיים בטקסט שסופק.
-* אסור לך להמציא, להוסיף או להסיק מידע חיצוני שאינו מופיע בטקסט.
-* אם מידע מסוים חסר או לא ברור, ציין זאת במפורש.
-* השב תמיד בעברית.
+Rules:
+- Stick strictly to information present in the provided text.
+- Do not invent or add external information not in the text.
+- If information is missing or unclear, state it explicitly.
 
-הטקסט לניתוח: "${geminiInput}"`;
+Text to analyze: "${geminiInput}"`;
+  // replace hard-coded language rule with mirrored-language instruction
+  const prompt = promptBase; // No language-specific instruction needed
       const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
       if (!proxyUrl) throw new Error("שגיאה בהגדרות השרת - לא נמצא GEMINI_PROXY_URL");
-      const response = await fetch(proxyUrl, {
+        const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gemini-1.5-flash', contents: prompt, stream: true })
+        body: JSON.stringify({ model: 'gemini-1.5-flash', contents: prependLangInstruction(prompt, geminiInput), stream: true })
       });
       if (!response.ok) throw new Error("שגיאה בקבלת תשובה מהבוט");
       if (!response.body) {
@@ -318,8 +320,8 @@ const WorkshopReport: React.FC<WorkshopReportProps> = () => {  const [activeTab,
                     <div className={`bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg transition-opacity duration-300 ${selectedInfo.type && selectedInfo.key ? 'opacity-100' : 'opacity-50'}`}>
                       <p className="font-semibold">
                         {selectedInfo.type && selectedInfo.key 
-                          ? cardInfo[selectedInfo.type][selectedInfo.key]
-                          : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
+                        //   ? cardInfo[selectedInfo.type][selectedInfo.key]
+                        //   : 'לחצו על אחד היתרונות או האתגרים למעלה כדי לראות מידע נוסף כאן.'
                         }
                       </p>
                     </div>
