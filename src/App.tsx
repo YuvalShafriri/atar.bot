@@ -381,7 +381,8 @@ const HomePageEn: React.FC = () => {
 };
 
 const ExperiencePageEn: React.FC = () => {
-  const [openIdx, setOpenIdx] = useState<number | null>(0);
+  // Start with all steps collapsed on load
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const experienceStepsEn = [
     {
