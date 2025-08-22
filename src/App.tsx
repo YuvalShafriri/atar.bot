@@ -220,46 +220,40 @@ const HomePageEn: React.FC = () => {
   
   return (
     <div id="home-en">
-      {/* <div className="text-center">
-                <h1 className="text-2xl md:text-2xl font-bold text-gray-900">atar.bot – Workshop Experience Summary</h1>
-                <p className="mt-2 max-w-4xl mx-auto text-lg text-gray-600">
-                    This site centralizes the outcomes and insights from our three workshop cycles. <br />
-                    It was built for workshop participants and is open for review by anyone interested in the intersection between cultural heritage assessment and artificial intelligence.
-                </p>
-            </div> */}
+       
 
       {/* Section title for useful links */}
       <div className="mt-7">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white p-4 rounded-lg shadow mb-4">
             <h2 className="text-xl font-semibold text-gray-800 m-0">
-              Useful Workshop Links
+              Useful Workshop Links - https://alephplace.com/cipa25
             </h2>
           </div>
           <div className="flex flex-col gap-6">
             <div className="bg-white p-6 rounded-lg shadow">
               <ul className="custom-list space-y-2 text-lg mb-2">
-                <li className="icon-link">
+                <li className="icon-bot">
                   <a
-                    href="https://chatgpt.com/g/g-687366896c1c81918ebf923352f45b31-tr-bvt-yqvmvs"
+                    href="https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop"
                     target="_blank"
                     rel="noopener"
                     className="text-blue-600 hover:underline"
                   >
-                    atar.bot &nbsp;&gt; <em>Cultural-Insites</em>
+                     <em>Cultural-Insites GPTs</em>
                   </a>
                 </li>
-                <li className="icon-bot relative flex items-center">
+                <li className="icon-brain flex items-center gap-2">
                   <a
                     href="https://drive.google.com/file/d/1UJkHNSPJA5hjsN6-uVkOVmNHzpyIieaN/view?usp=sharing"
                     target="_blank"
                     rel="noopener"
                     className="text-blue-600 hover:underline"
                   >
-                    <em>Cultural-Insites</em> 'Brain' file
+                    <em>Cultural-Insites 'Brain'</em>
                   </a>
                   <div
-                    className="relative flex items-center ml-2"
+                    className="relative flex items-center ml-1"
                     tabIndex={0}
                     onMouseEnter={() => setShowBrainTooltip(true)}
                     onMouseLeave={() => setShowBrainTooltip(false)}
@@ -291,7 +285,7 @@ const HomePageEn: React.FC = () => {
                 </li>
                 <li className="icon-drive">
                   <a
-                    href="https://drive.google.com/drive/folders/1cXDqYxmtaliDE1Cq9heT2u_0BRXz5Gj6?usp=sharing"
+                    href="https://drive.google.com/drive/folders/1Qqs0x8Raks34Ykmn82VXeuiGdOq4T7R5?usp=sharing"
                     target="_blank"
                     rel="noopener"
                     className="text-blue-600 hover:underline"
@@ -684,197 +678,89 @@ const HandsOn2Page: React.FC = () => {
 };
 
 const DiscussionPage: React.FC = () => {
-  const [feedback, setFeedback] = useState({
-    step1: "",
-    step2: "",
-    step3: "",
-  });
-
-  const handleInputChange = (step: string, value: string) => {
-    setFeedback((prev) => ({ ...prev, [step]: value }));
-  };
-
   return (
     <div id="discussion" className="space-y-6 py-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">
-          Research Feedback — Bot usage & experience
+          Workshop Feedback
         </h2>
         <p className="text-lg text-gray-600">
-          Share concise, evidence-based observations to support research,
-          analysis, and demo preparation.
+          Share your thoughts, ideas, and suggestions about the workshop experience.
         </p>
       </div>
 
       <div className="max-w-4xl mx-auto">
-        {/* Instructions Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
-          <h3 className="text-xl font-bold text-blue-800 mb-3">
-            📝 How to contribute
-          </h3>
-          <p className="text-gray-700 mb-3">
-            We are collecting expert feedback for research and bot analysis.
-            Please provide clear, factual examples where possible. Use the three
-            fields below to keep responses focused and comparable.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-start gap-2">
-              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">
-                1
-              </span>
-              <span>
-                <strong>Useful behavior</strong> — Describe what the bot did
-                well, with the context of the task or prompt.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">
-                2
-              </span>
-              <span>
-                <strong>Limitations / failures</strong> — Note where the bot
-                underperformed, produced errors, or gave misleading outputs.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs">
-                3
-              </span>
-              <span>
-                <strong>Analytic notes</strong> — Suggestions for investigation,
-                reproducible prompts, edge cases, or ideas for demos.
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Feedback Form */}
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="space-y-8">
-            {/* Step 1 */}
+          <form action="https://formspree.io/f/xdkdqnvq" method="POST" className="space-y-6">
+            <input type="hidden" name="_subject" value="Workshop Feedback - Cultural Assessment" />
+            
+            {/* Ideas and Thoughts */}
             <div className="border-l-4 border-blue-500 pl-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  1
+                  💡
                 </span>
                 <h3 className="text-xl font-semibold text-gray-800">
-                  Useful behavior
+                  Ideas & Thoughts
                 </h3>
               </div>
               <p className="text-gray-600 mb-4">
-                Describe specific outputs, prompts, or interactions that were
-                helpful. If possible, include the prompt, input, or short
-                excerpt that produced the behavior.
+                 Any insights, positive or other sentiments, experiences, or  discoveries during the workshop?
               </p>
               <textarea
-                value={feedback.step1}
-                onChange={(e) => handleInputChange("step1", e.target.value)}
-                placeholder="Example: Prompt: 'Summarize the site's historical phases' — The bot produced a concise, source-aligned phase list with dates and uncertainty notes."
+                name="ideas_thoughts"
+                placeholder="Share your ideas, insights, positive experiences, or useful discoveries..."
                 className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
+                required
               />
             </div>
 
-            {/* Step 2 */}
+            {/* Suggestions and Improvements */}
             <div className="border-l-4 border-green-500 pl-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  2
+                  🔧
                 </span>
                 <h3 className="text-xl font-semibold text-gray-800">
-                  Limitations or failures
+                  Suggestions & Improvements
                 </h3>
               </div>
               <p className="text-gray-600 mb-4">
-                Record cases where the bot failed, hallucinated, or returned
-                irrelevant information. Include steps to reproduce if available.
+                What could be improved? Any challenges, suggestions for better approaches, or ideas for future cultural assessments in 2050?
               </p>
               <textarea
-                value={feedback.step2}
-                onChange={(e) => handleInputChange("step2", e.target.value)}
-                placeholder="Example: The bot asserted a construction date without sources. Repro: use prompt X with the site name Y..."
+                name="suggestions_improvements"
+                placeholder="Share suggestions for improvements, challenges faced, or ideas for future workshops..."
                 className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200 resize-none"
+                required
               />
             </div>
 
-            {/* Step 3 */}
-            <div className="border-l-4 border-purple-500 pl-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  3
-                </span>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Analytic notes & demo ideas
-                </h3>
-              </div>
-              <p className="text-gray-600 mb-4">
-                Share ideas for analysis, metrics to collect, or small demo
-                scenarios that illustrate strengths/weaknesses.
-              </p>
-              <textarea
-                value={feedback.step3}
-                onChange={(e) => handleInputChange("step3", e.target.value)}
-                placeholder="Example: Track 'source citation accuracy' across 50 prompts, or demo: compare bot summaries vs. curated timeline for 3 case studies..."
-                className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200 resize-none"
-              />
+            {/* Submit Button */}
+            <div className="flex justify-center pt-6">
+              <button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+              >
+                Send Feedback
+              </button>
             </div>
-          </div>
+          </form>
 
           {/* Thank you message */}
           <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-2xl">🙏</span>
               <h4 className="text-lg font-semibold text-gray-800">
-                Thank you — your expertise helps our research
+                Thank you for your feedback!
               </h4>
             </div>
             <p className="text-gray-700">
-              We collect this feedback to improve model behavior, guide
-              analysis, and prepare reproducible demos. Responses are intended
-              for research and product analysis, not marketing.
+              Your input helps us improve future workshops and the cultural assessment process. 
+              All feedback is valuable for research and development.
             </p>
-            <div className="mt-4 text-sm text-gray-600">
-              <p>
-                <strong>Note:</strong> This form is a preview for collecting
-                structured input; responses are treated confidentially and used
-                to inform future model improvements and demonstrations.
-              </p>
-            </div>
           </div>
-
-          {/* Preview of current feedback */}
-          {(feedback.step1 || feedback.step2 || feedback.step3) && (
-            <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                📋 Feedback preview
-              </h4>
-              <div className="space-y-4 text-sm">
-                {feedback.step1 && (
-                  <div>
-                    <span className="font-semibold text-blue-600">
-                      1. Useful behavior:
-                    </span>
-                    <p className="text-gray-700 mt-1">{feedback.step1}</p>
-                  </div>
-                )}
-                {feedback.step2 && (
-                  <div>
-                    <span className="font-semibold text-green-600">
-                      2. Limitations / failures:
-                    </span>
-                    <p className="text-gray-700 mt-1">{feedback.step2}</p>
-                  </div>
-                )}
-                {feedback.step3 && (
-                  <div>
-                    <span className="font-semibold text-purple-600">
-                      3. Analytic notes:
-                    </span>
-                    <p className="text-gray-700 mt-1">{feedback.step3}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

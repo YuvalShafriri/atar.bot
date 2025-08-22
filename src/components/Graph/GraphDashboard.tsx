@@ -900,7 +900,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                         style={{ cursor: 'pointer' }}
                     >
                         <img
-                            src="./images/i.png"
+                            src={`${import.meta.env.BASE_URL ?? "/"}images/i.png`}
                             alt="הסבר על הגרפים"
                             style={{ width: 22, height: 22, display: 'inline-block' }}
                             aria-label="הסבר על הגרפים"

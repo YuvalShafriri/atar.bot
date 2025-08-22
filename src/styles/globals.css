@@ -184,6 +184,9 @@ main.container {
 /* Brain / Bot icon for the 'Brain' file link */
 .custom-list li.icon-bot::before{ content: "🤖"; left:0; position:absolute; top:50%; transform:translateY(-50%); font-size:18px; }
 
+/* Brain / Brain-file icon (uses emoji) */
+.custom-list li.icon-brain::before{ content: "🧠"; left:0; position:absolute; top:50%; transform:translateY(-50%); font-size:18px; }
+
 /* Footer */
 .site-footer {
     position: fixed;
