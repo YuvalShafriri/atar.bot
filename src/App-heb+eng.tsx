@@ -907,9 +907,9 @@ const App = () => {
     useEffect(() => {
         async function loadData() {            try {
                 const [graphRes, thematicRes, allGrapheCleanRes] = await Promise.all([
-                    fetch('/icomos/atar.bot/data/graphData.json'),
-                    fetch('/icomos/atar.bot/data/thematicGraph.json'),
-                    fetch('/icomos/atar.bot/data/allGrapheClean.json')
+                    fetch('data/graphData.json'),
+                    fetch('data/thematicGraph.json'),
+                    fetch('data/allGrapheClean.json')
                 ]);
                 if (!graphRes.ok || !thematicRes.ok || !allGrapheCleanRes.ok) {
                     throw new Error('Network response was not ok.');

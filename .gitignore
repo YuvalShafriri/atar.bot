@@ -59,6 +59,9 @@ prompts/
 misc-html/
 archive/
 
+# Ignore Apache htaccess files
+*.htaccess
+
 # Test output
 coverage/
 test-output/

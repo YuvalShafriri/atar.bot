@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/icomos/atar.bot/',
+  base: '/cipa25/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../src'),
