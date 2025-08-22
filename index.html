@@ -6,8 +6,29 @@
     <title>אתר.בוט – סיכום סדנאות ההתנסות</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    // Configure Tailwind with custom colors to match our design
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'sans': ['Assistant', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+          },
+          colors: {
+            'primary-blue': '#2563eb',
+            'primary-blue-dark': '#1d4ed8',
+            'text-dark': '#1f2937',
+            'text-light': '#4b5563',
+            'bg-light': '#f9fafb',
+            'border-color': '#e5e7eb'
+          }
+        }
+      }
+    }
+    </script>
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts with fallback: if blocked, system fonts will be used -->
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet" onerror="console.log('Google Fonts blocked, using system fonts')">
     <link rel="stylesheet" href="src/styles/globals.css">
 <script type="importmap">
 {
