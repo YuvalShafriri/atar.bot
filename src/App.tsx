@@ -11,15 +11,15 @@ const LLM_MODEL = "gemini-2.5-flash-lite";
 
 // Nav: order controls tab position; Dashboard is present but hidden (visible: false)
 const navItems = [
-  { id: "home-en", label: "Home", visible: true },
-  { id: "hands-on-1", label: "Hands-on 1", visible: true },
-  { id: "hands-on-2", label: "Hands-on 2", visible: true },
-  { id: "discussion", label: "Discussion", visible: true },
-  { id: "tips", label: "Tips", visible: true },
-  { id: "ideas", label: "Ideas", visible: true },
-  { id: "kg-map", label: "KG-MAP", visible: false },
-  { id: "dashboard", label: "Knowledge Graphs", visible: false },
-  { id: "workshop-report", label: "Workshop Report", visible: false },
+  { id: "home-en", label: "Home", icon: "🏠", visible: true },
+  { id: "hands-on-1", label: "Hands-on 1", icon: "✍️", visible: true },
+  { id: "hands-on-2", label: "Hands-on 2", icon: "🗺️", visible: true },
+  { id: "discussion", label: "Discussion", icon: "💬", visible: true },
+  { id: "tips", label: "Tips", icon: "💡", visible: false },
+  { id: "ideas", label: "Ideas", icon: "✨", visible: false },
+  { id: "kg-map", label: "KG-MAP", icon: "🗺️", visible: false },
+  { id: "dashboard", label: "Knowledge Graphs", icon: "🕸️", visible: false },
+  { id: "workshop-report", label: "Workshop Report", icon: "📊", visible: false },
 ];
 
 // AI Configuration
@@ -217,19 +217,19 @@ const HomePageEn: React.FC = () => {
 
 
 
-  
+
   return (
     <div id="home-en">
-       
+
 
       {/* Section title for useful links */}
-      <div className="mt-7">
+      <div className="mt-3">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white p-4 rounded-lg shadow mb-4">
+          {/* <div className="bg-white p-4 rounded-lg shadow mb-4">
             <h2 className="text-xl font-semibold text-gray-800 m-0">
-              Useful Workshop Links - https://alephplace.com/cipa25
+              Workshop Links
             </h2>
-          </div>
+          </div> */}
           <div className="flex flex-col gap-6">
             <div className="bg-white p-6 rounded-lg shadow">
               <ul className="custom-list space-y-2 text-lg mb-2">
@@ -245,7 +245,7 @@ const HomePageEn: React.FC = () => {
                 </li>
                 <li className="icon-brain flex items-center gap-2">
                   <a
-                    href="https://drive.google.com/file/d/1UJkHNSPJA5hjsN6-uVkOVmNHzpyIieaN/view?usp=sharing"
+                    href="https://drive.google.com/file/d/1OVCraEBpkg7ULC45YTDS50SeJp8xWkrJ/view?usp=sharing"
                     target="_blank"
                     rel="noopener"
                     className="text-blue-600 hover:underline"
@@ -341,15 +341,15 @@ const HomePageEn: React.FC = () => {
               </ul>
             </div>
             {
-              <div className="bg-white p-3 rounded-lg shadow">
-                <iframe
-                  src="https://docs.google.com/presentation/d/e/2PACX-1vSnYYwuMoAKZpIICwBBH5g6DkqLRgUr-lSRVJO77A2KIA0nenhxFoj5u2O6NJ735m8fyk7z-23sFrnd/pubembed?start=false&loop=false&delayms=10000"
-                  frameBorder={0}
-                  width="100%"
-                  height={559}
-                  allowFullScreen
-                ></iframe>
-              </div>
+              // <div className="bg-white p-3 rounded-lg shadow">
+              //   <iframe
+              //     src="https://docs.google.com/presentation/d/e/2PACX-1vSnYYwuMoAKZpIICwBBH5g6DkqLRgUr-lSRVJO77A2KIA0nenhxFoj5u2O6NJ735m8fyk7z-23sFrnd/pubembed?start=false&loop=false&delayms=10000"
+              //     frameBorder={0}
+              //     width="100%"
+              //     height={559}
+              //     allowFullScreen
+              //   ></iframe>
+              // </div>
             }
             {/* Workshop schedule image card */}
             <div className="bg-white p-0 rounded-lg shadow">
@@ -358,7 +358,7 @@ const HomePageEn: React.FC = () => {
                 style={{ ["--nav-footer-height" as any]: "96px" }}
               >
                 <img
-                  src={`${import.meta.env.BASE_URL ?? "/"}images/plan3.png`}
+                  src={`${import.meta.env.BASE_URL ?? "/"}images/agenda.jpg`}
                   alt="Workshop Agenda and Activities"
                 />
               </div>
@@ -372,7 +372,7 @@ const HomePageEn: React.FC = () => {
                                 <img src="https://alephplace.com/atar.bot/alice.jpg" alt="Illustration of Alice in Wonderland looking in a mirror" className="w-full h-auto rounded-md object-cover" />
                             </div>
                         </div> */}
-            
+
           </div>
         </div>
       </div>
@@ -573,11 +573,30 @@ const ExperiencePageEn: React.FC = () => {
   );
 };
 
-const HandsOn2Page: React.FC = () => {
+const HandsOn2Page: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
   const files = [
-    { id: "cbsa", label: "CBSA Runner", href: "cbsa2gpt.html" },
-    { id: "kgmap", label: "KG Map", href: "kg-map.html" },
-    { id: "mills", label: "Mills Map", href: "mills-map.html" },
+
+    {
+      id: "kgmap",
+      label: "KG Map",
+      href: "kg-map.html",
+      icon: "🗺️",
+      description: "Knowledge graph visualization and mapping interface"
+    },
+    {
+      id: "mills",
+      label: "Flour Mills Map",
+      href: "mills-map.html",
+      icon: "🏭",
+      description: "Industrial heritage and flour mills mapping tool"
+    },
+     {
+      id: "ideas",
+      label: "More Ideas",
+      href: "#ideas",
+      icon: "✨",
+      description: "Brainstorm and explore additional ideas for cultural heritage assessment"
+    }
   ];
 
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -585,6 +604,8 @@ const HandsOn2Page: React.FC = () => {
     id: string;
     label: string;
     href: string;
+    icon: string;
+    description: string;
   } | null>(null);
 
   React.useEffect(() => {
@@ -595,36 +616,58 @@ const HandsOn2Page: React.FC = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function openModal(f: { id: string; label: string; href: string }) {
+  function openModal(f: { id: string; label: string; href: string; icon: string; description: string }) {
+    // Special handling for Ideas page - navigate instead of opening modal
+    if (f.id === "ideas" && onNavigate) {
+      onNavigate("ideas");
+      return;
+    }
     setModalFile(f);
     setModalOpen(true);
   }
 
   return (
-    <div className="space-y-4 py-6">
-      <h2 className="text-2xl font-bold text-center">Hands-on 2</h2>
-      <div className="bg-white p-6 rounded shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    <div className="space-y-6 py-8">
+      <h2 className="text-3xl font-bold text-center text-gray-800"> Read-Collections products and Ideas</h2>
+
+      <div className="bg-white p-8 rounded-lg shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {files.map((f) => (
             <button
               key={f.id}
               onClick={() => openModal(f)}
-              className={`w-full text-left p-4 border rounded hover:shadow ${
+              className={`group w-full text-left p-6 border-2 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${
                 modalFile?.id === f.id
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200"
+                  ? "border-blue-500 bg-blue-50 shadow-lg"
+                  : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
               }`}
+              style={{ minHeight: "180px" }}
             >
-              <div className="font-semibold">{f.label}</div>
-              <div className="text-sm text-gray-500">{f.href}</div>
+              <div className="flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl group-hover:scale-110 transition-transform duration-200">
+                    {f.icon}
+                  </span>
+                  <div className="font-bold text-lg text-gray-800 group-hover:text-blue-600 transition-colors">
+                    {f.label}
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600 mb-3 flex-grow">
+                  {f.description}
+                </div>
+                <div className="mt-3 text-blue-600 text-sm font-medium group-hover:text-blue-700">
+                  Click to open →
+                </div>
+              </div>
             </button>
           ))}
         </div>
 
-        <p className="text-sm text-gray-600">
-          Click any card to open the page inline in a modal. Use the close
-          button or Esc to dismiss.
-        </p>
+        {/* <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Tip:</strong> Click any card to open the tool in a modal window. Use the close button or press Esc to return to this page.
+          </p>
+        </div> */}
 
         {modalOpen && modalFile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -673,6 +716,7 @@ const HandsOn2Page: React.FC = () => {
             </div>
           </div>
         )}
+  {/* ...existing code... */}
       </div>
     </div>
   );
@@ -695,7 +739,7 @@ const DiscussionPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <form action="https://formspree.io/f/xdkdqnvq" method="POST" className="space-y-6">
             <input type="hidden" name="_subject" value="Workshop Feedback - Cultural Assessment" />
-            
+
             {/* Ideas and Thoughts */}
             <div className="border-l-4 border-blue-500 pl-6">
               <div className="flex items-center gap-3 mb-4">
@@ -713,7 +757,6 @@ const DiscussionPage: React.FC = () => {
                 name="ideas_thoughts"
                 placeholder="Share your ideas, insights, positive experiences, or useful discoveries..."
                 className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
-                required
               />
             </div>
 
@@ -734,14 +777,13 @@ const DiscussionPage: React.FC = () => {
                 name="suggestions_improvements"
                 placeholder="Share suggestions for improvements, challenges faced, or ideas for future workshops..."
                 className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200 resize-none"
-                required
               />
             </div>
 
             {/* Submit Button */}
             <div className="flex justify-center pt-6">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
               >
                 Send Feedback
@@ -758,7 +800,8 @@ const DiscussionPage: React.FC = () => {
               </h4>
             </div>
             <p className="text-gray-700">
-              Your input helps us improve future workshops and the cultural assessment process. 
+
+              Your input helps us improve future workshops and the cultural assessment process.
               All feedback is valuable for research and development.
             </p>
           </div>
@@ -862,7 +905,7 @@ const IdeasPage: React.FC = () => {
       text: "Show assets on a time axis with filters.",
     },
     {
-      title: "Spatial value mapping",
+      title: "Spatial network of meaning",
       text: "Interactive heatmap of values across sites.",
     },
     {
@@ -902,6 +945,18 @@ const IdeasPage: React.FC = () => {
   );
 };
 
+const ThanksPage: React.FC = () => {
+  return (
+    <div id="thanks" className="py-12 flex items-center justify-center">
+      <div className="max-w-2xl text-center bg-white p-8 rounded-lg shadow-lg">
+        <h2 className="text-3xl font-bold mb-4">Thank you!</h2>
+        <p className="text-gray-700 mb-6">Thanks for participating in the Cultural Insights workshop. We appreciate your contributions.</p>
+        <p className="text-sm text-gray-500">This page is intentionally minimal and shows without the site navigation.</p>
+      </div>
+    </div>
+  );
+};
+
 const DashboardPage: React.FC<any> = ({
   allGraphData = {},
   allGrapheCleanData = { nodes: [], edges: [] },
@@ -928,6 +983,7 @@ const App: React.FC = () => {
   const [page, setPage] = useState("home-en");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [thanksModalOpen, setThanksModalOpen] = useState(false);
   const [data, setData] = useState({
     allGraphData: {},
     allGrapheCleanData: { nodes: [], edges: [] },
@@ -982,13 +1038,23 @@ const App: React.FC = () => {
   // Sync page with URL hash so links like #tips or #ideas work
   useEffect(() => {
     const fromHash = (window.location.hash || "").replace(/^#/, "");
-    if (fromHash && navItems.some((n) => n.id === fromHash)) {
-      setPage(fromHash);
+    // allow regular nav items; support a single modal trigger 'thanks-modal' (alias 'thanks-popup')
+    if (fromHash) {
+      if (fromHash === "thanks-modal" || fromHash === "thanks-popup") {
+        setThanksModalOpen(true);
+      } else if (navItems.some((n) => n.id === fromHash) || fromHash === "thanks" || fromHash === "thanks-clean") {
+        setPage(fromHash);
+      }
     }
 
     const onHash = () => {
       const h = (window.location.hash || "").replace(/^#/, "");
-      if (h && navItems.some((n) => n.id === h)) setPage(h);
+      if (!h) return;
+      if (h === "thanks-modal" || h === "thanks-popup") {
+        setThanksModalOpen(true);
+        return;
+      }
+      if (navItems.some((n) => n.id === h) || h === "thanks" || h === "thanks-clean") setPage(h);
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -1026,7 +1092,7 @@ const App: React.FC = () => {
       case "hands-on-1":
         return <ExperiencePageEn />;
       case "hands-on-2":
-        return <HandsOn2Page />;
+        return <HandsOn2Page onNavigate={setPage} />;
       case "discussion":
         return <DiscussionPage />;
       case "tips":
@@ -1039,6 +1105,8 @@ const App: React.FC = () => {
         return <DashboardPage {...pageProps} />;
       case "workshop-report":
         return <WorkshopReport />;
+      case "thanks":
+        return <ThanksPage />;
       default:
         return <HomePageEn />;
     }
@@ -1063,29 +1131,68 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div dir="ltr">
-        <nav className="bg-white shadow-md px-4 py-2 flex justify-center gap-2 sticky top-0 z-50 overflow-x-auto">
-          {navItems
-            .filter((i) => i.visible !== false)
-            .map((i) => (
-              <a
-                key={i.id}
-                href={`#${i.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setPage(i.id);
-                }}
-                className={`nav-button ${page === i.id ? "active" : ""}`}
-              >
-                {i.label}
-              </a>
-            ))}
-        </nav>
+  {displayedPage !== "thanks-clean" && (
+          <nav className="bg-white shadow-md px-4 py-2 flex justify-center gap-2 sticky top-0 z-50 overflow-x-auto">
+            {navItems
+              .filter((i) => i.visible !== false)
+              .map((i) => (
+                <a
+                  key={i.id}
+                  href={`#${i.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(i.id);
+                  }}
+                  className={`nav-button flex items-center gap-2 ${page === i.id ? "active" : ""}`}
+                >
+                  <span className="text-base">{i.icon}</span>
+                  {i.label}
+                </a>
+              ))}
+          </nav>
+        )}
 
         <main className="max-w-6xl mx-auto px-4 py-6">
           <div className={`fade-transition ${fade ? "fade-in" : "fade-out"}`}>
             <div className="page active">{renderPage()}</div>
           </div>
         </main>
+
+        {/* Thanks modal (popup variant) */}
+        {thanksModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => {
+                setThanksModalOpen(false);
+                try {
+                  history.replaceState(null, "", `#${page}`);
+                } catch (e) {
+                  window.location.hash = page;
+                }
+              }}
+            />
+            <div className="relative bg-white rounded-md shadow-lg p-6 w-[90vw] max-w-md">
+              <h3 className="text-xl font-bold mb-2">Thank you!</h3>
+              <p className="text-gray-700 mb-4">Thanks for participating. We appreciate your input.</p>
+              <div className="text-right">
+                <button
+                  onClick={() => {
+                    setThanksModalOpen(false);
+                    try {
+                      history.replaceState(null, "", `#${page}`);
+                    } catch (e) {
+                      window.location.hash = page;
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <footer className="site-footer text-center py-6">
           <p>
