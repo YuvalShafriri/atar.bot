@@ -24,7 +24,7 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 - Evidence-based evaluation criteria
 
 **For AI Usage:** 
-Direct usage through ['Cultural-Insite GPTs'] (https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop)
+Direct usage through ['Cultural-Insite GPTs'](https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop)
 Upload [`prompts/bot-brain.md`](prompts/bot-brain.md) to any AI environment (ChatGPT, Claude, Gemini,Quen, etc) with your own site data, to replicate Cultural-Insites capabilities.
 work best in project enviroment (chatgpt projects, gemini gems, cloud projects, etc
 
