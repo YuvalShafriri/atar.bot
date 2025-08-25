@@ -52,13 +52,13 @@ old/
 atar.bot-v1/
 atar.bot-v1.zip
 rag/
-prompts/
+
 tests/
 scripts/
-prompts/ 
+
 misc-html/
 archive/
-
+docs
 # Ignore Apache htaccess files
 *.htaccess
 
@@ -67,3 +67,5 @@ coverage/
 test-output/
 __pycache__/
 *.pyc
+.htaccess
+GRAPH_QUERY_MECHANISM.md

@@ -27,12 +27,18 @@ async function askTipsLLM(
   tipsList: Array<{ title: string; text: string }>
 ): Promise<string> {
   if (!ai) return "Error: API key not configured.";
-  let ideasContext = "Existing ideas:\n";
-  tipsList.forEach((idea) => {
-    ideasContext += `- ${idea.title}: ${idea.text}\n`;
-  });
-  const promptBase = `${question} (Answer very briefly. Do not repeat tips already shown above.)`;
-  const prompt = prependLangInstruction(promptBase, question);
+
+  // Optimized tips context - limit to recent tips only
+  let tipsContext = "";
+  if (tipsList.length > 0) {
+    const recentTips = tipsList.slice(-2); // Only last 2 tips
+    tipsContext = "Recent tips: " + recentTips.map(tip => tip.title).join(", ") + "\n";
+  }
+
+  const promptBase = `${question} (Brief actionable tip for heritage assessment. Avoid repeating above.)`;
+  const fullPrompt = tipsContext + promptBase;
+  const prompt = prependLangInstruction(fullPrompt, question);
+
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
   if (!proxyUrl) {
     console.error(
@@ -45,7 +51,7 @@ async function askTipsLLM(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: LLM_MODEL,
-      contents: prependLangInstruction(ideasContext + "\n" + prompt, question),
+      contents: prompt,
     }),
   });
 
@@ -58,22 +64,77 @@ async function askTipsLLM(
     result.candidates?.[0]?.content?.parts?.[0]?.text ||
     "No response received from bot.";
 
-  // --- Token counting and cost calculation ---
+  // --- Optimized Token counting and cost calculation ---
   function countTokens(str: string): number {
-    return Math.ceil(str.length / 2.5);
+    return Math.ceil(str.length / 4); // More accurate for Gemini
   }
-  const inputTokens = countTokens(ideasContext + "\n" + prompt);
+  const inputTokens = countTokens(fullPrompt);
   const outputTokens = countTokens(text);
   const totalTokens = inputTokens + outputTokens;
-  const cost = totalTokens * 0.0000001;
+  const cost = totalTokens * 0.0000075; // Updated Gemini pricing
   console.log(
-    `[Tips LLM] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(
+    `[Tips LLM OPTIMIZED] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(
       6
-    )}`
+    )} | Chars: ${fullPrompt.length}`
   );
 
   return text;
 }
+
+// async function askBrainstormLLM(
+//   question: string,
+//   ideasList: any[]
+// ): Promise<string> {
+//   if (!ai) return "Error: API key not configured.";
+//   if (!question.trim()) return "";
+//   let ideasContext = "Existing ideas:\n";
+//   ideasList.forEach((idea) => {
+//     ideasContext += `- ${idea.title}: ${idea.text}\n`;
+//   });
+//   const promptBase = `${question} (Answer very briefly. Do not repeat ideas already presented above.)`;
+//   const prompt = prependLangInstruction(promptBase, question);
+//   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+//   if (!proxyUrl) {
+//     console.error(
+//       "Error: VITE_GEMINI_PROXY_URL is not defined. Please check your .env.local file in the project root."
+//     );
+//     return "Server configuration error.";
+//   }
+//   const response = await fetch(proxyUrl, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({
+//       model: LLM_MODEL,
+//       contents: prependLangInstruction(ideasContext + "\n" + prompt, question),
+//     }),
+//   });
+
+//   if (!response.ok) {
+//     return "Error getting response from bot.";
+//   }
+
+//   const result = await response.json();
+//   const text =
+//     result.candidates?.[0]?.content?.parts?.[0]?.text ||
+//     "No response received from bot.";
+
+//   // --- Token counting and cost calculation ---
+//   function countTokens(str: string): number {
+//     return Math.ceil(str.length / 2.5);
+//   }
+//   const inputTokens = countTokens(ideasContext + "\n" + prompt);
+//   const outputTokens = countTokens(text);
+//   const totalTokens = inputTokens + outputTokens;
+//   const cost = totalTokens * 0.0000001;
+//   console.log(
+//     `[Brainstorm LLM] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(
+//       6
+//     )}`
+//   );
+
+//   return text;
+// }
+// Update the askBrainstormLLM function starting at line 77
 
 async function askBrainstormLLM(
   question: string,
@@ -81,12 +142,34 @@ async function askBrainstormLLM(
 ): Promise<string> {
   if (!ai) return "Error: API key not configured.";
   if (!question.trim()) return "";
-  let ideasContext = "Existing ideas:\n";
-  ideasList.forEach((idea) => {
-    ideasContext += `- ${idea.title}: ${idea.text}\n`;
-  });
-  const promptBase = `${question} (Answer very briefly. Do not repeat ideas already presented above.)`;
-  const prompt = prependLangInstruction(promptBase, question);
+
+  // Optimized Cultural Insights context for ideas brainstorming
+  const culturalContext = `Cultural Insights Workshop (CIPA 2025) - AI-enhanced heritage assessment using CBSA methodology.
+
+Context-Effect Principle: Cultural significance = relationships between assets + contexts (historical/social/cultural/physical).
+
+CBSA: Stage 0→Step 1 (Context)→Step 2 (Values)→Step 3 (Authenticity)→Step 4 (Comparative)→Step 5 (Significance)
+
+Focus: Novel AI in heritage assessment, scaling CBSA, digital context tools, future documentation, cross-cultural challenges.
+
+`;
+
+  // Optimize existing ideas context - limit to recent ideas and summarize
+  let ideasContext = "";
+  if (ideasList.length > 0) {
+    const recentIdeas = ideasList.slice(-3); // Only last 3 ideas to avoid repetition
+    ideasContext = "Recent ideas: " + recentIdeas.map(idea => `${idea.title}`).join(", ") + "\n";
+  }
+
+  const promptBase = `${question}
+
+Return 3 innovative heritage assessment ideas as HTML:
+<ul><li><strong>Title:</strong> Brief description</li></ul>
+
+Focus: AI-heritage integration, actionable concepts, avoid repeating above ideas.`;
+  const fullPrompt = culturalContext + ideasContext + promptBase;
+  const prompt = prependLangInstruction(fullPrompt, question);
+
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
   if (!proxyUrl) {
     console.error(
@@ -99,7 +182,7 @@ async function askBrainstormLLM(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: LLM_MODEL,
-      contents: prependLangInstruction(ideasContext + "\n" + prompt, question),
+      contents: prompt,
     }),
   });
 
@@ -112,23 +195,27 @@ async function askBrainstormLLM(
     result.candidates?.[0]?.content?.parts?.[0]?.text ||
     "No response received from bot.";
 
-  // --- Token counting and cost calculation ---
+  // --- Optimized Token counting and cost calculation ---
   function countTokens(str: string): number {
-    return Math.ceil(str.length / 2.5);
+    // More accurate token estimation for Gemini
+    return Math.ceil(str.length / 4); // ~4 chars per token for better accuracy
   }
-  const inputTokens = countTokens(ideasContext + "\n" + prompt);
+  const inputTokens = countTokens(fullPrompt);
   const outputTokens = countTokens(text);
   const totalTokens = inputTokens + outputTokens;
-  const cost = totalTokens * 0.0000001;
+  const cost = totalTokens * 0.0000075; // Updated Gemini pricing ~$0.0075 per 1K tokens
+
+  // Debug: Show the optimized prompt structure
+  console.log("=== OPTIMIZED PROMPT SENT TO GEMINI ===");
+  console.log(prompt);
+  console.log("=== END PROMPT ===");
+
   console.log(
-    `[Brainstorm LLM] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(
+    `[Brainstorm LLM OPTIMIZED] Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens} | Cost: $${cost.toFixed(
       6
-    )}`
-  );
-
-  return text;
+    )} | Chars: ${fullPrompt.length}`
+  );  return text;
 }
-
 // Small AiSpot component used by Tips/Ideas pages
 const AiSpot: React.FC<{
   spotId: "tips" | "ideas";
@@ -141,14 +228,14 @@ const AiSpot: React.FC<{
 
   const config = {
     tips: {
-      title: "Ask the bot for tips",
-      description: "Request short, actionable tips.",
-      placeholder: "e.g. Give me a prompt template for step 1",
+      title: "Tips",
+      description: "Quick actionable advice",
+      placeholder: "Ask for step 1 template...",
     },
     ideas: {
-      title: "Brainstorm ideas",
-      description: "Generate new ideas based on examples.",
-      placeholder: "e.g. Suggest an interactive timeline feature",
+      title: "Ideas",
+      description: "Generate concepts",
+      placeholder: "Suggest timeline feature...",
     },
   }[spotId];
 
@@ -168,27 +255,36 @@ const AiSpot: React.FC<{
 
   return (
     <div className="ai-spot mt-2">
-      <div className="flex items-baseline gap-2 mb-2">
-        <h4 className="font-bold text-lg text-blue-800">{config.title}</h4>
-        <p className="text-sm text-gray-600">{config.description}</p>
+      <div className="flex items-center gap-2 mb-1">
+        <h4 className="font-semibold text-base text-blue-700">{config.title}</h4>
+        <span className="text-xs text-gray-500">{config.description}</span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !loading) {
+              handleAsk();
+            }
+          }}
           placeholder={config.placeholder}
-          className="flex-grow p-2 border rounded"
+          className="flex-grow px-2 py-1 text-sm border rounded text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-300"
         />
-        <button onClick={() => handleAsk()} disabled={loading} className="btn">
-          Ask
+        <button
+          onClick={() => handleAsk()}
+          disabled={loading}
+          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+        >
+          {loading ? "..." : "Ask"}
         </button>
       </div>
       {exampleQueries && exampleQueries.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-1 mt-1">
           {exampleQueries.map((q, i) => (
             <button
               key={i}
-              className="px-2 py-1 rounded border text-xs bg-gray-100"
+              className="px-2 py-0.5 rounded text-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
               onClick={() => handleAsk(q)}
             >
               {q}
@@ -196,9 +292,10 @@ const AiSpot: React.FC<{
           ))}
         </div>
       )}
-      <div className="p-3 mt-2 bg-white rounded border min-h-[80px] whitespace-pre-wrap">
-        {output}
-      </div>
+      <div
+        className="p-2 mt-1 bg-gray-50 rounded text-sm min-h-[60px] border border-gray-200"
+        dangerouslySetInnerHTML={{ __html: output }}
+      />
     </div>
   );
 };
