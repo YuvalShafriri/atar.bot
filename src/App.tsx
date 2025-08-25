@@ -8,17 +8,12 @@ import { prependLangInstruction } from "./utils/language";
 
 const LLM_MODEL = "gemini-2.5-flash-lite";
 
-// Nav: order controls tab position; Dashboard is present but hidden (visible: false)
+// Nav: order controls tab position; only active tabs for clean production version
 const navItems = [
   { id: "home-en", label: "Home", icon: "🏠", visible: true },
   { id: "hands-on-1", label: "Hands-on 1", icon: "✍️", visible: true },
   { id: "hands-on-2", label: "Hands-on 2", icon: "🗺️", visible: true },
   { id: "discussion", label: "Discussion", icon: "💬", visible: true },
-  { id: "tips", label: "Tips", icon: "💡", visible: false },
-  { id: "ideas", label: "Ideas", icon: "✨", visible: false },
-  { id: "kg-map", label: "KG-MAP", icon: "🗺️", visible: false },
-  { id: "dashboard", label: "Knowledge Graphs", icon: "🕸️", visible: false },
-  { id: "workshop-report", label: "Workshop Report", icon: "📊", visible: false },
 ];
 
 // AI Configuration
