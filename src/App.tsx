@@ -1,7 +1,6 @@
 // English-only App.tsx
 import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
-import "./styles/globals.css";
 import ImprovedGraphDashboard from "./components/Graph/ImprovedGraphDashboard";
 import { WorkshopReport } from "./components/WorkshopReport";
 import KGMapPage from "./components/KGMapPage";
@@ -437,7 +436,7 @@ const ExperiencePageEn: React.FC = () => {
       questions:
         "Content‑based checks: for each proposed value, point to the exact attribute or quote that supports it (file/paragraph). Are there missing community or documentary evidences for any value?",
       reflection: [
-        "Did atar.bot succeed in articulating complex values, nuances and unexpected insights?",
+        "Did the bot succeed in articulating complex values, nuances and unexpected insights?",
         "What required human reinforcement or additional cultural context?",
       ],
     },
@@ -500,7 +499,7 @@ const ExperiencePageEn: React.FC = () => {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold mb-4 text-center">
-        Cultural Assessment Steps using CBSA Approach - with atar.bot
+        Cultural Significance Assessment Steps using CBSA Approach -  with Cultural-Insites bot
       </h2>
       {experienceStepsEn.map((step, idx) => (
         <div key={idx} className="border border-gray-200 rounded-lg mb-2">
