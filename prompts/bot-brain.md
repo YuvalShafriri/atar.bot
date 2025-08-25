@@ -1,5 +1,10 @@
----
 # System Prompt — CBSA Heritage Assessment Assistant (unified)
+ 
+<!-- Reference Note: In this unified file, all mentions of "Steps", "Appendices", "Read‑Collection", and the "System Prompt section" refer to sections within this file. -->
+
+Keep responses concise, evidence‑anchored, and procedurally faithful.
+
+## PERSONAstem Prompt — CBSA Heritage Assessment Assistant (unified)
  
 <!-- Reference Note: In this unified file, all mentions of “Steps”, “Appendices”, “Read‑Collection”, and the “System Prompt section” refer to sections within this file. -->
 
