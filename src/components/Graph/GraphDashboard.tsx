@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { prependLangInstruction } from '../../utils/language';
 import { chatGraph, GraphData, LLMMessage } from '../../services/graphQueryService';
 //import { chatGraphModern } from '../../services/modernGraphQueryService';
-import { quickHybridChat } from '../../quickHybridSetup';
+//import { quickHybridChat } from '../../quickHybridSetup';
 import { chatGraphModern } from '../../services/agentService';
 
 import AllAssetsGraph from './AllAssetsGraph';
@@ -483,7 +483,8 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                 // ⭐ Agent mode: use modernGraphQueryService with model selection logic
                 const agentFetch = makeAgentFetchChatCompletion();
                 result = await chatGraphModern(question, graphData, agentFetch);            } else if (useHybridMode) {
-                result = await quickHybridChat(question, graphData, fetchChatCompletion);
+                // Fallback to regular chat since quickHybridChat is not available
+                result = await chatGraph(question, graphData, fetchChatCompletion);
             } else {
                 result = await chatGraph(question, graphData, fetchChatCompletion);
             }
@@ -807,7 +808,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                     const meaning = clickedNode.meaning || '';
 
                     let content = `
-                        <div style="font-family: Calibri, Assistant, sans-serif; background: #ffffff; border: 1px solid #ccc; padding: 8px; 
+                        <div style="font-family: Calibri, Assistant, sans-serif; background: #ffffff; border: 1px solid #ccc; padding: 8px;
                             line-height: 1.1rem; direction: rtl; text-align: right; max-width: 280px; font-size: 1.0rem;">
                             <span id="closeinfo" style="float: left; cursor: pointer; font-weight: bold;">✖</span>
                             <h3 id="info_name" style="margin: 0;">${name}</h3>
@@ -919,7 +920,7 @@ const GraphDashboard: React.FC<GraphDashboardProps> = ({ allGraphData, allGraphe
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                     מצב שאילתה:
                 </label>
-                <select 
+                <select
                     value={useAgentMode ? 'agent' : useHybridMode ? 'hybrid' : 'simple'}
                     onChange={(e) => {
                         const mode = e.target.value;
