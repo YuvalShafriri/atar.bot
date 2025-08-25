@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northern Galilee - Map + Knowledge Graph (Synced)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root{ --purple:#6A1B9A; --blue:#1565C0; --gray:#555; --gold:#FFC107; --panel:#ffffff; --ink:#333; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Calibri,system-ui,sans-serif;color:var(--ink)}
+  /* Slightly wider map column; keep KG visible but give more room to map */
+  .app{display:grid;grid-template-columns:0.75fr 1.25fr;grid-template-rows:auto 1fr;gap:0;height:100%}
+  /* Restore header spacing to keep filters layout unchanged */
+  header{grid-column:1/-1;padding:8px 10px;border-bottom:1px solid #eee;background:#fafafa;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  header .group{display:flex;gap:8px;align-items:center}
+    header label{font-size:12px}
+    #map{height:100%; overflow:hidden;z-index: 0;}
+    #kg{height:100%;border-left:1px solid #eee; overflow:hidden; position:relative;}
+    .pane{position:relative; overflow:hidden;}
+    .legend{position:absolute;top:10px;left:10px;background:var(--panel);border:1px solid #ddd;padding:6px 8px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);font-size:12px;z-index:500}
+    .legend-row{display:flex;align-items:center;gap:8px;margin:2px 0}
+    .marker{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:400;border-radius:50%;background:rgba(255,255,255,0.95);border:2px solid currentColor;box-shadow:0 2px 8px rgba(0,0,0,.25);line-height:1}
+    .marker--purple{color:var(--purple)}.marker--blue{color:var(--blue)}.marker--gray{color:var(--gray)}
+    .legend .marker{width:16px;height:16px;font-size:11px;box-shadow:none}
+    .marker-active{ /* UX-TUNE: marker active - red bolder border */
+      transform:scale(1.03);
+      box-shadow:0 2px 6px rgba(0,0,0,.18);
+      border-radius:50%;
+    }
+    /* ensure inner marker shows red border when parent is active */
+    .marker-active .marker{ border:3px solid #d32f2f !important; box-shadow:0 2px 10px rgba(211,47,47,0.18) !important; }
+    .marker-dim{opacity:.28;transform:scale(.9)}
+    .popup h3{margin:0 0 2px;font-size:13px}
+    .popup p{margin:0 0 3px;font-size:12px;line-height:1.25}
+    .pill{display:inline-block;padding:2px 6px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:12px}
+    .vis-network{background:#fff}
+  /* hide the Run tests button (kept in DOM for accessibility if needed) */
+  #btnTests{display:none}
+    /* KG click tooltip for non-Place entities */
+    #kgTooltip{position:absolute;display:none;min-width:180px;max-width:280px;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px 10px;font-size:12px;z-index:10}
+    #kgTooltip h4{margin:0 0 4px;font-size:13px}
+    #kgTooltip p{margin:0 0 3px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="group"><strong style="font-size:12px">Context depth:</strong>
+        <label><input type="radio" name="depth" value="1"/> 1 hop</label>
+        <label><input type="radio" name="depth" value="2" checked/> 2 hops</label>
+      </div>
+      <div class="group"><strong style="font-size:12px">Filter:</strong>
+        <label><input type="checkbox" id="f_assessed" checked/> Assessed</label>
+        <label><input type="checkbox" id="f_jsna" checked/> Not assessed</label>
+        <label><input type="checkbox" id="f_other" checked/> Other</label>
+      </div>
+  <div class="group"><strong style="font-size:12px">Search:</strong>
+        <input id="search" placeholder="Find place or value…" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;min-width:200px;font-size:12px"/>
+        <button id="btnClear" class="pill">Clear</button>
+        <button id="btnTests" class="pill" title="Run built-in tests">Run tests</button>
+      </div>
+  <div class="group"><label style="font-size:12px"><input type="checkbox" id="toggleAllNodes"/> Show all KG nodes</label></div>
+      <div class="group" id="counts" style="margin-left:auto;font-size:12px"></div>
+    </header>
+
+    <div class="pane" id="mapPane">
+      <div id="map"></div>
+      <div class="legend" id="legend">
+        <div class="legend-row"><span class="marker marker--purple">&#10013;</span> Assessed assets (cross - purple)</div>
+        <div class="legend-row"><span class="marker marker--blue">&#10010;</span> Jesus-story - not assessed (cross - blue)</div>
+        <div class="legend-row"><span class="marker marker--gray">&#9670;</span> Other / mentioned (diamond - gray)</div>
+      </div>
+    </div>
+
+    <div class="pane" id="kgPane">
+      <div id="kg"></div>
+      <div id="kgTooltip"><h4 id="kgttTitle"></h4><p id="kgttType"></p><p id="kgttMeaning"></p></div>
+    </div>
+  </div>
+
+  <script>
+    /* UX-TUNE QUICK TWEAKS: search for the following markers to adjust later:
+       - UX-TUNE: labels (node label font size/offset/halo color & width)
+       - UX-TUNE: edge width & colors (KG edges default/hover/selection widths)
+       - UX-TUNE: base lines (map faint place-to-place lines)
+       - UX-TUNE: selection lines (map black core + thin red overlay)
+       - UX-TUNE: marker ring (active marker highlight ring)
+    */
+
+    /* ---------------------- KNOWLEDGE GRAPH DATA ---------------------- */
+    // Pure data structure - all entities and relationships in one place
+    const KNOWLEDGE_GRAPH = {
+      nodes: [
+        // Places with coordinates for map rendering
+        { id:'p_nazareth', name:'Nazareth', type:'Place', category:'assessed', lat:32.6996, lng:35.3035, desc:'Annunciation focus; layered remains.', significance:'High pilgrimage value; rich stratigraphy linking village to monumental basilica.' },
+        { id:'p_cana', name:'Kafr Kanna (Cana)', type:'Place', category:'assessed', lat:32.7450, lng:35.3394, desc:'Wedding at Cana tradition.', significance:'Key ritual renewal site; continuity of local tradition.' },
+        { id:'p_magdala', name:'Magdala', type:'Place', category:'assessed', lat:32.8333, lng:35.5167, desc:"Mary Magdalene's town; synagogue remains.", significance:'Exceptional early synagogue; unique female apostolic association.' },
+        { id:'p_tabgha', name:'Tabgha (Heptapegon)', type:'Place', category:'assessed', lat:32.8708, lng:35.5556, desc:'Loaves and fishes mosaic.', significance:'Outstanding mosaic artistry; long-standing liturgical commemoration.' },
+        { id:'p_beatitudes', name:'Mount of Beatitudes', type:'Place', category:'assessed', lat:32.8804, lng:35.5550, desc:'Sermon on the Mount site.', significance:'Scenic and symbolic prominence; continuous devotional use.' },
+        { id:'p_capernaum', name:'Capernaum', type:'Place', category:'assessed', lat:32.8803, lng:35.5733, desc:'Base of ministry; House of Peter.', significance:'High integrity of synagogue-house complex; major gospel locus.' },
+        { id:'p_tabor', name:'Mount Tabor', type:'Place', category:'js-not', lat:32.6870, lng:35.3930, desc:'Transfiguration tradition.', significance:'Not assessed' },
+        { id:'p_kursi', name:'Kursi (Gergesa)', type:'Place', category:'js-not', lat:32.8090, lng:35.6490, desc:'Miracle of the swine tradition.', significance:'Not assessed' },
+        { id:'p_hippos', name:'Hippos (Susita)', type:'Place', category:'js-not', lat:32.7770, lng:35.6670, desc:'Decapolis city; basilicas.', significance:'Not assessed' },
+        { id:'p_bethsaida', name:'Bethsaida', type:'Place', category:'js-not', lat:32.9080, lng:35.5990, desc:'Apostolic town remains.', significance:'Not assessed' },
+        { id:'p_chorazin', name:'Chorazin', type:'Place', category:'js-not', lat:32.9190, lng:35.5710, desc:'Basalt synagogue; scriptural town.', significance:'Not assessed' },
+        { id:'p_arbel', name:'Mount Arbel', type:'Place', category:'other', lat:32.8420, lng:35.4986, desc:'Dominant landmark; fortress history.', significance:'Not assessed' },
+        { id:'p_kinneret', name:'Sea of Galilee (Kinneret)', type:'Place', category:'other', lat:32.8200, lng:35.5800, desc:'Central lake setting.', significance:'Not assessed' },
+
+        // Cultural Values
+        { id:'v_sacredgeo', name:'Sacred Geography', type:'Cultural Value', value_type:'Spiritual', meaning:'Revelation tied to specific landscapes and places' },
+        { id:'v_pilgrimage', name:'Pilgrimage Continuity', type:'Cultural Value', value_type:'Social', meaning:'Living practices linking believers and holy sites' },
+        { id:'v_hist', name:'Historical Testimony', type:'Cultural Value', value_type:'Historical', meaning:'Witness to early Christianity contexts and narratives' },
+        { id:'v_science', name:'Archaeological Record', type:'Cultural Value', value_type:'Scientific', meaning:'Material remains enabling rigorous historical study' },
+        { id:'v_land', name:'Landscape Cohesion', type:'Cultural Value', value_type:'Landscape', meaning:'Hills, lake, routes preserve legible setting' },
+        { id:'v_symbol', name:'Symbolic Identity', type:'Cultural Value', value_type:'Symbolic', meaning:'Emblem of Christian origins and ideals' },
+
+        // Contexts
+        { id:'c_gospels', name:'Gospel Narratives', type:'Story / Narrative', meaning:'Texts situating events in specific places' },
+        { id:'c_pilgrimtrad', name:'Pilgrimage Traditions', type:'Tradition / Custom', meaning:'Continuous veneration since Byzantine era' },
+        { id:'c_ministry', name:'Ministry of Jesus (Galilee)', type:'Event', meaning:'Teachings, healings, journeys across Galilee' }
+      ],
+      
+      edges: [
+        // Places express all cultural values
+        { from:'p_nazareth', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_nazareth', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_nazareth', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_cana', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_cana', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_cana', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_magdala', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_magdala', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_magdala', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_tabgha', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_tabgha', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_tabgha', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_beatitudes', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_beatitudes', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_beatitudes', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_capernaum', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_capernaum', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_capernaum', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_tabor', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_tabor', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_tabor', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_kursi', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_kursi', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_kursi', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        
+      
+        { from:'p_hippos', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_hippos', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_hippos', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_hippos', to:'v_symbol', type:'expresses_value', label:'expresses' },
+
+
+        { from:'p_bethsaida', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_bethsaida', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_bethsaida', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        { from:'p_chorazin', to:'v_sacredgeo', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'v_pilgrimage', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'v_hist', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'v_science', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'v_land', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'v_symbol', type:'expresses_value', label:'expresses' },
+        { from:'p_chorazin', to:'c_gospels', type:'documented_in', label:'documented_in' },
+        { from:'p_chorazin', to:'c_ministry', type:'associated_with', label:'associated_with' },
+
+        // Sea of Galilee connections
+        { from:'p_kinneret', to:'v_land', type:'influences', label:'influences' },
+        { from:'p_kinneret', to:'c_gospels', type:'documented_in', label:'documented_in' },
+
+        // Mt Arbel connection
+        { from:'p_arbel', to:'c_gospels', type:'documented_in', label:'documented_in' },
+
+        // Context connections
+        { from:'c_pilgrimtrad', to:'v_pilgrimage', type:'expresses', label:'expresses' },
+        { from:'c_ministry', to:'c_gospels', type:'documented_in', label:'documented_in' },
+
+        // Direct place-to-place relations
+        { from:'p_capernaum', to:'p_tabgha', type:'related_place', label:'nearby / ministerial route' },
+        { from:'p_capernaum', to:'p_chorazin', type:'related_place', label:'Gospel triangle' },
+        { from:'p_capernaum', to:'p_bethsaida', type:'related_place', label:'Gospel triangle' }
+      ]
+    };
+
+    // Legacy data structures for compatibility with existing map code
+    const PLACES = KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Place');
+    const VALUES = KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Cultural Value');
+    const CONTEXTS = KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Story / Narrative' || n.type === 'Tradition / Custom' || n.type === 'Event');
+    const EDGES = KNOWLEDGE_GRAPH.edges;
+    const DIRECT_PLACE_LINKS = KNOWLEDGE_GRAPH.edges.filter(e => e.type === 'related_place');
+
+    // Build a fast lookup for direct place-to-place links (both directions)
+    const DIRECT_SET = new Set();
+    for(const e of DIRECT_PLACE_LINKS){ DIRECT_SET.add(e.from+'|'+e.to); DIRECT_SET.add(e.to+'|'+e.from); }
+
+    /* ---------------------- Map ---------------------- */
+    const map = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+    const iconPurple = () => L.divIcon({ html:'<span class="marker marker--purple">&#10013;</span>', iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+    const iconBlue   = () => L.divIcon({ html:'<span class="marker marker--blue">&#10010;</span>',   iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+    const iconGray   = () => L.divIcon({ html:'<span class="marker marker--gray">&#9670;</span>',    iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-14], className:''});
+
+    const layerAssessed=L.featureGroup(), layerJSNA=L.featureGroup(), layerOther=L.featureGroup();
+    const placeLinksLayer=L.featureGroup(); // faint base lines
+    const selectionLinksLayer=L.featureGroup(); // strong lines for current selection
+    const markerByPlaceId = new Map();
+
+    function markerFor(p){
+      const icon = p.category==='assessed'?iconPurple():p.category==='js-not'?iconBlue():iconGray();
+      const html = `<div class="popup"><h3>${p.name}</h3>
+        <p>${p.desc}</p>
+        <p><strong>Significance (eval):</strong> ${p.significance}</p>
+        <p><strong>Type:</strong> ${p.place_type}</p></div>`;
+      const m=L.marker([p.lat,p.lng],{icon}).bindPopup(html);
+      if(p.category==='assessed') m.addTo(layerAssessed); else if(p.category==='js-not') m.addTo(layerJSNA); else m.addTo(layerOther);
+      markerByPlaceId.set(p.id,m);return m;
+    }
+
+    PLACES.map(markerFor);
+
+    // Base direct links (faint) + keep refs
+    const mapLinks = [];
+    function buildPlaceLinks(){
+      placeLinksLayer.clearLayers(); mapLinks.length=0;
+      for(const e of DIRECT_PLACE_LINKS){
+        const m1 = markerByPlaceId.get(e.from); const m2 = markerByPlaceId.get(e.to);
+        if(!m1||!m2) continue;
+        const line = L.polyline([m1.getLatLng(), m2.getLatLng()], {color:'#888', weight:1.4, opacity:0.25, dashArray:'4,6'}).addTo(placeLinksLayer);
+        mapLinks.push({edge:e, line});
+      }
+    }
+
+    const allLayers = L.featureGroup([selectionLinksLayer, placeLinksLayer, layerAssessed,layerJSNA,layerOther]).addTo(map);
+
+    (function(){
+  const pts = PLACES.map(p=> L.latLng(p.lat,p.lng));
+  const b = L.latLngBounds(pts);
+  // Slightly closer zoom on load — reduce pad from 0.2 to 0.005
+  map.fitBounds(b.pad(0.01));
+      buildPlaceLinks();
+    })();
+
+    function applyFilters(){
+      const fa=document.getElementById('f_assessed').checked;
+      const fj=document.getElementById('f_jsna').checked;
+      const fo=document.getElementById('f_other').checked;
+      if(fa){map.addLayer(layerAssessed);}else{map.removeLayer(layerAssessed);} 
+      if(fj){map.addLayer(layerJSNA);}else{map.removeLayer(layerJSNA);} 
+      if(fo){map.addLayer(layerOther);}else{map.removeLayer(layerOther);} 
+    }
+    document.getElementById('f_assessed').onchange=applyFilters;
+    document.getElementById('f_jsna').onchange=applyFilters;
+    document.getElementById('f_other').onchange=applyFilters;
+
+    function updateCounts(){
+      const countsEl=document.getElementById('counts');
+      const a=PLACES.filter(p=>p.category==='assessed').length;
+      const j=PLACES.filter(p=>p.category==='js-not').length;
+      const o=PLACES.filter(p=>p.category==='other').length;
+      countsEl.textContent=`Counts - Assessed: ${a} | Jesus-story (not assessed): ${j} | Other: ${o}`;
+    }
+    updateCounts();
+
+    /* ---------------------- KG RENDERING ---------------------- */
+    const COLOR_BY_TYPE={
+      'Natural Phenomenon':{bg:'rgba(30,144,255,0.7)',border:'#1E90FF'},
+      'Story / Narrative':{bg:'rgba(255,228,181,0.7)',border:'#FFE4B5'},
+      'Tradition / Custom':{bg:'rgba(139,69,19,0.7)',border:'#8B4513'},
+      'Event':{bg:'rgba(255,160,122,0.7)',border:'#FFA07A'},
+      'Cultural Value':{bg:'rgba(255,193,7,0.7)',border:'#FFC107'},
+      'Place':{bg:'rgba(100,149,237,0.7)',border:'#6495ED'}
+    };
+
+    // Convert KNOWLEDGE_GRAPH data to vis.js format
+    const nodesRaw = KNOWLEDGE_GRAPH.nodes.map(node => ({
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      label: node.type === 'Cultural Value' ? `${node.name}\n[${node.value_type}]` : node.name,
+      color: {
+        background: COLOR_BY_TYPE[node.type].bg,
+        border: COLOR_BY_TYPE[node.type].border
+      },
+      shape: 'dot',
+      size: 12,
+      title: node.name
+    }));
+
+    const edgesRaw = KNOWLEDGE_GRAPH.edges.map(edge => ({
+      id: `${edge.from}->${edge.to}`,
+      from: edge.from,
+      to: edge.to,
+      dataLabel: edge.label,
+      arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+      font: { align: 'middle', size: 8, color: '#555', background: 'white' }
+    }));
+
+    // Helper maps for filtering and analytic heuristics
+    const nodeTypeById = new Map(KNOWLEDGE_GRAPH.nodes.map(n => [n.id, n.type]));
+    // degree (how many Places reference a given Cultural Value) - used to avoid adding overly-common value nodes
+    const valueDegree = new Map();
+    for (const e of KNOWLEDGE_GRAPH.edges) {
+      const fromType = nodeTypeById.get(e.from);
+      const toType = nodeTypeById.get(e.to);
+      if (fromType === 'Cultural Value' && toType === 'Place') valueDegree.set(e.from, (valueDegree.get(e.from) || 0) + 1);
+      if (toType === 'Cultural Value' && fromType === 'Place') valueDegree.set(e.to, (valueDegree.get(e.to) || 0) + 1);
+    }
+  // Threshold used for shared-value detection: ignore values connected to too many places
+  const SHARED_VALUE_DEGREE_THRESHOLD = 6;
+
+  // Start the visualization with Places only to reduce initial clutter
+  const placeIds = new Set(PLACES.map(p => p.id));
+  const nodes = new vis.DataSet(nodesRaw.filter(n => placeIds.has(n.id)));
+  const edges = new vis.DataSet(edgesRaw.filter(e => placeIds.has(e.from) && placeIds.has(e.to)));
+
+    // Fast lookup maps for dynamic expansion
+    const nodesById = new Map(nodesRaw.map(n => [n.id, n]));
+    const edgesById = new Map(edgesRaw.map(e => [e.id, e]));
+
+    
+
+    function neighborIds(id) {
+      const s = new Set();
+      for (const e of KNOWLEDGE_GRAPH.edges) {
+        if (e.from === id) s.add(e.to);
+        if (e.to === id) s.add(e.from);
+      }
+      return [...s];
+    }
+
+    // Function to temporarily re-enable smooth physics when showing new relations
+    function animateNewRelations(){
+      try{
+        // Re-enable physics with smooth settings for animation
+        network.setOptions({
+          physics: {
+            enabled: true,
+            forceAtlas2Based: {
+              gravitationalConstant: -8,
+              centralGravity: 0.001,
+              springLength: 180,
+              springConstant: 0.03,
+              damping: 0.85,
+              avoidOverlap: 0.25
+            },
+            maxVelocity: 0.3,
+            minVelocity: 0.005
+          }
+        });
+        // Run stabilization for smooth animation
+        network.stabilize(50);
+        // Disable physics again after animation
+        setTimeout(()=>{ 
+          try{ network.setOptions({physics:{enabled:false}}); }catch(e){} 
+        }, 800);
+      } catch(e){
+        console.warn('Animation failed:', e);
+      }
+    }
+
+    // Expand node persistently: add neighbor nodes and connecting edges (no collapse)
+    function expandNode(nodeId){
+      const nbs = neighborIds(nodeId);
+      const addNodes = [];
+      const addEdges = [];
+      
+      // Add any missing neighbor nodes
+      for(const nb of nbs){ 
+        if(!nodes.get(nb)){ 
+          const rec = nodesById.get(nb); 
+          if(rec) addNodes.push(rec); 
+        } 
+      }
+      
+      // Add all edges connected to this node (both incoming and outgoing)
+      // When expanding, avoid adding edges to extremely common value nodes to reduce visual uniformity
+      const VALUE_DEGREE_THRESHOLD = 6; // if a value node is connected to more than this many places, skip adding its edges on expansion
+      for(const e of edgesRaw){ 
+        if(e.from===nodeId || e.to===nodeId){ 
+          if(!edges.get(e.id)){
+            // Only add edge if both nodes exist or will exist in the network
+            const fromExists = nodes.get(e.from) || addNodes.find(n=>n.id===e.from);
+            const toExists = nodes.get(e.to) || addNodes.find(n=>n.id===e.to);
+            if(fromExists && toExists){
+              // Skip edges that would pull in very high-degree value nodes (avoid everyone connecting to same values)
+              const other = (e.from===nodeId) ? e.to : e.from;
+              const otherType = nodeTypeById.get(other);
+              if(otherType === 'Cultural Value' && (valueDegree.get(other) || 0) > VALUE_DEGREE_THRESHOLD){
+                // instead of adding the value node, add a lightweight summary edge (no visual node) - skip entirely for now
+                continue;
+              }
+              // give short length to newly-added edges so single-link nodes stay visually close; longer for cross-cluster links
+              const preferredLength = (nodeTypeById.get(e.from) === 'Place' && nodeTypeById.get(e.to) === 'Place') ? 120 : 180;
+              const copy = Object.assign({}, e, {length: preferredLength}); 
+              addEdges.push(copy);
+            }
+          }
+        } 
+      }
+      
+      if(addNodes.length) nodes.add(addNodes);
+      if(addEdges.length) edges.add(addEdges);
+      if(addNodes.length || addEdges.length){
+        // Trigger smooth animation when new nodes/edges are added
+        animateNewRelations();
+      } else {
+        try{ network.stabilize(100); }catch(e){}
+      }
+    }
+    const kgContainer=document.getElementById('kg');
+    const kgTooltip=document.getElementById('kgTooltip');
+    const kgttTitle=document.getElementById('kgttTitle');
+    const kgttType=document.getElementById('kgttType');
+    const kgttMeaning=document.getElementById('kgttMeaning');
+
+    const network=new vis.Network(kgContainer,{nodes,edges},{
+      nodes:{ /* UX-TUNE: labels */ font:{align:'center',size:8,color:'#333',vadjust:4,strokeWidth:0,strokeColor:'#000',background:'white'}, borderWidth:0},
+  edges:{ /* UX-TUNE: edge width & colors */ width:1, selectionWidth:0.8, hoverWidth:1.0, smooth:{type:'cubicBezier',forceDirection:'horizontal',roundness:.45}, color:{color:'#888',highlight:'#f28b8b',hover:'#555',inherit:false}},
+      physics:{
+        enabled:true,                       // keep physics on so layout adapts when nodes are added
+        solver:'forceAtlas2Based',         // solver that provides organic movement
+        // forceAtlas2Based options (tweak these to control "liveliness")
+        forceAtlas2Based: {
+          gravitationalConstant: -22,      // negative => nodes repel; lower magnitude = less violent repulsion
+          centralGravity: 0.002,           // pulls nodes gently toward center; small value avoids collapse
+          springLength: 200,               // preferred edge length; smaller pulls connected nodes closer
+          springConstant: 0.05,            // stiffness of springs; lower = softer connections (less snap)
+          damping: 0.32,                   // high damping reduces oscillation and speeds stabilization
+          avoidOverlap: 0.2                // small positive value reduces node overlap modestly
+        },
+        maxVelocity: 0.5,                 // cap node speed to keep motion subtle
+        minVelocity: 0.01,                // allow very small motions so graph feels alive
+        stabilization: {iterations: 200, fit: true} // initial stabilization iterations
+      },
+      interaction:{hover:true,tooltipDelay:300}
+    });
+
+    // After initial stabilization, tone physics down further so movement remains very subtle
+    network.once('stabilizationIterationsDone', ()=> {
+      // After initial layout, greatly reduce physics activity and eventually disable it to stop motion
+      network.setOptions({
+        physics: {
+          enabled: true,
+          forceAtlas2Based: {
+            gravitationalConstant: -4,
+            centralGravity: 0.0005,
+            springLength: 200,
+            springConstant: 0.015,
+            damping: 0.98,
+            avoidOverlap: 0.3
+          },
+          maxVelocity: 0.08,
+          minVelocity: 0.001
+        }
+      });
+      // stop physics after a short delay to freeze layout
+      setTimeout(()=>{ try{ network.setOptions({physics:{enabled:false}}); }catch(e){} }, 600);
+    });
+
+    /* ---------------------- Helpers ---------------------- */
+    const typeById=new Map(nodesRaw.map(n=>[n.id,n.type]));
+    const metaById=new Map();
+    PLACES.forEach(p=> metaById.set(p.id,{name:p.name,type:'Place',meaning:p.desc}));
+    VALUES.forEach(v=> metaById.set(v.id,{name:v.name,type:`${v.type} [${v.value_type}]`,meaning:v.meaning}));
+    CONTEXTS.forEach(c=> metaById.set(c.id,{name:c.name,type:c.type,meaning:c.meaning}));
+
+    const neighbors=new Map();
+    function addEdgePair(a,b){ if(!neighbors.has(a)) neighbors.set(a,[]); neighbors.get(a).push(b); }
+    EDGES.forEach(e=>{ addEdgePair(e.from,e.to); addEdgePair(e.to,e.from); });
+
+    // Helper: find places that share at least one Cultural Value with the given place
+    function getSharedValuePlaces(placeId){
+      const valueSet = new Set();
+      for(const e of EDGES){
+        // collect values connected to this place
+        if(e.from===placeId && nodeTypeById.get(e.to)==='Cultural Value') valueSet.add(e.to);
+        if(e.to===placeId && nodeTypeById.get(e.from)==='Cultural Value') valueSet.add(e.from);
+      }
+      if(valueSet.size===0) return new Set();
+      // remove very-common values to avoid broad linking (they don't provide useful differentiation)
+      for(const v of [...valueSet]){
+        if((valueDegree.get(v) || 0) > SHARED_VALUE_DEGREE_THRESHOLD) valueSet.delete(v);
+      }
+      if(valueSet.size===0) return new Set();
+      const places = new Set();
+      for(const e of EDGES){
+        // if this edge links a value in valueSet to another Place, include that place
+        if(valueSet.has(e.from) && nodeTypeById.get(e.to)==='Place' && e.to!==placeId) places.add(e.to);
+        if(valueSet.has(e.to) && nodeTypeById.get(e.from)==='Place' && e.from!==placeId) places.add(e.from);
+      }
+      return places;
+    }
+
+    // Draw links between selected place and places that share values (visual cue for shared-value connections)
+    function drawSharedValueLinks(selectedPlaceId, sharedPlaceSet, options){
+      // options.clear (default true) controls whether to clear existing selection lines
+      const clear = !(options && options.clear === false);
+      if(clear) selectionLinksLayer.clearLayers();
+      if(!selectedPlaceId || !sharedPlaceSet || sharedPlaceSet.size===0) return;
+      const mCenter = markerByPlaceId.get(selectedPlaceId); if(!mCenter) return;
+      const fromLL = mCenter.getLatLng();
+      // use a distinct style for shared-value connections
+  for(const pid of sharedPlaceSet){
+        const m2 = markerByPlaceId.get(pid); if(!m2) continue;
+        const toLL = m2.getLatLng();
+        const core = L.polyline([fromLL, toLL], {color:'#0b66c2', weight:1.6, opacity:0.95}).addTo(selectionLinksLayer);
+        const overlay = L.polyline([fromLL, toLL], {color:'#8fc7ff', weight:0.6, opacity:0.8}).addTo(selectionLinksLayer);
+        if(core.bringToFront) core.bringToFront();
+        if(overlay.bringToFront) overlay.bringToFront();
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length){ selectionLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    // Get set of Place IDs that are connected to a given KG node (value/context)
+    function getPlacesForNode(nodeId){
+      const places = new Set();
+      for(const e of EDGES){
+        if(e.from === nodeId && nodeTypeById.get(e.to) === 'Place') places.add(e.to);
+        if(e.to === nodeId && nodeTypeById.get(e.from) === 'Place') places.add(e.from);
+      }
+      return places;
+    }
+
+    // Draw pairwise lines between all places in the set (with safety limit)
+    function drawPlacePairLinks(placeSet){
+      selectionLinksLayer.clearLayers();
+      if(!placeSet || placeSet.size < 2) return;
+      const ids = [...placeSet];
+      const MAX_PAIRS = 20; // safety: if too many places, avoid O(n^2) lines
+      if(ids.length > MAX_PAIRS){
+        // fallback: connect each place to centroid instead of pairwise lines
+        const latlngs = ids.map(id => markerByPlaceId.get(id)).filter(Boolean).map(m=>m.getLatLng());
+        if(latlngs.length<2) return;
+        const avgLat = latlngs.reduce((s,l)=>s+l.lat,0)/latlngs.length;
+        const avgLng = latlngs.reduce((s,l)=>s+l.lng,0)/latlngs.length;
+        const center = L.latLng(avgLat, avgLng);
+        for(const id of ids){
+          const m = markerByPlaceId.get(id); if(!m) continue;
+          const core = L.polyline([m.getLatLng(), center], {color:'#444', weight:1.2, opacity:0.9}).addTo(selectionLinksLayer);
+          if(core.bringToFront) core.bringToFront();
+        }
+        if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length) selectionLinksLayer.addTo(map);
+        if(selectionLinksLayer._map) selectionLinksLayer.bringToFront();
+        return;
+      }
+
+      // draw pairwise lines
+      for(let i=0;i<ids.length;i++){
+        for(let j=i+1;j<ids.length;j++){
+          const a = markerByPlaceId.get(ids[i]); const b = markerByPlaceId.get(ids[j]);
+          if(!a||!b) continue;
+          const line = L.polyline([a.getLatLng(), b.getLatLng()], {color:'#444', weight:1.2, opacity:0.9}).addTo(selectionLinksLayer);
+          if(line.bringToFront) line.bringToFront();
+        }
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length) selectionLinksLayer.addTo(map);
+      if(selectionLinksLayer._map) selectionLinksLayer.bringToFront();
+    }
+
+    function getDepth(){ const v=document.querySelector('input[name="depth"]:checked').value; return parseInt(v,10); }
+
+    function bfsPlaces(startId, depth){
+      const seen=new Set([startId]); const q=[{id:startId,d:0}]; const places=new Set();
+      while(q.length){ const {id,d}=q.shift(); if(d===depth) continue; const ns=neighbors.get(id)||[]; for(const nb of ns){ if(seen.has(nb)) continue; seen.add(nb); q.push({id:nb,d:d+1}); if(typeById.get(nb)==='Place') places.add(nb); } }
+      return places;
+    }
+
+    function clearMapHighlights(){
+      markerByPlaceId.forEach(m=>{ const el=m.getElement(); if(el){ el.classList.remove('marker-active','marker-dim'); } });
+      selectionLinksLayer.clearLayers();
+      highlightBaseLinesFaint();
+    }
+
+    function keyForSet(set){ return [...set].sort().join('|'); }
+
+    let lastKey=null; let fitReq=null;
+    function gentleFitLatLngs(latlngs){
+      if(!latlngs || !latlngs.length) return;
+      if(fitReq) cancelAnimationFrame(fitReq);
+      fitReq = requestAnimationFrame(()=>{
+        try {
+          const targetBounds = L.latLngBounds(latlngs).pad(0.05);
+          const cur = map.getBounds();
+          if(cur && cur.contains && cur.contains(targetBounds)) return;
+          const maxZoom = Math.min(map.getZoom ? map.getZoom()+1 : 12, 12);
+          if(map.flyToBounds){
+            map.flyToBounds(targetBounds,{padding:[20,20], maxZoom, duration:0.5});
+          } else {
+            map.fitBounds(targetBounds, {maxZoom});
+          }
+        } catch(e){ console.warn('gentle fit skipped:', e); }
+      });
+    }
+
+    function highlightMarkers(placeIdSet,{pan=false}={}){
+      const any = placeIdSet && placeIdSet.size>0;
+      markerByPlaceId.forEach((m,id)=>{
+        const el=m.getElement(); if(!el) return; 
+        el.classList.remove('marker-active','marker-dim');
+        // Only add red border to places that should be highlighted - no dimming
+        if(any && placeIdSet.has(id)) el.classList.add('marker-active');
+      });
+      if(any && pan){
+        const key=keyForSet(placeIdSet);
+        if(key!==lastKey){
+          lastKey=key;
+          const latlngs=[...placeIdSet].map(pid=> markerByPlaceId.get(pid)).filter(Boolean).map(m=>m.getLatLng());
+          gentleFitLatLngs(latlngs);
+        }
+      }
+    }
+
+    // --- Base lines faint
+    function highlightBaseLinesFaint(){
+      for(const it of mapLinks){ it.line.setStyle({opacity:0.25, weight:1.4, color:'#888', dashArray:'4,6'}); } // UX-TUNE: base lines
+      if(!placeLinksLayer._map && mapLinks.length){ placeLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    // --- Draw strong selection lines ONLY for direct Place↔Place edges from selected place
+    function drawSelectionPlaceLinks(selectedPlaceId){
+      selectionLinksLayer.clearLayers();
+      if(!selectedPlaceId) return;
+      const mCenter = markerByPlaceId.get(selectedPlaceId); if(!mCenter) return;
+      const fromLL = mCenter.getLatLng();
+  // UX-TUNE: selection lines (black core + thin light-red overlay)
+      for(const pid of markerByPlaceId.keys()){
+        if(pid===selectedPlaceId) continue;
+        if(!DIRECT_SET.has(selectedPlaceId+'|'+pid)) continue;
+        const m2 = markerByPlaceId.get(pid); if(!m2) continue;
+        const toLL = m2.getLatLng();
+  const core = L.polyline([fromLL, toLL], {color:'#111', weight:1.6, opacity:0.95}).addTo(selectionLinksLayer);
+  const overlay = L.polyline([fromLL, toLL], {color:'#f28b8b', weight:0.5, opacity:0.7}).addTo(selectionLinksLayer);
+        if(core.bringToFront) core.bringToFront();
+        if(overlay.bringToFront) overlay.bringToFront();
+      }
+      if(!selectionLinksLayer._map && selectionLinksLayer.getLayers().length){ selectionLinksLayer.addTo(map); }
+      if(selectionLinksLayer._map){ selectionLinksLayer.bringToFront(); }
+    }
+
+    function resetKGStyles(){ nodesRaw.forEach(n=>{ nodes.update({id:n.id,color:n.color}); }); }
+
+    // KG tooltip (non-Place) - position near node using network canvas->DOM conversion
+    function showKgTooltipAt(nodeId, pointerDOM){
+      const meta=metaById.get(nodeId)||{};
+      kgttTitle.textContent=meta.name||nodeId;
+      kgttType.textContent=meta.type?`Type: ${meta.type}`:'';
+      kgttMeaning.textContent=meta.meaning?meta.meaning:'';
+
+      try{
+        // Try to compute DOM coordinates from the node position in the network canvas
+        let left=8, top=8;
+        const rect = kgContainer.getBoundingClientRect();
+        
+        // First try to use network node position
+        if(nodeId && typeof network.getPositions === 'function'){
+          const posMap = network.getPositions([nodeId]);
+          const pos = posMap && posMap[nodeId];
+          if(pos && typeof network.canvasToDOM === 'function'){
+            const dom = network.canvasToDOM(pos);
+            left = Math.round(dom.x + 15); // offset to avoid overlapping node
+            top  = Math.round(dom.y - 10);
+          } 
+        }
+        
+        // If network positioning failed, use pointer position as fallback
+        if((left === 8 && top === 8) && pointerDOM && pointerDOM.x != null && pointerDOM.y != null){
+          left = Math.round(pointerDOM.x - rect.left + 15);
+          top  = Math.round(pointerDOM.y - rect.top - 10);
+        }
+
+        // clamp to container bounds so tooltip stays visible
+        const tooltipWidth = 280; // max-width from CSS
+        const tooltipHeight = 100; // estimated height
+        left = Math.max(5, Math.min(left, rect.width - tooltipWidth - 5));
+        top = Math.max(5, Math.min(top, rect.height - tooltipHeight - 5));
+        
+        kgTooltip.style.left = left + 'px';
+        kgTooltip.style.top = top + 'px';
+      } catch(e){
+        console.warn('Tooltip positioning failed:', e);
+        // last-resort: place near top-left of KG area
+        kgTooltip.style.left = `8px`;
+        kgTooltip.style.top = `8px`;
+      }
+      kgTooltip.style.display='block';
+    }
+    function hideKgTooltip(){ kgTooltip.style.display='none'; }
+
+  function activateFromNode(id,{pan=false, pointer=null, fromMap=false}={}){
+      hideKgTooltip();
+      const depth=getDepth();
+      const places=bfsPlaces(id,depth);
+      const seen=new Set([id]);
+      const q=[{id,d:0}];
+      while(q.length){ const {id:cur,d}=q.shift(); if(d===depth) continue; const ns=neighbors.get(cur)||[]; for(const nb of ns){ if(seen.has(nb)) continue; seen.add(nb); q.push({id:nb,d:d+1}); } }
+
+      // Compute places to highlight with red border
+      let placesToHighlight = new Set();
+      
+      if(typeById.get(id) === 'Place'){
+        // For Place clicks coming from the MAP (user clicked a marker):
+        // - only highlight the twin Place node on the KG (red border)
+        // - do not add borders to other places or draw selection lines
+        if(fromMap){
+          placesToHighlight = new Set([id]);
+          // Open popup for place clicks from the map
+          const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
+          // clear any existing selection lines
+          selectionLinksLayer.clearLayers();
+        } else {
+          // For Place clicks coming from the KG or search: show clicked place AND other places that share values
+          placesToHighlight.add(id); // Always highlight the clicked place itself
+          const sharedValuePlaces = getSharedValuePlaces(id);
+          for(const sharedPlace of sharedValuePlaces) {
+            placesToHighlight.add(sharedPlace);
+          }
+          // Always show popup for place clicks
+          const m=markerByPlaceId.get(id); if(m){ try{ m.openPopup(); }catch(e){} }
+          // Draw direct place-to-place lines 
+          drawSelectionPlaceLinks(id);
+        }
+
+      } else {
+        // For Value/Context clicks: show all places connected to this node
+        placesToHighlight = getPlacesForNode(id);
+        // Clear any existing lines - no lines between places for value clicks
+        selectionLinksLayer.clearLayers();
+      }
+
+      // Highlight places with red border (no dimming)
+      highlightMarkers(placesToHighlight, {pan});
+      
+      // Highlight in KG
+      // If activation came from the map (marker click), only highlight the twin node
+      let kgHighlightSet;
+      if(fromMap){
+        kgHighlightSet = new Set([id]);
+      } else {
+        kgHighlightSet = new Set(seen);
+        kgHighlightSet.add(id); // include the clicked node
+      }
+      highlightKG(kgHighlightSet);
+
+      // Show tooltip for non-place nodes
+      if(typeById.get(id) !== 'Place'){ 
+        showKgTooltipAt(id, pointer); 
+      }
+
+      // Keep base lines faint if no selection lines drawn
+      if(!selectionLinksLayer.getLayers().length) highlightBaseLinesFaint();
+
+      // Select the node in KG and animate smooth physics for new relations
+      requestAnimationFrame(()=> {
+        if(!fromMap){
+          // For non-map activations, use vis selection to focus the node
+          try{ network.selectNodes([id], true); }catch(e){}
+        } else {
+          // For map marker clicks avoid changing vis selection (prevents blue selection ring)
+          try{ network.unselectAll(); }catch(e){}
+        }
+        // Trigger smooth animation when showing new relations
+        animateNewRelations();
+      });
+    }
+
+    // Show selected place name in counts area (overrides counts while a place is selected)
+    const countsEl=document.getElementById('counts');
+    const originalCountsText = countsEl.textContent;
+    function showSelectedPlaceName(id){
+      const meta = metaById.get(id);
+      if(meta && meta.type==='Place') countsEl.textContent = `Selected: ${meta.name}`;
+    }
+    function restoreCounts(){ updateCounts(); }
+
+    // Dim KG except active set
+    let kgReq=null;
+    // Track which nodes we last styled so we can restore them when needed
+    let lastKgActiveIds = new Set();
+    function highlightKG(activeNodeIds){
+      const active = new Set(activeNodeIds || []);
+      if(kgReq) cancelAnimationFrame(kgReq);
+      kgReq = requestAnimationFrame(()=>{
+        // Restore previously-active nodes that are no longer active
+        for(const prevId of lastKgActiveIds){
+          if(!active.has(prevId)){
+            const orig = nodesById.get(prevId);
+            if(orig && nodes.get(prevId)){
+              const base = COLOR_BY_TYPE[orig.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
+              const bg = (orig.color && orig.color.background) ? orig.color.background : base.bg;
+              nodes.update({ id: prevId, color: { background: bg, border: base.border }, font: {align:'center', size:8, color:'#333', multi:true, vadjust:4}, borderWidth: 0, size: (orig.size || 12) });
+            }
+          }
+        }
+
+        // Apply styling only to currently-active nodes; do not dim or touch other nodes
+        for(const id of active){
+          const n = nodesById.get(id);
+          if(!n || !nodes.get(id)) continue;
+          const base = COLOR_BY_TYPE[n.type] || {bg:'rgba(200,200,200,0.6)',border:'#666'};
+          let bg = (n.color && n.color.background) ? n.color.background : base.bg;
+          if(bg.startsWith('rgba(')){
+            bg = bg.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},1)`);
+          }
+          const activeColor = { background: bg, border: '#d32f2f' };
+          const newSize = (n.size || 12) + 6;
+          nodes.update({ id, color: activeColor, font: {align:'center', size:12, color:'#222', multi:true, vadjust:4}, borderWidth: 2, size: newSize });
+        }
+
+        // Update tracker
+        lastKgActiveIds = active;
+      });
+    }
+
+    /* ---------------------- Edge labels only on click ---------------------- */
+    let lastLabeledEdgeId=null;
+    function showEdgeLabel(edgeId){
+      if(lastLabeledEdgeId && edges.get(lastLabeledEdgeId)){
+        edges.update({id:lastLabeledEdgeId, label: undefined});
+      }
+      if(edgeId && edges.get(edgeId)){
+        const e = edges.get(edgeId);
+        edges.update({id:edgeId, label: e.dataLabel});
+        lastLabeledEdgeId=edgeId;
+      } else {
+        lastLabeledEdgeId=null;
+      }
+    }
+
+    /* ---------------------- Wiring ---------------------- */
+    function onNetworkClick(params){
+      // Node click takes precedence
+      if(params && params.nodes && params.nodes.length){
+        const id=params.nodes[0];
+        // Always expand the clicked node to show its neighbors
+        expandNode(id);
+        activateFromNode(id,{pan:true,pointer:params.pointer && params.pointer.DOM});
+        showSelectedPlaceName(id);
+        return;
+      }
+      if(params && params.edges && params.edges.length){
+        showEdgeLabel(params.edges[0]);
+        return;
+      }
+  // background click: clear selections but do not collapse graph
+  hideKgTooltip();
+  clearMapHighlights();
+  resetKGStyles();
+  showEdgeLabel(null);
+  restoreCounts();
+    }
+    network.on('click', onNetworkClick);
+
+    // Map marker ↔ KG selection
+    markerByPlaceId.forEach((m,id)=>{
+      m.on('click', ()=>{ activateFromNode(id,{pan:true, fromMap:true}); });
+      m.on('mouseover', ()=>{
+        const depth=getDepth(); const places=bfsPlaces(id,depth); highlightMarkers(places,{pan:false}); // do not change lines on hover
+      });
+    });
+
+    document.querySelectorAll('input[name="depth"]').forEach(r=> r.addEventListener('change', ()=>{
+      const sel=network.getSelectedNodes(); if(sel.length){ activateFromNode(sel[0],{pan:false}); }
+    }));
+
+    const searchEl=document.getElementById('search');
+    const btnClear=document.getElementById('btnClear');
+    function doSearch(){
+      const q=searchEl.value.trim().toLowerCase();
+      if(!q){ return; }
+      const match = nodesRaw.find(n=> (n.name||'').toLowerCase().includes(q) || (n.label||'').toLowerCase().includes(q));
+      if(match){ network.focus(match.id,{scale:1.0,animation:{duration:500}}); activateFromNode(match.id,{pan:true}); if(typeById.get(match.id)==='Place'){ const m=markerByPlaceId.get(match.id); if(m){m.openPopup();} } }
+    }
+    searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); });
+    btnClear.addEventListener('click', ()=>{ searchEl.value=''; hideKgTooltip(); clearMapHighlights(); resetKGStyles(); network.unselectAll(); showEdgeLabel(null); });
+
+    // Initial filters apply
+    applyFilters();
+
+    // Resize handling (throttled)
+    let resizeTimer=null;
+    window.addEventListener('resize', ()=>{
+      if(resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(()=>{ try{ map.invalidateSize(); network.redraw(); }catch(e){} }, 120);
+    }, {passive:true});
+
+    window.addEventListener('error', (e)=>{
+      if(e && e.message && e.message.includes('ResizeObserver loop')){ e.preventDefault(); }
+    });
+
+    /* ---------------------- Tests ---------------------- */
+    function runTests(){
+      const results=[]; const log=(n,c)=>results.push({name:n,pass:!!c});
+      try{
+        const valId='v_pilgrimage';
+        activateFromNode(valId,{pan:false});
+        const places=bfsPlaces(valId, getDepth());
+        log('T1: value to places (>=1)', places.size>=1);
+
+        const placeId='p_capernaum';
+        activateFromNode(placeId,{pan:false});
+        log('T2: place selection exists', network.getSelectedNodes().includes(placeId));
+
+        const d2Places=bfsPlaces('v_hist',2);
+        const d1Places=bfsPlaces('v_hist',1);
+        log('T3: 1-hop <= 2-hop', d1Places.size<=d2Places.size);
+
+        log('T4: direct place links drawn (base)', mapLinks.length>=1);
+
+        activateFromNode('v_hist',{pan:false});
+        log('T4b: selecting Value draws 0 selection lines', selectionLinksLayer.getLayers().length===0);
+
+        activateFromNode('p_capernaum',{pan:false});
+        log('T4c: selecting Place draws >=1 selection lines', selectionLinksLayer.getLayers().length>=1);
+        const capMarker = markerByPlaceId.get('p_capernaum');
+        log('T4d: popup opens for selected Place', !!capMarker && capMarker.isPopupOpen && capMarker.isPopupOpen());
+
+        const anyLabeledInitially = edges.get().some(e=> !!e.label);
+        log('T5: no edge labels initially', !anyLabeledInitially);
+        const firstEdgeId = edges.getIds()[0];
+        showEdgeLabel(firstEdgeId);
+        const labeledNow = !!edges.get(firstEdgeId).label;
+        log('T6: edge label appears after showEdgeLabel()', labeledNow);
+        showEdgeLabel(null);
+        const clearedAgain = !edges.get().some(e=> !!e.label);
+        log('T7: edge label cleared after showEdgeLabel(null)', clearedAgain);
+
+        activateFromNode('v_hist',{pan:false, pointer:{x:100, y:100}});
+        log('T8: tooltip shown for non-Place selection', document.getElementById('kgTooltip').style.display==='block');
+        activateFromNode('p_capernaum',{pan:false});
+        log('T9: tooltip hidden for Place selection', document.getElementById('kgTooltip').style.display==='none');
+
+        onNetworkClick({nodes:['p_capernaum'], edges:['p_capernaum->v_sacredgeo'], pointer:{DOM:{x:120,y:80}}});
+        log('T10: node click opens popup and draws lines even if edge under cursor',
+            selectionLinksLayer.getLayers().length>=1 && markerByPlaceId.get('p_capernaum').isPopupOpen && markerByPlaceId.get('p_capernaum').isPopupOpen());
+
+        const zBefore = map.getZoom();
+        activateFromNode('p_capernaum',{pan:true});
+        setTimeout(()=>{
+          results.push({name:'T11: pan zoom limited to +1', pass: map.getZoom() <= zBefore + 1.01});
+
+          // New: ensure overlay count equals 2x direct links for selected place
+          const expectedDirect = DIRECT_PLACE_LINKS.filter(e=> e.from==='p_capernaum' || e.to==='p_capernaum').length;
+          const layersCount = selectionLinksLayer.getLayers().length;
+          results.push({name:'T12: selection draws black+red overlays (2x links)', pass: layersCount === expectedDirect*2});
+
+          const txt = results.map(r=>`${r.pass?'✅':'❌'} ${r.name}`).join('  |  ');
+          console.log('%cMap+KG tests:', 'font-weight:bold', txt);
+          alert('Map+KG tests finished. Check console for details.\n' + txt);
+        }, 400);
+        return;
+      } catch(e){
+        console.error('Test error', e);
+        results.push({name:'EXCEPTION',pass:false});
+      }
+      const txt = results.map(r=>`${r.pass?'✅':'❌'} ${r.name}`).join('  |  ');
+      console.log('%cMap+KG tests:', 'font-weight:bold', txt);
+      alert('Map+KG tests finished. Check console for details.\n' + txt);
+    }
+    document.getElementById('btnTests').addEventListener('click', runTests);
+  </script>
+</body>
+</html>
