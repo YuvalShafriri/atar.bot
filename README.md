@@ -23,10 +23,9 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 - Execution frameworks and guidelines
 - Evidence-based evaluation criteria
 
-**For AI Usage:** 
-**Direct usage**: through ['Cultural-Insite GPTs'](https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop).
-**Or**: Upload [`prompts/bot-brain.md`](prompts/bot-brain.md) to any AI environment (ChatGPT, Claude, Gemini,Quen, etc) with your own site data, to replicate Cultural-Insites capabilities.
-work best in project enviroment (chatgpt projects, gemini gems, cloud projects, etc
+**For AI Usage:**
+- **Direct usage**: through ['Cultural-Insite GPTs'](https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop)
+- **Custom implementation**: Upload [`prompts/bot-brain.md`](prompts/bot-brain.md) to any AI environment (ChatGPT, Claude, Gemini, Quen, etc) with your own site data to replicate Cultural-Insites capabilities. Works best in project environments (ChatGPT Projects, Gemini Gems, Cloud Projects, etc)
 
 ## CBSA Assessment Process (5-Step Framework)
 
