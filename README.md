@@ -1,5 +1,7 @@
 # Cultural Insights Workshop - Cultural-Insites Assistant
 
+🔗 **Live Workshop Application**: https://alephplace.com/cipa25/
+
 ## Overview
 This is the Cultural Insights Workshop (CIPA 2025) application by Dr. Yael Alef and Yuval Shafriri, exploring Context-Based Significance Assessment (CBSA) methodology for heritage evaluation with AI assistance.
 
@@ -11,6 +13,7 @@ This workshop demonstrates practical integration of:
 - Visual interfaces for complex heritage data
 
 The goal is maintaining professional heritage assessment standards while leveraging AI for enhanced analysis, broader perspectives, and improved documentation quality.
+
 ## The Cultural-Insites AI Assistant
 
 ### Core Concept
@@ -18,14 +21,21 @@ Cultural-Insites is an AI assistant for systematic cultural heritage assessment 
 
 ### The Bot Brain
 The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bot-brain.md) containing:
--  CBSA methodology summary and process steps
+- CBSA methodology summary and process steps
 - Professional heritage assessment protocols
 - Execution frameworks and guidelines
 - Evidence-based evaluation criteria
 
+**Key Bot Functions:**
+
+- **Contextual analysis assistance** - Helps identify and analyze cultural contexts
+- **Evidence-based evaluation** - Guides systematic significance assessment
+- **Professional documentation** - Supports academic-standard reporting
+- **Content-aware question generation** - Creates relevant questions for any assessment step based on current content
+
 **For AI Usage:**
 - **Direct usage**: through ['Cultural-Insite GPTs'](https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop)
-- **Custom implementation**: Upload [`prompts/bot-brain.md`](prompts/bot-brain.md) to any AI environment (ChatGPT, Claude, Gemini, Quen, etc) with your own site data to replicate Cultural-Insites capabilities. Works best in project environments (ChatGPT Projects, Gemini Gems, Cloud Projects, etc)
+- **Custom implementation**: Upload [`prompts/bot-brain.md`](prompts/bot-brain.md) to any AI environment (ChatGPT, Claude, Gemini, Qwen, etc) with your own site data to replicate Cultural-Insites capabilities. Works best in project environments (ChatGPT Projects, Gemini Gems, Cloud Projects, etc)
 
 ## CBSA Assessment Process (5-Step Framework)
 
@@ -59,7 +69,19 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 **Actions:** Synthetic writing integrating all findings, emphasizing contribution to values
 **Output:** Professional narrative statement summarizing all contexts and values
 
- ## CBSA Principles
+**Post-Assessment Options:**
+- **Semiotic Reading** - Analysis of symbols, metaphors, and cultural codes derived from site data and values
+- **Educational activities/Community Uses** - Ideas for educational activities and community engagement grounded in assessed values
+- **Alternative Framings** - Generate 2-3 alternative narrative perspectives
+- **Social Media Analysis** - Web search and sentiment analysis of posts about the heritage site
+- **Knowledge Graph** - Generates a values-oriented ontology from the assessment. Creates an interactive, queryable HTML visualization of site attributes, relationships, and significance connections.
+
+### Stage 6: Final Pulse Check ✅
+**Goal:** Comprehensive audit and credibility review of the entire assessment
+**Actions:** Systematic review of evidence, methodology validation, coherence check
+**Output:** Quality assurance confirmation and final recommendations
+
+## CBSA Principles
 
 - **Context-driven significance assessment** - Understanding heritage within its full historical, social, and cultural context
 - **Evidence-based value identification** - All assessments must be supported by documented evidence
@@ -70,7 +92,6 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 ## Resources
 - **Live GPT:** https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop
 - **Workshop Materials:** https://drive.google.com/drive/folders/1Qqs0x8Raks34Ykmn82VXeuiGdOq4T7R5
-- **Live Application:** https://alephplace.com/cipa25/
 ---
 
 *This README serves also as general context for AI systems to understand the Cultural Insights Workshop methodology.
