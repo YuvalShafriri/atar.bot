@@ -3,6 +3,14 @@
 ## Overview
 This is the Cultural Insights Workshop (CIPA 2025) application by Dr. Yael Alef and Yuval Shafriri, exploring Context-Based Significance Assessment (CBSA) methodology for heritage evaluation with AI assistance.
 
+## Workshop Context
+This workshop demonstrates practical integration of:
+- CBSA methodology with systematic assessment frameworks
+- AI assistance for research, analysis, and documentation
+- Collaborative tools for knowledge sharing and discussion
+- Visual interfaces for complex heritage data
+
+The goal is maintaining professional heritage assessment standards while leveraging AI for enhanced analysis, broader perspectives, and improved documentation quality.
 ## The Cultural-Insites AI Assistant
 
 ### Core Concept
@@ -10,7 +18,7 @@ Cultural-Insites is an AI assistant for systematic cultural heritage assessment 
 
 ### The Bot Brain
 The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bot-brain.md) containing:
-- Complete CBSA methodology and process steps
+-  CBSA methodology summary and process steps
 - Professional heritage assessment protocols
 - Execution frameworks and guidelines
 - Evidence-based evaluation criteria
@@ -49,37 +57,19 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 **Actions:** Synthetic writing integrating all findings, emphasizing contribution to values
 **Output:** Professional narrative statement summarizing all contexts and values
 
-## Key Mnemonics for Assessment
-
-- **SMART:** Specific, Measurable, Achievable, Relevant, Time-bound
-- **PEACE:** Prepare, Engage, Account, Closure, Evaluate
-- **VALUE:** Vision, Assets, Legacy, Understanding, Expression
-- **CORE:** Context, Objects, Relationships, Evolution
-- **CLEAR:** Concise, Logical, Engaging, Actionable, Respectful
-
-## CBSA Principles
+ ## CBSA Principles
 
 - **Context-driven significance assessment** - Understanding heritage within its full historical, social, and cultural context
 - **Evidence-based value identification** - All assessments must be supported by documented evidence
 - **Systematic comparative analysis** - Comparing assets using standardized criteria
 - **Professional documentation standards** - Maintaining academic and professional rigor
 
-## Workshop Context
-
-This workshop demonstrates practical integration of:
-- CBSA methodology with systematic assessment frameworks
-- AI assistance for research, analysis, and documentation
-- Collaborative tools for knowledge sharing and discussion
-- Visual interfaces for complex heritage data
-
-The goal is maintaining professional heritage assessment standards while leveraging AI for enhanced analysis, broader perspectives, and improved documentation quality.
 
 ## Resources
-
 - **Live GPT:** https://chatgpt.com/g/g-68a7547de5dc819194f1c7eb80e0e234-caltural-insites-v5-cipa-workshop
 - **Workshop Materials:** https://drive.google.com/drive/folders/1Qqs0x8Raks34Ykmn82VXeuiGdOq4T7R5
 - **Live Application:** https://alephplace.com/cipa25/
-
 ---
 
-*This README serves as context for AI systems to understand the Cultural Insights Workshop methodology. For complete bot instructions, see [`prompts/bot-brain.md`](prompts/bot-brain.md).*
+*This README serves also as general context for AI systems to understand the Cultural Insights Workshop methodology.
+ For complete bot instructions, see [`prompts/bot-brain.md`](prompts/bot-brain.md).*
