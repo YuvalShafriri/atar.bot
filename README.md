@@ -1,4 +1,4 @@
-# Cultural Insights Workshop - Cultural-Insites Assistant
+# Cultural InSites Workshop - AI Assistant for significance assessment
 
 🔗 **Live Workshop Application**: https://alephplace.com/cipa25/
 
@@ -83,10 +83,10 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 
 ## CBSA Principles
 
-- **Context-driven significance assessment** - Understanding heritage within its full historical, social, and cultural context
-- **Evidence-based value identification** - All assessments must be supported by documented evidence
+- **Context-driven significance assessment** - Understanding heritage sites within their full historical, social, and cultural context and the relationships between them 
+- **Transperant value identification** - All assessments must be supported by documented evidence and linked to thier attributes
 - **Systematic comparative analysis** - Comparing assets using standardized criteria
-- **Professional documentation standards** - Maintaining academic and professional rigor
+- **Professional documentation standards** - Maintaining academic rigor and professional ethics 
 
 
 ## Resources
