@@ -1,8 +1,7 @@
 # Cultural InSites Workshop - AI Assistant for significance assessment
 
-🔗 **Live Workshop Application**: https://alephplace.com/cipa25/
--
-🔗 **The bot instructions**: [`prompts/bot-brain.md`](prompts/bot-brain.md)
+- 🔗 **Live Workshop Application**: https://alephplace.com/cipa25/
+- 🔗 **The bot instructions**: [`prompts/bot-brain.md`](prompts/bot-brain.md)
 
 ## Overview
 This is the Cultural Insights Workshop (CIPA 2025) application by Dr. Yael Alef and Yuval Shafriri, exploring Context-Based Significance Assessment (CBSA) methodology for heritage evaluation with AI assistance.
