@@ -44,7 +44,7 @@ The Cultural-Insites intelligence comes from [`prompts/bot-brain.md`](prompts/bo
 **Actions:** Validate required fields, create summary and gaps table
 **Areas:** Location & Setting, Original function & Dates, Evolution/Phases, Contexts, Physical description, Finds/Artefacts
 
-### Step 1: Context Analysis and Asset Description 🕸️
+### Step 1: 🕸️ Context Analysis and Asset Description  
 **Goal:** Comprehensive asset description (800+ words) based on identified contexts
 **Actions:** Information processing, context identification (structural, historical, social), structured description writing
 **Output:** Introduction, historical development, timeline, key contexts
